@@ -1,0 +1,38 @@
+Tiny Core desktop payload for original Xbox Linux bringup
+
+Version: 11.x/x86
+Core URL: https://distro.ibiblio.org/tinycorelinux/11.x/x86/release/distribution_files/core.gz
+core.gz MD5: 0fd08c73e84b26aabbd0d12006d64855
+
+Extension base URL:
+https://distro.ibiblio.org/tinycorelinux/11.x/x86/tcz
+
+Desktop extension closure:
+Xorg-fonts.tcz
+libpng.tcz
+freetype.tcz
+libjpeg-turbo.tcz
+bzip2-lib.tcz
+libXau.tcz
+libXdmcp.tcz
+libxcb.tcz
+libX11.tcz
+libXext.tcz
+imlib2.tcz
+libICE.tcz
+libSM.tcz
+libXt.tcz
+libXmu.tcz
+Xlibs.tcz
+libXrender.tcz
+libXfixes.tcz
+libXcursor.tcz
+fltk-1.3.tcz
+imlib2-bin.tcz
+Xprogs.tcz
+libfontenc.tcz
+libXfont.tcz
+Xfbdev.tcz
+flwm_topside.tcz
+aterm.tcz
+wbar.tcz

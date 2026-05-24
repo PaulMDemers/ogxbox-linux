@@ -1,0 +1,286 @@
+From deffb9b76614ae92487ad666564e34c40469b65e Mon Sep 17 00:00:00 2001
+From: Paul Demers <paulmdemers@gmail.com>
+Date: Sun, 24 May 2026 16:46:24 -0400
+Subject: [PATCH] Speed up Cromwell ISO Linux boot
+
+---
+ Makefile               | 10 +++----
+ boot/BootResetAction.c | 12 ++++++++
+ drivers/ide/BootIde.c  | 66 ++++++++++++++++++++++++++++++------------
+ drivers/ide/BootIde.h  |  1 +
+ fs/cdrom/iso9660.c     | 37 +++++++++++++----------
+ 5 files changed, 87 insertions(+), 39 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index 7cd183d..7d4e958 100644
+--- a/Makefile
++++ b/Makefile
+@@ -29,6 +29,7 @@ INCLUDE = -isystem$(TOPDIR)/include \
+ 
+ #These are intended to be non-overridable.
+ CROM_CFLAGS=$(INCLUDE) -m32 -fno-builtin -nostdinc -fno-stack-protector -no-pie -DGITREV=\\\"$(GITREV)\\\"
++CROM_CFLAGS += $(EXTRA_CROM_CFLAGS)
+ 
+ #You can override these if you wish.
+ CFLAGS= -m32 -O2 -g -march=pentium -nostdinc -pipe -fomit-frame-pointer -Wstrict-prototypes -fno-builtin -fno-stack-protector -no-pie
+@@ -241,10 +242,10 @@ cromwell.bin:
+ 
+ # This is a local executable, so don't use a cross compiler...
+ bin/imagebld: lib/imagebld/imagebld.c lib/crypt/sha1.c lib/crypt/md5.c
+-	gcc -m32 -Ilib/crypt -o bin/sha1.o -c lib/crypt/sha1.c
+-	gcc -m32 -Ilib/crypt -o bin/md5.o -c lib/crypt/md5.c
+-	gcc -m32 -Ilib/crypt -o bin/imagebld.o -c lib/imagebld/imagebld.c
+-	gcc -m32 -o bin/imagebld bin/imagebld.o bin/sha1.o bin/md5.o
++	gcc -Ilib/crypt -o bin/sha1.o -c lib/crypt/sha1.c
++	gcc -Ilib/crypt -o bin/md5.o -c lib/crypt/md5.c
++	gcc -Ilib/crypt -o bin/imagebld.o -c lib/imagebld/imagebld.c
++	gcc -o bin/imagebld bin/imagebld.o bin/sha1.o bin/md5.o
+ 
+ imagecompress: obj/image-crom.bin bin/imagebld
+ 	cp obj/image-crom.bin obj/image-crom.bin.tmp
+@@ -252,4 +253,3 @@ imagecompress: obj/image-crom.bin bin/imagebld
+ 	bin/imagebld -rom obj/2blimage.bin obj/image-crom.bin.tmp.gz image/cromwell.bin image/cromwell_1024.bin
+ 	bin/imagebld -xbe xbe/xromwell.xbe obj/image-crom.bin
+ 	bin/imagebld -vml boot_vml/disk/vmlboot obj/image-crom.bin
+-
+diff --git a/boot/BootResetAction.c b/boot/BootResetAction.c
+index 6610c54..24a385e 100644
+--- a/boot/BootResetAction.c
++++ b/boot/BootResetAction.c
+@@ -22,6 +22,7 @@
+ #include "video.h"
+ #include "memory_layout.h"
+ #include "menu/iconmenu/IconMenu.h"
++#include "MenuActions.h"
+ #include "lib/misc/LED.h"
+ #include "drivers/video/BootVideo.h"
+ 
+@@ -218,6 +219,17 @@ extern void BootResetAction ( void ) {
+ 
+ //	printk("i2C=%d SMC=%d, IDE=%d, tick=%d una=%d unb=%d\n", nCountI2cinterrupts, nCountInterruptsSmc, nCountInterruptsIde, BIOS_TICK_COUNT, nCountUnusedInterrupts, nCountUnusedInterruptsPic2);
+ 	IconMenuInit();
++#ifdef XBOX_LINUX_AUTOBOOT_CD
++	{
++		int i;
++		for (i = 0; i < 2; ++i) {
++			if (tsaHarddiskInfo[i].m_fAtapi) {
++				printk("AUTOBOOT: CD-ROM (hd%c)\n", i ? 'b' : 'a');
++				PrepareBootFromCD(&i);
++			}
++		}
++	}
++#endif
+ 	IconMenu();
+ 	//Should never come back here.
+ 	while(1);
+diff --git a/drivers/ide/BootIde.c b/drivers/ide/BootIde.c
+index 78425d5..059c2df 100644
+--- a/drivers/ide/BootIde.c
++++ b/drivers/ide/BootIde.c
+@@ -258,7 +258,7 @@ int BootIdeWriteAtapiData(unsigned uIoBase, void * buf, size_t size)
+ 
+ /* -------------------------------------------------------------------------------- */
+ 
+-int BootIdeIssueAtapiPacketCommandAndPacket(int nDriveIndex, u8 *pAtapiCommandPacket12Bytes)
++int BootIdeIssueAtapiPacketCommandAndPacketLimit(int nDriveIndex, u8 *pAtapiCommandPacket12Bytes, u16 byteCountLimit)
+ {
+ 	tsIdeCommandParams tsicp = IDE_DEFAULT_COMMAND;
+ 	unsigned 	uIoBase = tsaHarddiskInfo[nDriveIndex].m_fwPortBase;
+@@ -266,7 +266,7 @@ int BootIdeIssueAtapiPacketCommandAndPacket(int nDriveIndex, u8 *pAtapiCommandPa
+ 	tsicp.m_bDrivehead = IDE_DH_DEFAULT | IDE_DH_HEAD(0) | IDE_DH_CHS | IDE_DH_DRIVE(nDriveIndex);
+ 	IoOutputByte(IDE_REG_DRIVEHEAD(uIoBase), tsicp.m_bDrivehead);
+ 
+-	tsicp.m_wCylinder=2048;
++	tsicp.m_wCylinder=byteCountLimit;
+ 	BootIdeWaitNotBusy(uIoBase);
+ 	if(BootIdeIssueAtaCommand(uIoBase, IDE_CMD_ATAPI_PACKET, &tsicp))
+ 	{
+@@ -303,6 +303,11 @@ int BootIdeIssueAtapiPacketCommandAndPacket(int nDriveIndex, u8 *pAtapiCommandPa
+ 	return 0;
+ }
+ 
++int BootIdeIssueAtapiPacketCommandAndPacket(int nDriveIndex, u8 *pAtapiCommandPacket12Bytes)
++{
++	return BootIdeIssueAtapiPacketCommandAndPacketLimit(nDriveIndex, pAtapiCommandPacket12Bytes, 2048);
++}
++
+ 
+ /* -------------------------------------------------------------------------------- */
+ 
+@@ -837,6 +842,9 @@ int BootIdeReadSector(int nDriveIndex, void * pbBuffer, unsigned int block, int
+                	// CD - DVD ROM
+ 		u8 ba[12];
+ 		int nReturn;
++		int bytesRead = 0;
++		int sectors;
++		int byteCountLimit;
+ 
+ 		IoInputByte(IDE_REG_STATUS(uIoBase));
+ 		if(IoInputByte(IDE_REG_STATUS(uIoBase)&1))
+@@ -859,8 +867,14 @@ int BootIdeReadSector(int nDriveIndex, void * pbBuffer, unsigned int block, int
+ 			printk("Error for drive %i: Must have 2048 byte sector for ATAPI!!!!!\n",nDriveIndex);
+ 			return 1;
+ 		}
+-
+-		tsicp.m_wCylinder=2048;
++		sectors = n_bytes / 2048;
++		if(sectors < 1) sectors = 1;
++		if(sectors > 0xffff) sectors = 0xffff;
++		byteCountLimit = sectors * 2048;
++		if(byteCountLimit > 0xfffe) byteCountLimit = 0xfffe;
++		byteCountLimit &= ~1;
++
++		tsicp.m_wCylinder=byteCountLimit;
+ 		memset(ba, 0, sizeof(ba));
+ 		//memset(&ba[0], 0, 12);
+ 		ba[0]=0x28;
+@@ -868,10 +882,10 @@ int BootIdeReadSector(int nDriveIndex, void * pbBuffer, unsigned int block, int
+ 		ba[3]=block>>16;
+ 		ba[4]=block>>8;
+ 		ba[5]=block;
+-		ba[7]=0;
+-		ba[8]=1;
++		ba[7]=sectors>>8;
++		ba[8]=sectors;
+ 
+-		if(BootIdeIssueAtapiPacketCommandAndPacket(nDriveIndex, ba))
++		if(BootIdeIssueAtapiPacketCommandAndPacketLimit(nDriveIndex, ba, byteCountLimit))
+ 		{
+ //			printk("BootIdeReadSector Unable to issue ATAPI command\n");
+ 			return 1;
+@@ -879,23 +893,39 @@ int BootIdeReadSector(int nDriveIndex, void * pbBuffer, unsigned int block, int
+ 
+ //		printk("BootIdeReadSector issued ATAPI command\n");
+ 
+-		nReturn=IoInputByte(IDE_REG_CYLINDER_LSB(uIoBase));
+-		nReturn |=IoInputByte(IDE_REG_CYLINDER_MSB(uIoBase))<<8;
++		{
++		int zeroBytePhases = 0;
++		while(bytesRead < n_bytes) {
++			nReturn=IoInputByte(IDE_REG_CYLINDER_LSB(uIoBase));
++			nReturn |=IoInputByte(IDE_REG_CYLINDER_MSB(uIoBase))<<8;
+ //		printk("nReturn = %x\n", nReturn);
+ 
+-		if(nReturn>2048) nReturn=2048;
+-		status = BootIdeReadData(uIoBase, pbBuffer, nReturn);
+-		if (status != 0)
+-		{
+-			while(1)
++			if(nReturn == 0) {
++				wait_ms(1);
++				zeroBytePhases++;
++				if(zeroBytePhases > 5000) {
++					printk("BootIdeReadSector ATAPI zero-byte phase timeout, block=%d read=%d/%d status=0x%02X error=0x%02X\n",
++						block, bytesRead, n_bytes, IoInputByte(IDE_REG_ALTSTATUS(uIoBase)), IoInputByte(IDE_REG_ERROR(uIoBase)));
++					return 1;
++				}
++				continue;
++			}
++			if(nReturn > (n_bytes - bytesRead)) nReturn = n_bytes - bytesRead;
++			status = BootIdeReadData(uIoBase, ((u8 *)pbBuffer) + bytesRead, nReturn);
++			if (status != 0)
+ 			{
+-				wait_ms(50);
+-				status = BootIdeReadData(uIoBase, pbBuffer, nReturn);
+-				if (status == 0)
++				while(1)
+ 				{
+-					break;
++					wait_ms(1);
++					status = BootIdeReadData(uIoBase, ((u8 *)pbBuffer) + bytesRead, nReturn);
++					if (status == 0)
++					{
++						break;
++					}
+ 				}
+ 			}
++			bytesRead += nReturn;
++		}
+ 		}
+ 		return 0;
+ 	}
+diff --git a/drivers/ide/BootIde.h b/drivers/ide/BootIde.h
+index e5e56d5..deeef83 100644
+--- a/drivers/ide/BootIde.h
++++ b/drivers/ide/BootIde.h
+@@ -41,6 +41,7 @@ typedef enum {
+ int BootIdeInit(void);
+ int BootIdeReadSector(int nDriveIndex, void * pbBuffer, unsigned int block, int byte_offset, int n_bytes) ;
+ int BootIdeReadData(unsigned uIoBase, void * buf, size_t size);
++int BootIdeIssueAtapiPacketCommandAndPacketLimit(int nDriveIndex, u8 *pAtapiCommandPacket12Bytes, u16 byteCountLimit);
+ int DriveSecurityChange(unsigned uIoBase, int driveId, ide_command_t ide_cmd, unsigned char *password);
+ int CalculateDrivePassword(int driveId, unsigned char *key);
+ 
+diff --git a/fs/cdrom/iso9660.c b/fs/cdrom/iso9660.c
+index 0559b45..be03545 100644
+--- a/fs/cdrom/iso9660.c
++++ b/fs/cdrom/iso9660.c
+@@ -145,12 +145,14 @@ unsigned long read_file(int driveId, struct iso_directory_record *dir_read, char
+ 	unsigned long read_size;
+ 	unsigned long bytes_read;
+ 	unsigned long offset;
++	unsigned long sectors_to_read;
++	unsigned long bytes_to_read;
++	unsigned long bytes_to_copy;
+ 	int i;
+ 	char *tmpbuff;
+ 
+ 
+ 	offset = *((unsigned long *)(dir_read->extent));
+-	tmpbuff = (char *) malloc(ISO_BLOCKSIZE);
+ 
+ 	if (max_bytes_to_read > *((unsigned int *)(dir_read->size)) ) {
+ 		read_size = *(unsigned long *)dir_read->size;
+@@ -158,26 +160,30 @@ unsigned long read_file(int driveId, struct iso_directory_record *dir_read, char
+ 	else read_size = *(unsigned long *)max_bytes_to_read;
+ 
+ 	bytes_read = read_size;
+-
+-	if(read_size <= ISO_BLOCKSIZE) {
+-		read_size = ISO_BLOCKSIZE;
+-	} else {
+-		read_size+=(ISO_BLOCKSIZE - (read_size % ISO_BLOCKSIZE));
+-	}
++	sectors_to_read = (read_size + ISO_BLOCKSIZE - 1) >> ISOFS_BLOCK_BITS;
++	tmpbuff = (char *) malloc(8 * ISO_BLOCKSIZE);
+ 
+ #ifdef DEBUG_ISO
+ 	printk("         read_file sector %d %d\n", offset, read_size);
+ #endif
+-	for(i = 0; i < (read_size >> ISOFS_BLOCK_BITS) ; i++) {
+-		memset(tmpbuff, 0x0, ISO_BLOCKSIZE);
+-		BootIdeReadSector(driveId, tmpbuff, offset , 0, ISO_BLOCKSIZE);
+-		offset++;
+-		if(((i+1) * ISO_BLOCKSIZE) > read_size) {
+-			memcpy(&buffer[i * ISO_BLOCKSIZE], tmpbuff, (i * ISO_BLOCKSIZE) - read_size);
+-		} else {
+-			memcpy(&buffer[i * ISO_BLOCKSIZE], tmpbuff, ISO_BLOCKSIZE);
++	for(i = 0; i < sectors_to_read; i += 8) {
++		unsigned long chunk_sectors = sectors_to_read - i;
++		if(chunk_sectors > 8) chunk_sectors = 8;
++		bytes_to_read = chunk_sectors << ISOFS_BLOCK_BITS;
++		memset(tmpbuff, 0x0, bytes_to_read);
++		if((i & 0x7f) == 0) printk(".");
++		if(BootIdeReadSector(driveId, tmpbuff, offset, 0, bytes_to_read)) {
++			printk(" read error at sector %d\n", offset);
++			free(tmpbuff);
++			return -1;
+ 		}
++		offset += chunk_sectors;
++
++		bytes_to_copy = bytes_read - (i << ISOFS_BLOCK_BITS);
++		if(bytes_to_copy > bytes_to_read) bytes_to_copy = bytes_to_read;
++		memcpy(&buffer[i * ISO_BLOCKSIZE], tmpbuff, bytes_to_copy);
+ 	}
++	printk("\n");
+ 	free(tmpbuff);
+ 
+ 	return bytes_read;
+@@ -218,4 +224,3 @@ int BootIso9660GetFile(int driveId, const char *szcPath, unsigned char *pbaFile,
+ 		return -1;
+ 	}
+ }
+-
+-- 
+2.54.0
+

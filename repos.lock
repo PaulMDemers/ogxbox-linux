@@ -1,0 +1,41 @@
+{
+  "repositories": [
+    {
+      "name": "ogxbox-linux",
+      "path": ".",
+      "origin": "https://github.com/PaulMDemers/ogxbox-linux.git"
+    },
+    {
+      "name": "xbox-linux",
+      "path": "sources/haxar-xbox-linux-sparse",
+      "origin": "https://github.com/PaulMDemers/xbox-linux.git",
+      "upstream": "https://github.com/haxar/xbox-linux.git",
+      "branch": "xbox-5.8.1-bringup",
+      "head": "cc89bd62a"
+    },
+    {
+      "name": "cromwell",
+      "path": "sources/cromwell-xboxdev",
+      "origin": "https://github.com/PaulMDemers/cromwell.git",
+      "upstream": "https://github.com/XboxDev/cromwell.git",
+      "branch": "xbox-linux-fast-atapi-autoboot",
+      "head": "deffb9b"
+    },
+    {
+      "name": "xbox-linux-initramfs",
+      "path": "sources/xbox-linux-initramfs",
+      "origin": "https://github.com/PaulMDemers/xbox-linux-initramfs.git",
+      "upstream": "https://github.com/XboxDev/xbox-linux-initramfs.git",
+      "branch": "xbox-linux-bringup",
+      "head": "026eaf3"
+    },
+    {
+      "name": "xemu",
+      "path": "sources/xemu",
+      "origin": "https://github.com/PaulMDemers/xemu.git",
+      "upstream": "https://github.com/xemu-project/xemu.git",
+      "branch": "master",
+      "head": "e72e76bd1f"
+    }
+  ]
+}

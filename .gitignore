@@ -1,0 +1,49 @@
+# Generated build output
+/artifacts/
+/build/
+/downloads/
+/initramfs-smoke/
+/upstream/
+
+# External source checkouts live in their own repos.
+/sources/
+
+# Private emulator inputs and generated runtime state
+/Xbox-Emulator-Files/
+/run/*.bin
+/run/*.qcow2
+/run/*.err
+/run/*.out
+/run/*.log
+/run/*.png
+/run/*.txt
+/run/*.toml
+/run/screenshots/
+
+# Generated boot media / firmware / disk images
+*.iso
+*.bin
+*.xbe
+*.qcow2
+*.img
+*.rom
+
+# Downloaded tools, except the local C# capture helper source
+/tools/*
+!/tools/capture-xemu-window/
+!/tools/capture-xemu-window/**
+/tools/capture-xemu-window/bin/
+/tools/capture-xemu-window/obj/
+
+# Local editor / OS noise
+.vs/
+.vscode/
+Thumbs.db
+Desktop.ini
+
+# Stray shell-output files from bringup experiments
+/%ln*
+/xemu.log
+
+# Superseded by the compiled C# capture helper
+/scripts/capture_xemu_window.ps1
