@@ -10,8 +10,12 @@
       "path": "sources/haxar-xbox-linux-sparse",
       "origin": "https://github.com/PaulMDemers/xbox-linux.git",
       "upstream": "https://github.com/haxar/xbox-linux.git",
+      "stable": "https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git",
       "branch": "xbox-5.8.1-bringup",
-      "head": "cc89bd62a"
+      "head": "cc89bd62a",
+      "modernBranch": "xbox-6.18.y-bringup",
+      "modernHead": "561381adb",
+      "modernBuildPath": "/home/paul/ogxbox/linux-6.18-xbox"
     },
     {
       "name": "cromwell",

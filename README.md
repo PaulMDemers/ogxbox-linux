@@ -21,6 +21,8 @@ Important local files are intentionally not tracked:
 See:
 
 - `xemu-setup.md` for launch/capture commands
+- `docs/tinycore11-desktop-iso.md` for the reproducible desktop ISO build
+- `docs/kernel-6.18-bringup.md` for the first modern longterm kernel build
 - `cromwell-notes.md` for boot path notes
 - `tinycore-notes.md` for Tiny Core payload notes
 - `repos.lock` for the related source forks and branches
