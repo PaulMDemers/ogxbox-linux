@@ -39,6 +39,14 @@ artifacts\cromwell-tinycore11-stage6-xfbdev-desktop-noxpad.iso
 
 The script downloads and verifies Tiny Core 11.x `core.gz`, downloads the recursive desktop `.tcz` extension closure, builds the stage6 initramfs, and creates the Cromwell ISO.
 
+To build the same Tiny Core desktop payload with the 6.18.33 test kernel:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\build_tinycore11_desktop_iso.ps1 `
+  -KernelPath artifacts\kernels\xbox-linux-6.18.33-bzImage `
+  -OutputIso artifacts\cromwell-tinycore11-stage6-xfbdev-desktop-6.18.33.iso
+```
+
 ## Boot
 
 ```powershell

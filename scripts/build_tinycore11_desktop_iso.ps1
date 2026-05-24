@@ -1,11 +1,12 @@
 param(
-    [string]$OutputIso = "artifacts\cromwell-tinycore11-stage6-xfbdev-desktop-noxpad.iso"
+    [string]$OutputIso = "artifacts\cromwell-tinycore11-stage6-xfbdev-desktop-noxpad.iso",
+    [string]$KernelPath = "artifacts\kernels\xbox-linux-5.8.1-noxpad-bzImage"
 )
 
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
-$kernel = Join-Path $repoRoot 'artifacts\kernels\xbox-linux-5.8.1-noxpad-bzImage'
+$kernel = Join-Path $repoRoot $KernelPath
 $coreDir = Join-Path $repoRoot 'downloads\tinycore\11.x\x86'
 $core = Join-Path $coreDir 'core.gz'
 $coreMd5 = Join-Path $coreDir 'core.gz.md5.txt'
@@ -15,7 +16,7 @@ $expectedCoreMd5 = '0fd08c73e84b26aabbd0d12006d64855'
 $tczDir = Join-Path $coreDir 'tcz'
 
 if (-not (Test-Path -LiteralPath $kernel)) {
-    throw "Missing kernel artifact: $kernel. Build or restore it first with scripts\build_noxpad_kernel.sh under WSL."
+    throw "Missing kernel artifact: $kernel. Build or restore it first."
 }
 
 New-Item -ItemType Directory -Force -Path $coreDir | Out-Null
@@ -42,6 +43,7 @@ python (Join-Path $repoRoot 'scripts\make_busybox_initramfs.py')
 
 $env:CROMWELL_ISO_MODE = 'tinycore-stage6-xfbdev-desktop-noxpad'
 $env:CROMWELL_ISO_OUT = $OutputIso
+$env:CROMWELL_KERNEL = $KernelPath
 $env:TINYCORE_VERSION = '11.x'
 try {
     python (Join-Path $repoRoot 'scripts\make_cromwell_iso.py')
@@ -49,6 +51,7 @@ try {
 finally {
     Remove-Item Env:CROMWELL_ISO_MODE -ErrorAction SilentlyContinue
     Remove-Item Env:CROMWELL_ISO_OUT -ErrorAction SilentlyContinue
+    Remove-Item Env:CROMWELL_KERNEL -ErrorAction SilentlyContinue
     Remove-Item Env:TINYCORE_VERSION -ErrorAction SilentlyContinue
 }
 
