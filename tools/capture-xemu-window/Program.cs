@@ -22,6 +22,10 @@ internal static class Program
                 throw new InvalidOperationException($"Process {process.Id} has no main window handle.");
             }
 
+            Native.ShowWindow(hwnd, Native.SwRestore);
+            Native.SetForegroundWindow(hwnd);
+            Thread.Sleep(250);
+
             if (!Native.GetWindowRect(hwnd, out var windowRect))
             {
                 throw new InvalidOperationException("GetWindowRect failed.");
@@ -310,6 +314,14 @@ internal static class Program
 
         [DllImport("user32.dll", SetLastError = true)]
         public static extern bool GetWindowRect(IntPtr hwnd, out Rect rect);
+
+        public const int SwRestore = 9;
+
+        [DllImport("user32.dll")]
+        public static extern bool ShowWindow(IntPtr hwnd, int command);
+
+        [DllImport("user32.dll")]
+        public static extern bool SetForegroundWindow(IntPtr hwnd);
 
         [DllImport("dwmapi.dll")]
         public static extern int DwmGetWindowAttribute(IntPtr hwnd, int attribute, out Rect rect, int attributeSize);

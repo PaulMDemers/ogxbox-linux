@@ -236,7 +236,7 @@ def main() -> int:
     parser.add_argument("raw_image", type=Path)
     parser.add_argument("--partition", default="E")
     parser.add_argument("--kernel", type=Path, required=True)
-    parser.add_argument("--initrd", type=Path, required=True)
+    parser.add_argument("--initrd", type=Path)
     parser.add_argument(
         "--append",
         default="init=/init noswitchroot debug console=tty0 ignore_loglevel loglevel=7",
@@ -248,18 +248,23 @@ def main() -> int:
     if args.raw_image.suffix.lower() == ".qcow2":
         raise SystemExit("refusing to edit qcow2 directly; convert to a disposable raw image first")
 
+    initrd_line = "initrd no\n"
+    if args.initrd:
+        initrd_line = "initrd initramf\n"
+
     cfg = (
         f"title {args.title}\n"
         "kernel vmlinuz\n"
-        "initrd initramf\n"
+        f"{initrd_line}"
         f"append {args.append}\n"
     ).encode("ascii")
 
     files = {
         "linuxboot.cfg": cfg,
         "vmlinuz": args.kernel.read_bytes(),
-        "initramf": args.initrd.read_bytes(),
     }
+    if args.initrd:
+        files["initramf"] = args.initrd.read_bytes()
 
     with args.raw_image.open("r+b") as fp:
         part = open_partition(fp, args.raw_image, args.partition)

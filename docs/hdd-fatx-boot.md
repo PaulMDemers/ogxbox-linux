@@ -35,7 +35,7 @@ Current staged payload:
 Current proof screenshot:
 
 ```text
-C:\Users\Paul\Desktop\xbox_linux\run\screenshots\hdd-fatx-autoboot-busybox-6.18.33-titlefix-20260524-230831.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\hdd-fatx-clean-readmultiple-120-20260525-113838.png
 ```
 
 That proves Cromwell can:
@@ -44,9 +44,11 @@ That proves Cromwell can:
 - detect FATX
 - read and parse E-root `/linuxboot.cfg`
 - select the nested Linux entry
-- start loading `/vmlinuz` from FATX
+- load `/vmlinuz` from FATX
+- load `/initramf` from FATX
+- enter the 6.18.33 BusyBox initramfs shell
 
-Open issue: the FATX kernel load currently stalls at `Loading /vmlinuz from FATX`. The next work is inside Cromwell's FATX/HDD read path, not in the HDD staging script.
+Note: the initramfs banner still says `via Cromwell ISO`; that text is from the shared BusyBox init script and does not mean the payload came from the DVD path.
 
 ## Artifacts
 
@@ -106,7 +108,7 @@ Capture proof with the C# window capture tool:
 Cromwell branch:
 
 ```text
-PaulMDemers/cromwell.git xbox-linux-fast-atapi-autoboot @ fe80736
+PaulMDemers/cromwell.git xbox-linux-fast-atapi-autoboot @ a7dd859
 ```
 
 Relevant changes:
@@ -115,13 +117,17 @@ Relevant changes:
 - FATX config file loads allocate one extra NUL byte for `ParseConfig`.
 - `ParseConfig` bounds title copies to the 15-byte title field.
 - FATX fixed-position loads no longer prefill the destination buffer.
-- Optional `FATX_PROGRESS` prints can be enabled while diagnosing HDD reads.
+- FATX loads use a static 16 KiB cluster buffer instead of a variable-length stack buffer.
+- FATX raw reads can request full 16 KiB clusters.
+- HDD PIO reads use ATA `READ MULTIPLE` when available, with fallback to normal `READ SECTOR(S)`.
+- IDE wait loops now have bounded timeouts instead of unbounded polling.
+- Kernel staging uses `KERNEL_LOAD_TMP` below `INITRD_START`, leaving the initramfs region clear.
 
 ## Next Work
 
-The immediate next target is to make `/vmlinuz` finish loading from FATX. Likely places to inspect:
+The immediate next targets are:
 
-- `fs/fatx/BootFATX.c`
-- `drivers/ide/BootIde.c`
-- retry/timeout behavior in the ATA HDD read path
-- whether FATX should read larger contiguous runs instead of one 512-byte sector at a time
+- rename the BusyBox proof banner so HDD and ISO boots report their actual source
+- decide how much of the FATX HDD boot path should be enabled for XBE launcher testing
+- test `build\xromwell-hddfatx-autoboot-disc\default.xbe` on xemu, then on a softmodded Xbox once the package layout is ready
+- start adapting the Tiny Core desktop payload to the HDD staging flow
