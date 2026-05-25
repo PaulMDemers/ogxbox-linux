@@ -34,10 +34,10 @@ Initial commits:
 
 Build modern Linux trees on WSL ext4, not under `/mnt/c`. The Windows filesystem is case-insensitive by default, and the Linux tree contains paths that differ only by case.
 
-Verified local build tree:
+Current local build tree:
 
 ```text
-/home/paul/ogxbox/linux-6.18-xbox-remote
+/home/paul/ogxbox/linux-6.18-xbox
 ```
 
 ## Build Commands

@@ -15,7 +15,7 @@
       "head": "cc89bd62a",
       "modernBranch": "xbox-6.18.y-bringup",
       "modernHead": "46679a4860b1",
-      "modernBuildPath": "/home/paul/ogxbox/linux-6.18-xbox-remote"
+      "modernBuildPath": "/home/paul/ogxbox/linux-6.18-xbox"
     },
     {
       "name": "cromwell",
