@@ -16,6 +16,8 @@ OUT_TINYCORE_STAGE3 = ROOT / "artifacts" / "initramfs" / "xbox-tinycore-stage3.c
 OUT_TINYCORE_STAGE4 = ROOT / "artifacts" / "initramfs" / "xbox-tinycore-stage4.cpio"
 OUT_TINYCORE_STAGE5 = ROOT / "artifacts" / "initramfs" / "xbox-tinycore-stage5-desktop-probe.cpio"
 OUT_TINYCORE_STAGE6 = ROOT / "artifacts" / "initramfs" / "xbox-tinycore-stage6-xfbdev-desktop.cpio"
+OUT_TINYCORE_HDD_STAGE6 = ROOT / "artifacts" / "initramfs" / "xbox-tinycore-hdd-stage6-xfbdev-desktop.cpio"
+OUT_TINYCORE_HDD_EXT2_STAGE7 = ROOT / "artifacts" / "initramfs" / "xbox-tinycore-hdd-ext2-stage7-xfbdev-desktop.cpio"
 
 CONSOLE_INIT = b"""#!/bin/busybox sh
 exec </dev/console >/dev/console 2>&1
@@ -547,6 +549,112 @@ echo "Desktop launcher returned; falling back to shell"
 exec setsid cttyhack sh
 """
 
+TINYCORE_HDD_STAGE6_INIT = TINYCORE_STAGE6_INIT.replace(
+    b'echo "*** Xbox Tiny Core stage6 Xfbdev desktop attempt ***"',
+    b'echo "*** Xbox Tiny Core HDD self-contained Xfbdev desktop attempt ***"',
+).replace(
+    b"""mkdir -p /mnt/cd /mnt/tcroot
+for dev in /dev/hdb /dev/hdc /dev/sr0 /dev/cdrom /dev/dvd; do
+    if [ -e "$dev" ]; then
+        echo "Trying CD mount: $dev"
+        if mount -t iso9660 -o ro "$dev" /mnt/cd 2>/dev/null; then
+            echo "Mounted $dev on /mnt/cd"
+            break
+        fi
+    fi
+done
+
+if [ ! -f /mnt/cd/core.gz ]; then
+    echo "Tiny Core core.gz was not found on /mnt/cd"
+    exec setsid cttyhack sh
+fi
+""",
+    b"""mkdir -p /tc/tcz /mnt/cd /mnt/tcroot
+echo "Using embedded Tiny Core payload from initramfs /tc"
+ls -la /tc /tc/tcz 2>/dev/null || true
+
+if [ ! -f /tc/core.gz ]; then
+    echo "Tiny Core core.gz was not found at /tc/core.gz"
+    exec setsid cttyhack sh
+fi
+""",
+).replace(
+    b"/mnt/cd/core.gz",
+    b"/tc/core.gz",
+).replace(
+    b"/mnt/cd/tcz",
+    b"/tc/tcz",
+).replace(
+    b"mount --bind /mnt/cd /mnt/tcroot/mnt/cd 2>/dev/null || true",
+    b"mount --bind /tc /mnt/tcroot/mnt/cd 2>/dev/null || true",
+)
+
+TINYCORE_HDD_EXT2_STAGE7_INIT = TINYCORE_STAGE6_INIT.replace(
+    b'echo "*** Xbox Tiny Core stage6 Xfbdev desktop attempt ***"',
+    b'echo "*** Xbox Tiny Core HDD ext2 payload Xfbdev desktop attempt ***"',
+).replace(
+    b"""mkdir -p /mnt/cd /mnt/tcroot
+for dev in /dev/hdb /dev/hdc /dev/sr0 /dev/cdrom /dev/dvd; do
+    if [ -e "$dev" ]; then
+        echo "Trying CD mount: $dev"
+        if mount -t iso9660 -o ro "$dev" /mnt/cd 2>/dev/null; then
+            echo "Mounted $dev on /mnt/cd"
+            break
+        fi
+    fi
+done
+""",
+    b"""mkdir -p /mnt/cd /mnt/tcroot
+PAYLOAD_OFFSET=8053063680
+for arg in $(cat /proc/cmdline 2>/dev/null); do
+    case "$arg" in
+        tc_payload_offset=*) PAYLOAD_OFFSET="${arg#tc_payload_offset=}" ;;
+    esac
+done
+
+PAYLOAD_DISK=
+for arg in $(cat /proc/cmdline 2>/dev/null); do
+    case "$arg" in
+        tc_payload_disk=*) PAYLOAD_DISK="${arg#tc_payload_disk=}" ;;
+    esac
+done
+
+echo "Available block devices:"
+cat /proc/partitions 2>/dev/null || true
+ls -la /dev/hd* /dev/sd* /dev/vd* /dev/xvd* 2>/dev/null || true
+if [ -z "$PAYLOAD_DISK" ]; then
+    for dev in /dev/hda /dev/sda /dev/vda /dev/xvda; do
+        if [ -b "$dev" ]; then
+            PAYLOAD_DISK="$dev"
+            break
+        fi
+    done
+fi
+if [ -z "$PAYLOAD_DISK" ]; then
+    PAYLOAD_DISK=/dev/hda
+fi
+
+echo "Mounting Tiny Core ext2 HDD payload from $PAYLOAD_DISK at offset $PAYLOAD_OFFSET"
+mknod /dev/loop0 b 7 0 2>/dev/null || true
+for i in 1 2 3 4 5; do
+    [ -e "$PAYLOAD_DISK" ] && break
+    sleep 1
+done
+if losetup -o "$PAYLOAD_OFFSET" /dev/loop0 "$PAYLOAD_DISK" 2>/tmp/tc-losetup.err; then
+    echo "Attached /dev/loop0"
+else
+    echo "losetup failed:"
+    cat /tmp/tc-losetup.err 2>/dev/null || true
+fi
+if mount -t ext2 -o ro /dev/loop0 /mnt/cd 2>/tmp/tc-payload-mount.err; then
+    echo "Mounted ext2 payload on /mnt/cd"
+else
+    echo "ext2 payload mount failed:"
+    cat /tmp/tc-payload-mount.err 2>/dev/null || true
+fi
+""",
+)
+
 
 def align4(value):
     return (value + 3) & ~3
@@ -640,6 +748,8 @@ def build(init_data, extra_entries=None):
         "run",
         "sys",
         "tmp",
+        "tc",
+        "tc/tcz",
         "usr",
         "usr/bin",
         "usr/lib",
@@ -671,6 +781,19 @@ def build(init_data, extra_entries=None):
 
 def main():
     OUT.parent.mkdir(parents=True, exist_ok=True)
+    tc_root = ROOT / "downloads" / "tinycore" / "11.x" / "x86"
+    tcz_dir = tc_root / "tcz"
+    tcz_order = tcz_dir / "desktop-load-order.txt"
+    tinycore_hdd_entries = [
+        ("tc/core.gz", (tc_root / "core.gz").read_bytes(), 0o644),
+        ("tc/tcz/desktop-load-order.txt", tcz_order.read_bytes(), 0o644),
+    ]
+    tinycore_hdd_entries.extend(
+        (f"tc/tcz/{name}", (tcz_dir / name).read_bytes(), 0o644)
+        for name in tcz_order.read_text(encoding="ascii").splitlines()
+        if name.strip()
+    )
+
     OUT.write_bytes(build((SRC / "init").read_bytes()))
     OUT_CONSOLE.write_bytes(build(CONSOLE_INIT))
     OUT_STAGE2.write_bytes(build(STAGE2_INIT))
@@ -680,6 +803,8 @@ def main():
     OUT_TINYCORE_STAGE4.write_bytes(build(TINYCORE_STAGE4_INIT))
     OUT_TINYCORE_STAGE5.write_bytes(build(TINYCORE_STAGE5_INIT))
     OUT_TINYCORE_STAGE6.write_bytes(build(TINYCORE_STAGE6_INIT))
+    OUT_TINYCORE_HDD_STAGE6.write_bytes(build(TINYCORE_HDD_STAGE6_INIT, tinycore_hdd_entries))
+    OUT_TINYCORE_HDD_EXT2_STAGE7.write_bytes(build(TINYCORE_HDD_EXT2_STAGE7_INIT))
     print(OUT)
     print(OUT_CONSOLE)
     print(OUT_STAGE2)
@@ -689,6 +814,8 @@ def main():
     print(OUT_TINYCORE_STAGE4)
     print(OUT_TINYCORE_STAGE5)
     print(OUT_TINYCORE_STAGE6)
+    print(OUT_TINYCORE_HDD_STAGE6)
+    print(OUT_TINYCORE_HDD_EXT2_STAGE7)
 
 
 if __name__ == "__main__":

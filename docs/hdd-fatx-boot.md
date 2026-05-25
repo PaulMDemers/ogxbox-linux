@@ -1,6 +1,6 @@
 # FATX HDD Boot Bringup
 
-This is the current HDD boot workflow after the 6.18 Tiny Core ISO checkpoint.
+This is the current HDD boot workflow after the 6.18 Tiny Core HDD desktop checkpoint.
 
 ## Current Status
 
@@ -26,23 +26,32 @@ The FATX E partition is staged with:
 /initramf
 ```
 
-Current staged payload:
+Current staged FATX boot payload:
 
 - `vmlinuz`: `artifacts\kernels\xbox-linux-6.18.33-bzImage`
-- `initramf`: `artifacts\initramfs\xbox-busybox-console.cpio`
-- append line: `init=/init noswitchroot debug console=tty0 ignore_loglevel loglevel=7`
+- `initramf`: `artifacts\initramfs\xbox-tinycore-hdd-ext2-stage7-xfbdev-desktop.cpio`
+- append line: `init=/init noswitchroot debug console=tty0 ignore_loglevel loglevel=7 tc_payload_offset=8053063680`
 
-Current proof screenshot:
+The Tiny Core payload itself is not stored in FATX. It lives in an ext2 filesystem image written into the raw HDD tail region:
 
 ```text
-C:\Users\Paul\Desktop\xbox_linux\run\screenshots\hdd-fatx-clean-readmultiple-120-20260525-113838.png
+offset: 8053063680
+source image: C:\Users\Paul\Desktop\xbox_linux\artifacts\hdd\xbox-tinycore-payload.ext2
+payload root: C:\Users\Paul\Desktop\xbox_linux\artifacts\hdd\tinycore-ext2-root
 ```
 
-Current XBE-launcher proof screenshot:
+The stage7 initramfs mounts that ext2 payload through `/dev/loop0`, extracts `core.gz`, loads the desktop `.tcz` extensions, and starts the Tiny Core Xfbdev desktop.
+
+Current ROM/HDD Tiny Core desktop proof screenshot:
 
 ```text
-C:\Users\Paul\Desktop\xbox_linux\run\screenshots\xbe-hddfatx-120-20260525-115342.png
-C:\Users\Paul\Desktop\xbox_linux\run\screenshots\xbe-hddfatx-runner-90-20260525-115644.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\tinycore-hdd-ext2-stage7-scan-120-20260525-125202.png
+```
+
+Current XBE-launcher Tiny Core desktop proof screenshot:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\xbe-tinycore-hdd-ext2-stage7-120-20260525-125439.png
 ```
 
 That proves Cromwell can:
@@ -53,10 +62,16 @@ That proves Cromwell can:
 - select the nested Linux entry
 - load `/vmlinuz` from FATX
 - load `/initramf` from FATX
-- enter the 6.18.33 BusyBox initramfs shell
+- enter the 6.18.33 stage7 initramfs
+- mount the Tiny Core ext2 payload from the raw HDD tail
+- start the Tiny Core Xfbdev desktop
 - launch through `build\xromwell-hddfatx-autoboot-disc\default.xbe` when booted from the XDVDFS wrapper under Complex BIOS
 
-Note: the initramfs banner still says `via Cromwell ISO`; that text is from the shared BusyBox init script and does not mean the payload came from the DVD path.
+The earlier BusyBox proof is still useful as a small diagnostic payload:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\hdd-busybox-relocated-heap-45-20260525-123353.png
+```
 
 ## Artifacts
 
@@ -78,6 +93,12 @@ xemu XDVDFS test image for that XBE:
 C:\Users\Paul\Desktop\xbox_linux\artifacts\xromwell-hddfatx-autoboot-initrd32.iso
 ```
 
+Tiny Core HDD payload image:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\hdd\xbox-tinycore-payload.ext2
+```
+
 ## Build And Stage
 
 Convert the baseline qcow2 to a disposable raw HDD:
@@ -87,16 +108,47 @@ New-Item -ItemType Directory -Force .\run\hdd | Out-Null
 wsl -e bash -lc "cd /mnt/c/Users/Paul/Desktop/xbox_linux && python3 scripts/qcow2_to_raw_sparse.py Xbox-Emulator-Files/hdd/xbox_hdd.qcow2 run/hdd/xbox_hdd_hddboot.raw --force"
 ```
 
-Stage the E-root linuxboot files:
+Build the initramfs artifacts:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\stage_hdd_fatx_linuxboot.ps1
+python .\scripts\make_busybox_initramfs.py
 ```
 
 Build the FATX-autoboot Cromwell ROM and XBE:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\build_cromwell_hdd_fatx_autoboot.ps1
+```
+
+Write the Tiny Core ext2 payload into the raw HDD tail:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\stage_hdd_ext2_tinycore_payload.ps1
+```
+
+Stage the E-root linuxboot files for the Tiny Core HDD desktop:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\stage_hdd_fatx_linuxboot.ps1 -InitrdPath artifacts\initramfs\xbox-tinycore-hdd-ext2-stage7-xfbdev-desktop.cpio -Title 'Tiny Core HDD ext2' -Append 'init=/init noswitchroot debug console=tty0 ignore_loglevel loglevel=7 tc_payload_offset=8053063680'
+```
+
+Stage the smaller BusyBox diagnostic payload instead:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\stage_hdd_fatx_linuxboot.ps1
+```
+
+Build the softmod-facing XBE test package:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\package_xromwell_hddfatx_softmod.ps1
+```
+
+That produces:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-autoboot\
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-autoboot.zip
 ```
 
 Run the current xemu HDD test:
@@ -122,7 +174,7 @@ Capture proof with the C# window capture tool:
 Cromwell branch:
 
 ```text
-PaulMDemers/cromwell.git xbox-linux-fast-atapi-autoboot @ a7dd859
+PaulMDemers/cromwell.git xbox-linux-fast-atapi-autoboot @ bfe8301
 ```
 
 Relevant changes:
@@ -136,11 +188,12 @@ Relevant changes:
 - HDD PIO reads use ATA `READ MULTIPLE` when available, with fallback to normal `READ SECTOR(S)`.
 - IDE wait loops now have bounded timeouts instead of unbounded polling.
 - Kernel staging uses `KERNEL_LOAD_TMP` below `INITRD_START`, leaving the initramfs region clear.
+- The initrd window was widened to allow larger experiments, and Cromwell's heap was moved below `INITRD_START` so early video/FATX setup still has enough heap.
 
 ## Next Work
 
 The immediate next targets are:
 
-- rename the BusyBox proof banner so HDD and ISO boots report their actual source
-- package `build\xromwell-hddfatx-autoboot-disc\default.xbe` for softmod dashboard testing
-- start adapting the Tiny Core desktop payload to the HDD staging flow
+- turn the ext2 payload staging into a real-Xbox-safe installer flow; for xemu it writes the raw HDD tail directly
+- add a second Tiny Core profile that boots to a lighter shell plus optional desktop startup
+- decide whether to keep the current tail-offset layout or move to a formal Linux partition map for real hardware experiments
