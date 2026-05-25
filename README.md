@@ -5,10 +5,10 @@ This repo coordinates the original Xbox Linux bringup work: Cromwell boot media,
 Current known-good path:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\run-xemu-cromwell-tinycore11-stage6-xfbdev-desktop-noxpad-usbkbd-tablet.ps1
+powershell -ExecutionPolicy Bypass -File .\run-xemu-cromwell-modernhdr-initrd32-tinycore11-stage6-xfbdev-desktop-6.18.33.ps1
 ```
 
-That boots the Xbox Linux 5.8.1 kernel through Cromwell, extracts Tiny Core 11.x, mounts the GUI `.tcz` extension set from CD, and starts `Xfbdev`, `flwm_topside`, and `aterm`.
+That boots the Xbox Linux 6.18.33 kernel through Cromwell, extracts Tiny Core 11.x, mounts the GUI `.tcz` extension set from CD, and starts a Tiny Core `Xfbdev` desktop with `flwm_topside`, `wbar`, and `aterm`.
 
 Important local files are intentionally not tracked:
 
@@ -23,6 +23,7 @@ See:
 - `xemu-setup.md` for launch/capture commands
 - `docs/tinycore11-desktop-iso.md` for the reproducible desktop ISO build
 - `docs/kernel-6.18-bringup.md` for the first modern longterm kernel build
+- `docs/xromwell-softmod-launcher.md` for the softmod-facing XBE launcher path
 - `cromwell-notes.md` for boot path notes
 - `tinycore-notes.md` for Tiny Core payload notes
 - `repos.lock` for the related source forks and branches

@@ -1,0 +1,13 @@
+[general]
+show_welcome = false
+
+[sys.files]
+bootrom_path = 'C:\Users\Paul\Desktop\xbox_linux\Xbox-Emulator-Files\mcpx\mcpx_1.0.bin'
+flashrom_path = 'C:\Users\Paul\Desktop\xbox_linux\Xbox-Emulator-Files\bios\Complex_4627.bin'
+eeprom_path = 'C:\Users\Paul\Desktop\xbox_linux\run\eeprom.bin'
+hdd_path = 'C:\Users\Paul\Desktop\xbox_linux\Xbox-Emulator-Files\hdd\xbox_hdd.qcow2'
+dvd_path = 'C:\Users\Paul\Desktop\xbox_linux\artifacts\xromwell-modern-initrd32.iso'
+
+[input.bindings]
+port1 = 'keyboard'
+port1_driver = 'usb-xbox-gamepad'
