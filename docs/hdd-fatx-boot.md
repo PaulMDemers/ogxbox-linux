@@ -44,7 +44,7 @@ With the FATX-enabled 6.18 kernel, stage7 mounts the Xbox E partition as FATX, o
 Current ROM/HDD Tiny Core desktop proof screenshot:
 
 ```text
-C:\Users\Paul\Desktop\xbox_linux\run\screenshots\tinycore-hdd-kernel-fatx-file-stage7-offsetfix-180-20260525-134325.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\tinycore-hdd-hwfix-clean-kernel-restaged-20260525-154918.png
 ```
 
 Current XBE-launcher Tiny Core desktop proof screenshot:
@@ -217,6 +217,32 @@ The 6.18 branch now includes a minimal read-only `fs/fatx` driver:
 - read-only FATX mount support
 - directory lookup/readdir
 - regular file reads and bmap/read_folio support for loopback images
+- contiguous-file fast path for loopback payloads such as `E:\linuxroot.ext2`
+
+The contiguous-file fast path matters because the Tiny Core root is an ext2
+image loop-mounted through FATX. Without a fast path, every block lookup can
+walk the FAT chain from the beginning of the file.
+
+## Tiny Core Hardware Diagnostics
+
+The current Tiny Core launcher creates these helper commands inside the booted
+system:
+
+```text
+/usr/local/bin/xbox-aterm
+/usr/local/bin/xbox-diag
+/usr/local/bin/xbox-storage-tune
+```
+
+At desktop start, it writes:
+
+```text
+/tmp/xbox-diag.txt
+```
+
+That diagnostic file includes framebuffer, input, mount, block-device,
+read-ahead, ATA mode, and storage-related `dmesg` lines. It is intended for the
+next real-hardware pass if disk access still feels slower than expected.
 
 This matches the old Xbox Linux boot model: keep Linux files on FATX and use an ext2 root image file for the real Linux filesystem.
 

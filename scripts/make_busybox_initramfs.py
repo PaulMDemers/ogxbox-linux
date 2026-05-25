@@ -482,13 +482,72 @@ echo "flwm_topside=$(command -v flwm_topside 2>/dev/null)"
 echo "aterm=$(command -v aterm 2>/dev/null)"
 echo "wbar=$(command -v wbar 2>/dev/null)"
 
-mkdir -p /tmp/.X11-unix /tmp/.ICE-unix /tmp/tce/ondemand /usr/local/tce.installed
+mkdir -p /tmp/.X11-unix /tmp/.ICE-unix /tmp/tce/ondemand /usr/local/tce.installed /usr/local/bin
 mkdir -p /home/tc/.X.d /etc/sysconfig
 echo tc > /etc/sysconfig/tcuser
 echo flwm_topside > /etc/sysconfig/desktop
 echo wbar > /etc/sysconfig/icons
 echo Xfbdev > /etc/sysconfig/Xserver
 ln -snf /tmp/tce /etc/sysconfig/tcedir
+
+cat > /usr/local/bin/xbox-storage-tune <<'EOX'
+#!/bin/sh
+for q in /sys/block/hd*/queue/read_ahead_kb /sys/block/sd*/queue/read_ahead_kb /sys/block/loop*/queue/read_ahead_kb; do
+    [ -w "$q" ] || continue
+    echo 1024 > "$q" 2>/dev/null || true
+done
+EOX
+
+cat > /usr/local/bin/xbox-diag <<'EOX'
+#!/bin/sh
+echo "== xbox linux diag =="
+uname -a
+echo
+echo "== framebuffer =="
+cat /sys/class/graphics/fb0/name /sys/class/graphics/fb0/virtual_size /sys/class/graphics/fb0/bits_per_pixel 2>/dev/null || true
+echo
+echo "== input =="
+grep -E 'Name|Handlers' /proc/bus/input/devices 2>/dev/null || true
+echo
+echo "== mounts =="
+mount
+echo
+echo "== block devices =="
+cat /proc/partitions 2>/dev/null || true
+echo
+echo "== read ahead =="
+for q in /sys/block/hd*/queue/read_ahead_kb /sys/block/sd*/queue/read_ahead_kb /sys/block/loop*/queue/read_ahead_kb; do
+    [ -r "$q" ] && echo "$q=$(cat "$q")"
+done
+echo
+echo "== ata modes =="
+for f in /sys/class/ata_device/dev*/pio_mode /sys/class/ata_device/dev*/dma_mode /sys/class/ata_device/dev*/xfer_mode; do
+    [ -r "$f" ] && echo "$f=$(cat "$f")"
+done
+echo
+echo "== storage dmesg =="
+dmesg | grep -Ei 'FATX|loop|ata|pata|ide|dma|udma|pio|hda|sda|xbox' | tail -80
+EOX
+
+cat > /usr/local/bin/xbox-aterm <<'EOX'
+#!/bin/sh
+export PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin
+export LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/lib
+export TERM=xterm
+export HOME="${HOME:-/home/tc}"
+export USER="${USER:-tc}"
+cd "$HOME" 2>/dev/null || cd /
+exec aterm -fn fixed -fg white -bg black -geometry 78x24+20+20 -title "Xbox Terminal" -e /bin/sh
+EOX
+
+cat > /usr/local/bin/xbox-proof-aterm <<'EOX'
+#!/bin/sh
+export PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin
+export LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/lib
+xbox-diag >/tmp/xbox-diag.txt 2>&1 || true
+exec aterm -fn fixed -fg white -bg black -geometry 78x18+20+20 -title "Xbox Tiny Core" -e /bin/sh -c "echo XBOX_TINYCORE_NORMAL_DESKTOP_OK; uname -a; echo; echo framebuffer:; cat /sys/class/graphics/fb0/name /sys/class/graphics/fb0/virtual_size /sys/class/graphics/fb0/bits_per_pixel 2>/dev/null; echo; echo input:; grep -E 'Name|Handlers' /proc/bus/input/devices 2>/dev/null; echo; echo diag: /tmp/xbox-diag.txt; sleep 100000"
+EOX
+chmod 755 /usr/local/bin/xbox-storage-tune /usr/local/bin/xbox-diag /usr/local/bin/xbox-aterm /usr/local/bin/xbox-proof-aterm
 
 if ! grep -q '^tc:' /etc/passwd 2>/dev/null; then
     adduser -s /bin/sh -G staff -D tc 2>/tmp/adduser.log || cat /tmp/adduser.log
@@ -515,18 +574,22 @@ EOX
 
 cat > /home/tc/.X.d/90-xbox-proof-aterm <<'EOX'
 #!/bin/sh
-aterm -fn fixed -fg white -bg black -geometry 78x18+20+20 -title "Xbox Tiny Core" -e /bin/sh -c "echo XBOX_TINYCORE_NORMAL_DESKTOP_OK; uname -a; echo; echo framebuffer:; cat /sys/class/graphics/fb0/name /sys/class/graphics/fb0/virtual_size /sys/class/graphics/fb0/bits_per_pixel 2>/dev/null; echo; echo input:; grep -E 'Name|Handlers' /proc/bus/input/devices 2>/dev/null; sleep 100000" >/tmp/aterm.log 2>&1 &
+xbox-proof-aterm >/tmp/aterm.log 2>&1 &
 EOX
 
 chmod 755 /home/tc/.xsession /home/tc/.X.d/90-xbox-proof-aterm
 chown -R tc.staff /home/tc 2>/dev/null || true
 
-setupdesktop >/tmp/setupdesktop.log 2>&1 || cat /tmp/setupdesktop.log
-wbar_setup.sh >/tmp/wbar-setup.log 2>&1 || cat /tmp/wbar-setup.log
-
-echo "Starting Tiny Core startx with tc home"
 export HOME=/home/tc
 export USER=tc
+setupdesktop >/tmp/setupdesktop.log 2>&1 || cat /tmp/setupdesktop.log
+wbar_setup.sh >/tmp/wbar-setup.log 2>&1 || cat /tmp/wbar-setup.log
+if [ -f /home/tc/.wbar ]; then
+    sed -i 's#^c: .*aterm.*#c: exec xbox-aterm#' /home/tc/.wbar 2>/dev/null || true
+fi
+xbox-storage-tune >/tmp/xbox-storage-tune.log 2>&1 || true
+
+echo "Starting Tiny Core startx with tc home"
 startx >/tmp/startx.log 2>&1 || {
     echo "startx failed"
     cat /tmp/startx.log 2>/dev/null
