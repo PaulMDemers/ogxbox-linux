@@ -20,6 +20,7 @@ Important local files are intentionally not tracked:
 
 See:
 
+- `docs/checkpoint-2026-05-24-6.18-tinycore-xromwell.md` for the current save point, artifact paths, commits, and pre-HDD status
 - `xemu-setup.md` for launch/capture commands
 - `docs/tinycore11-desktop-iso.md` for the reproducible desktop ISO build
 - `docs/kernel-6.18-bringup.md` for the first modern longterm kernel build

@@ -3,7 +3,7 @@
 This builds the current known-good ISO that reaches a Tiny Core Xfbdev desktop with `flwm_topside`, `wbar`, the Tiny Core background, and an `aterm` proof window showing:
 
 - `XBOX_TINYCORE_NORMAL_DESKTOP_OK`
-- `Linux xbox 5.8.1-xboxdev ... i686 GNU/Linux`
+- `Linux xbox 6.18.33-xboxdev-00004-g46679a4860b1 ... i686 GNU/Linux`
 - framebuffer: `simple`, `640,480`, `32`
 - USB keyboard and QEMU USB tablet input devices
 
