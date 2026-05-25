@@ -10,6 +10,7 @@ SRC = ROOT / "sources" / "xbox-linux-initramfs" / "initramfs-xbox"
 OUT = ROOT / "artifacts" / "initramfs" / "xbox-busybox-raw.cpio"
 OUT_CONSOLE = ROOT / "artifacts" / "initramfs" / "xbox-busybox-console.cpio"
 OUT_STAGE2 = ROOT / "artifacts" / "initramfs" / "xbox-busybox-stage2.cpio"
+OUT_REBOOT_PROBE = ROOT / "artifacts" / "initramfs" / "xbox-busybox-reboot-probe.cpio"
 OUT_TINYCORE_STAGE3 = ROOT / "artifacts" / "initramfs" / "xbox-tinycore-stage3.cpio"
 OUT_TINYCORE_STAGE4 = ROOT / "artifacts" / "initramfs" / "xbox-tinycore-stage4.cpio"
 OUT_TINYCORE_STAGE5 = ROOT / "artifacts" / "initramfs" / "xbox-tinycore-stage5-desktop-probe.cpio"
@@ -82,6 +83,27 @@ echo "Launching /bin/sh on /dev/console"
 echo
 
 exec setsid cttyhack sh
+"""
+
+REBOOT_PROBE_INIT = b"""#!/bin/busybox sh
+exec </dev/console >/dev/console 2>&1
+
+/bin/busybox --install -s
+mount -t proc proc /proc 2>/dev/null
+mount -t sysfs sysfs /sys 2>/dev/null
+mount -t devtmpfs devtmpfs /dev 2>/dev/null
+
+echo
+echo "*** Xbox BusyBox reboot probe reached userspace ***"
+echo "cmdline: $(cat /proc/cmdline 2>/dev/null)"
+echo "uname: $(uname -a 2>/dev/null)"
+echo
+sync
+sleep 8
+reboot -f
+sleep 5
+echo b >/proc/sysrq-trigger 2>/dev/null
+while true; do sleep 60; done
 """
 
 TINYCORE_STAGE3_INIT = b"""#!/bin/busybox sh
@@ -577,6 +599,7 @@ def main():
     OUT.write_bytes(build((SRC / "init").read_bytes()))
     OUT_CONSOLE.write_bytes(build(CONSOLE_INIT))
     OUT_STAGE2.write_bytes(build(STAGE2_INIT))
+    OUT_REBOOT_PROBE.write_bytes(build(REBOOT_PROBE_INIT))
     OUT_TINYCORE_STAGE3.write_bytes(build(TINYCORE_STAGE3_INIT))
     OUT_TINYCORE_STAGE4.write_bytes(build(TINYCORE_STAGE4_INIT))
     OUT_TINYCORE_STAGE5.write_bytes(build(TINYCORE_STAGE5_INIT))
@@ -584,6 +607,7 @@ def main():
     print(OUT)
     print(OUT_CONSOLE)
     print(OUT_STAGE2)
+    print(OUT_REBOOT_PROBE)
     print(OUT_TINYCORE_STAGE3)
     print(OUT_TINYCORE_STAGE4)
     print(OUT_TINYCORE_STAGE5)

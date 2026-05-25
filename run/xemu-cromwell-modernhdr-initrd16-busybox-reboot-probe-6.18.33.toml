@@ -1,0 +1,10 @@
+[general]
+show_welcome = false
+
+[sys.files]
+bootrom_path = 'C:\Users\Paul\Desktop\xbox_linux\Xbox-Emulator-Files\mcpx\mcpx_1.0.bin'
+flashrom_path = 'C:\Users\Paul\Desktop\xbox_linux\artifacts\cromwell-autocd-modernhdr-initrd16_1024.bin'
+eeprom_path = 'C:\Users\Paul\Desktop\xbox_linux\run\eeprom.bin'
+hdd_path = 'C:\Users\Paul\Desktop\xbox_linux\Xbox-Emulator-Files\hdd\xbox_hdd.qcow2'
+dvd_path = 'C:\Users\Paul\Desktop\xbox_linux\artifacts\cromwell-busybox-reboot-probe-6.18.33.iso'
+

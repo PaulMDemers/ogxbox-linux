@@ -19,6 +19,8 @@ def main():
     out = Path(os.environ.get("CROMWELL_ISO_OUT", OUT))
     tc_version = os.environ.get("TINYCORE_VERSION", "16.x")
     kernel_override = os.environ.get("CROMWELL_KERNEL")
+    initramfs_override = os.environ.get("CROMWELL_INITRAMFS")
+    append_extra = os.environ.get("CROMWELL_APPEND", "").strip()
     tc_root = ROOT / "downloads" / "tinycore" / tc_version / "x86"
     extra_tcz_files = []
     extra_tcz_order = None
@@ -30,6 +32,20 @@ def main():
         if not path.is_absolute():
             path = ROOT / path
         return path
+
+    def initramfs(default):
+        if not initramfs_override:
+            return default
+        path = Path(initramfs_override)
+        if not path.is_absolute():
+            path = ROOT / path
+        return path
+
+    def append_line(base):
+        append = base
+        if append_extra:
+            append = f"{append} {append_extra}"
+        return f"append {append}\n"
 
     if mode == "tiny-read":
         tiny_kernel = STAGING / "smallkern"
@@ -48,7 +64,7 @@ def main():
     elif mode == "serial-smoke":
         files = {
             "VMLINUZ": kernel(ROOT / "artifacts" / "kernels" / "xbox-linux-5.8.1-serial-bzImage"),
-            "INITRAMF": ROOT / "artifacts" / "initramfs" / "xbox-smoke-core.gz",
+            "INITRAMF": initramfs(ROOT / "artifacts" / "initramfs" / "xbox-smoke-core.gz"),
         }
         cfg_text = (
             "kernel vmlinuz\n"
@@ -58,7 +74,7 @@ def main():
     elif mode == "tiny-init":
         files = {
             "VMLINUZ": kernel(ROOT / "artifacts" / "kernels" / "xbox-linux-5.8.1-bzImage"),
-            "INITRAMF": ROOT / "artifacts" / "initramfs" / "xbox-tiny-init.cpio",
+            "INITRAMF": initramfs(ROOT / "artifacts" / "initramfs" / "xbox-tiny-init.cpio"),
         }
         cfg_text = (
             "kernel vmlinuz\n"
@@ -68,45 +84,45 @@ def main():
     elif mode == "busybox-init":
         files = {
             "VMLINUZ": kernel(ROOT / "artifacts" / "kernels" / "xbox-linux-5.8.1-bzImage"),
-            "INITRAMF": ROOT / "artifacts" / "initramfs" / "xbox-busybox-raw.cpio",
+            "INITRAMF": initramfs(ROOT / "artifacts" / "initramfs" / "xbox-busybox-raw.cpio"),
         }
         cfg_text = (
             "kernel vmlinuz\n"
             "initrd initramf\n"
-            "append init=/init noswitchroot debug\n"
+            + append_line("init=/init noswitchroot debug")
         )
     elif mode == "tinycore-stage3-noxpad":
         files = {
             "VMLINUZ": kernel(ROOT / "artifacts" / "kernels" / "xbox-linux-5.8.1-noxpad-bzImage"),
-            "INITRAMF": ROOT / "artifacts" / "initramfs" / "xbox-tinycore-stage3.cpio",
+            "INITRAMF": initramfs(ROOT / "artifacts" / "initramfs" / "xbox-tinycore-stage3.cpio"),
             "CORE.GZ": tc_root / "core.gz",
         }
         cfg_text = (
             "kernel vmlinuz\n"
             "initrd initramf\n"
-            "append init=/init noswitchroot debug\n"
+            + append_line("init=/init noswitchroot debug")
         )
     elif mode == "tinycore-stage4-noxpad":
         files = {
             "VMLINUZ": kernel(ROOT / "artifacts" / "kernels" / "xbox-linux-5.8.1-noxpad-bzImage"),
-            "INITRAMF": ROOT / "artifacts" / "initramfs" / "xbox-tinycore-stage4.cpio",
+            "INITRAMF": initramfs(ROOT / "artifacts" / "initramfs" / "xbox-tinycore-stage4.cpio"),
             "CORE.GZ": tc_root / "core.gz",
         }
         cfg_text = (
             "kernel vmlinuz\n"
             "initrd initramf\n"
-            "append init=/init noswitchroot debug\n"
+            + append_line("init=/init noswitchroot debug")
         )
     elif mode == "tinycore-stage5-desktop-probe-noxpad":
         files = {
             "VMLINUZ": kernel(ROOT / "artifacts" / "kernels" / "xbox-linux-5.8.1-noxpad-bzImage"),
-            "INITRAMF": ROOT / "artifacts" / "initramfs" / "xbox-tinycore-stage5-desktop-probe.cpio",
+            "INITRAMF": initramfs(ROOT / "artifacts" / "initramfs" / "xbox-tinycore-stage5-desktop-probe.cpio"),
             "CORE.GZ": tc_root / "core.gz",
         }
         cfg_text = (
             "kernel vmlinuz\n"
             "initrd initramf\n"
-            "append init=/init noswitchroot debug\n"
+            + append_line("init=/init noswitchroot debug")
         )
     elif mode == "tinycore-stage6-xfbdev-desktop-noxpad":
         tcz_dir = tc_root / "tcz"
@@ -118,18 +134,18 @@ def main():
         ]
         files = {
             "VMLINUZ": kernel(ROOT / "artifacts" / "kernels" / "xbox-linux-5.8.1-noxpad-bzImage"),
-            "INITRAMF": ROOT / "artifacts" / "initramfs" / "xbox-tinycore-stage6-xfbdev-desktop.cpio",
+            "INITRAMF": initramfs(ROOT / "artifacts" / "initramfs" / "xbox-tinycore-stage6-xfbdev-desktop.cpio"),
             "CORE.GZ": tc_root / "core.gz",
         }
         cfg_text = (
             "kernel vmlinuz\n"
             "initrd initramf\n"
-            "append init=/init noswitchroot debug\n"
+            + append_line("init=/init noswitchroot debug")
         )
     elif mode == "busybox-console":
         files = {
             "VMLINUZ": kernel(ROOT / "artifacts" / "kernels" / "xbox-linux-5.8.1-bzImage"),
-            "INITRAMF": ROOT / "artifacts" / "initramfs" / "xbox-busybox-console.cpio",
+            "INITRAMF": initramfs(ROOT / "artifacts" / "initramfs" / "xbox-busybox-console.cpio"),
         }
         cfg_text = (
             "kernel vmlinuz\n"
@@ -139,7 +155,7 @@ def main():
     elif mode == "busybox-console-noxpad":
         files = {
             "VMLINUZ": kernel(ROOT / "artifacts" / "kernels" / "xbox-linux-5.8.1-noxpad-bzImage"),
-            "INITRAMF": ROOT / "artifacts" / "initramfs" / "xbox-busybox-console.cpio",
+            "INITRAMF": initramfs(ROOT / "artifacts" / "initramfs" / "xbox-busybox-console.cpio"),
         }
         cfg_text = (
             "kernel vmlinuz\n"
@@ -149,7 +165,7 @@ def main():
     elif mode == "busybox-stage2-noxpad":
         files = {
             "VMLINUZ": kernel(ROOT / "artifacts" / "kernels" / "xbox-linux-5.8.1-noxpad-bzImage"),
-            "INITRAMF": ROOT / "artifacts" / "initramfs" / "xbox-busybox-stage2.cpio",
+            "INITRAMF": initramfs(ROOT / "artifacts" / "initramfs" / "xbox-busybox-stage2.cpio"),
         }
         cfg_text = (
             "kernel vmlinuz\n"
@@ -159,7 +175,7 @@ def main():
     else:
         files = {
             "VMLINUZ": kernel(ROOT / "artifacts" / "kernels" / "xbox-linux-5.8.1-bzImage"),
-            "INITRAMF": ROOT / "artifacts" / "initramfs" / "xbox-smoke-core.gz",
+            "INITRAMF": initramfs(ROOT / "artifacts" / "initramfs" / "xbox-smoke-core.gz"),
         }
         cfg_text = (
             "kernel vmlinuz\n"
