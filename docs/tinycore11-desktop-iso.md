@@ -1,8 +1,8 @@
 # Tiny Core 11 Xfbdev Desktop ISO
 
-This builds the current known-good ISO that reaches a blank Xfbdev desktop with an `aterm` proof window showing:
+This builds the current known-good ISO that reaches a Tiny Core Xfbdev desktop with `flwm_topside`, `wbar`, the Tiny Core background, and an `aterm` proof window showing:
 
-- `XBOX_TINYCORE_XFBDEV_OK`
+- `XBOX_TINYCORE_NORMAL_DESKTOP_OK`
 - `Linux xbox 5.8.1-xboxdev ... i686 GNU/Linux`
 - framebuffer: `simple`, `640,480`, `32`
 - USB keyboard and QEMU USB tablet input devices
@@ -85,6 +85,6 @@ Known-good proof screenshots from the first successful run:
 - `run\screenshots\tinycore11-stage6-xfbdev-desktop-20260524-162921.png`
 - `run\screenshots\tinycore11-stage6-xfbdev-desktop-input-20260524-162945.png`
 
-Known-good 6.18.33 proof screenshot:
+Known-good 6.18.33 normal desktop proof screenshot:
 
-- `run\screenshots\tinycore11-desktop-6.18.33-github-tip-initrd32-20260524-214752.png`
+- `run\screenshots\tinycore11-normal-desktop-6.18.33-initrd32-20260524-220431.png`

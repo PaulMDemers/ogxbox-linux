@@ -470,45 +470,68 @@ cat > /mnt/tcroot/root/start-xbox-desktop.sh <<'EOS'
 #!/bin/sh
 export PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin
 export LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/lib
-export HOME=/root
-export USER=root
-export DISPLAY=:0
-mkdir -p /tmp/.X11-unix /tmp/.ICE-unix /root
-mkdir -p /usr/etc/wbar.d
-[ -f /usr/local/share/wbar/dot.wbar ] && cp /usr/local/share/wbar/dot.wbar /usr/etc/wbar.d/wbar.cfg 2>/dev/null || true
-echo "Inside chroot desktop launcher"
+export DISPLAY=:0.0
+
+echo "Inside Tiny Core desktop launcher"
 echo "PATH=$PATH"
 echo "Xfbdev=$(command -v Xfbdev 2>/dev/null)"
+echo "startx=$(command -v startx 2>/dev/null)"
 echo "flwm_topside=$(command -v flwm_topside 2>/dev/null)"
 echo "aterm=$(command -v aterm 2>/dev/null)"
 echo "wbar=$(command -v wbar 2>/dev/null)"
+
+mkdir -p /tmp/.X11-unix /tmp/.ICE-unix /tmp/tce/ondemand /usr/local/tce.installed
+mkdir -p /home/tc/.X.d /etc/sysconfig
+echo tc > /etc/sysconfig/tcuser
+echo flwm_topside > /etc/sysconfig/desktop
+echo wbar > /etc/sysconfig/icons
+echo Xfbdev > /etc/sysconfig/Xserver
+ln -snf /tmp/tce /etc/sysconfig/tcedir
+
+if ! grep -q '^tc:' /etc/passwd 2>/dev/null; then
+    adduser -s /bin/sh -G staff -D tc 2>/tmp/adduser.log || cat /tmp/adduser.log
+    echo "tc:tcuser" | chpasswd -m 2>/dev/null || true
+fi
+grep -q '^tc[[:space:]]' /etc/sudoers 2>/dev/null || echo 'tc ALL=NOPASSWD: ALL' >> /etc/sudoers
+
+cp -a /etc/skel/. /home/tc/ 2>/dev/null || true
+rm -f /home/tc/.xsession
+cat > /home/tc/.xsession <<'EOX'
+#!/bin/sh
 Xfbdev :0 -screen 640x480x32 -mouse /dev/input/mice,5 -nolisten tcp >/tmp/xfbdev.log 2>&1 &
-xpid=$!
-sleep 4
-if ! kill -0 "$xpid" 2>/dev/null; then
-    echo "Xfbdev exited early"
+export XPID=$!
+waitforX || ! echo failed in waitforX || exit
+"$DESKTOP" 2>/tmp/wm_errors &
+export WM_PID=$!
+[ -x "$HOME/.setbackground" ] && "$HOME/.setbackground"
+[ -x "$HOME/.mouse_config" ] && "$HOME/.mouse_config" &
+[ "$(which "$ICONS".sh 2>/dev/null)" ] && "$ICONS".sh &
+[ -d "/usr/local/etc/X.d" ] && find "/usr/local/etc/X.d" -type f -o -type l | sort | while read F; do . "$F"; done
+[ -d "$HOME/.X.d" ] && find "$HOME/.X.d" -type f -o -type l | sort | while read F; do . "$F"; done
+wait "$XPID"
+EOX
+
+cat > /home/tc/.X.d/90-xbox-proof-aterm <<'EOX'
+#!/bin/sh
+aterm -fn fixed -fg white -bg black -geometry 78x18+20+20 -title "Xbox Tiny Core" -e /bin/sh -c "echo XBOX_TINYCORE_NORMAL_DESKTOP_OK; uname -a; echo; echo framebuffer:; cat /sys/class/graphics/fb0/name /sys/class/graphics/fb0/virtual_size /sys/class/graphics/fb0/bits_per_pixel 2>/dev/null; echo; echo input:; grep -E 'Name|Handlers' /proc/bus/input/devices 2>/dev/null; sleep 100000" >/tmp/aterm.log 2>&1 &
+EOX
+
+chmod 755 /home/tc/.xsession /home/tc/.X.d/90-xbox-proof-aterm
+chown -R tc.staff /home/tc 2>/dev/null || true
+
+setupdesktop >/tmp/setupdesktop.log 2>&1 || cat /tmp/setupdesktop.log
+wbar_setup.sh >/tmp/wbar-setup.log 2>&1 || cat /tmp/wbar-setup.log
+
+echo "Starting Tiny Core startx with tc home"
+export HOME=/home/tc
+export USER=tc
+startx >/tmp/startx.log 2>&1 || {
+    echo "startx failed"
+    cat /tmp/startx.log 2>/dev/null
     cat /tmp/xfbdev.log 2>/dev/null
+    cat /tmp/wm_errors 2>/dev/null
     exit 1
-fi
-flwm_topside >/tmp/flwm.log 2>&1 &
-wpid=$!
-sleep 1
-aterm -fn fixed -fg white -bg black -geometry 78x18+20+20 -title "Xbox Tiny Core" -e /bin/sh -c "echo XBOX_TINYCORE_XFBDEV_OK; uname -a; echo; echo framebuffer:; cat /sys/class/graphics/fb0/name /sys/class/graphics/fb0/virtual_size /sys/class/graphics/fb0/bits_per_pixel 2>/dev/null; echo; echo input:; grep -E 'Name|Handlers' /proc/bus/input/devices 2>/dev/null; sleep 100000" >/tmp/aterm.log 2>&1 &
-apid=$!
-wbar >/tmp/wbar.log 2>&1 &
-sleep 8
-if ! kill -0 "$apid" 2>/dev/null || ! kill -0 "$wpid" 2>/dev/null; then
-    echo "X clients exited early"
-    echo "--- aterm.log ---"
-    cat /tmp/aterm.log 2>/dev/null
-    echo "--- flwm.log ---"
-    cat /tmp/flwm.log 2>/dev/null
-    echo "--- wbar.log ---"
-    cat /tmp/wbar.log 2>/dev/null
-    kill "$xpid" 2>/dev/null || true
-    exit 1
-fi
-wait "$xpid"
+}
 EOS
 chmod 755 /mnt/tcroot/root/start-xbox-desktop.sh
 

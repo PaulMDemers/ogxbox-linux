@@ -61,9 +61,10 @@ artifacts/kernels/xbox-linux-6.18.33-bzImage
 artifacts/kernels/xbox-linux-6.18.33.config
 ```
 
-The verified Tiny Core desktop boot reports:
+The verified Tiny Core normal desktop boot reports:
 
 ```text
+XBOX_TINYCORE_NORMAL_DESKTOP_OK
 Linux xbox 6.18.33-xboxdev-00004-g46679a4860b1 #1 PREEMPT_DYNAMIC Sun May 24 21:45:06 EDT 2026 i686 GNU/Linux
 ```
 
@@ -96,5 +97,5 @@ powershell -ExecutionPolicy Bypass -File .\run-xemu-cromwell-modernhdr-initrd32-
 Proof:
 
 ```text
-run\screenshots\tinycore11-desktop-6.18.33-github-tip-initrd32-20260524-214752.png
+run\screenshots\tinycore11-normal-desktop-6.18.33-initrd32-20260524-220431.png
 ```
