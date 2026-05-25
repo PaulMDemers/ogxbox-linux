@@ -38,6 +38,13 @@ Current proof screenshot:
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\hdd-fatx-clean-readmultiple-120-20260525-113838.png
 ```
 
+Current XBE-launcher proof screenshot:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\xbe-hddfatx-120-20260525-115342.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\xbe-hddfatx-runner-90-20260525-115644.png
+```
+
 That proves Cromwell can:
 
 - unlock the raw test HDD
@@ -47,6 +54,7 @@ That proves Cromwell can:
 - load `/vmlinuz` from FATX
 - load `/initramf` from FATX
 - enter the 6.18.33 BusyBox initramfs shell
+- launch through `build\xromwell-hddfatx-autoboot-disc\default.xbe` when booted from the XDVDFS wrapper under Complex BIOS
 
 Note: the initramfs banner still says `via Cromwell ISO`; that text is from the shared BusyBox init script and does not mean the payload came from the DVD path.
 
@@ -97,6 +105,12 @@ Run the current xemu HDD test:
 powershell -ExecutionPolicy Bypass -File .\run-xemu-cromwell-hdd-fatx-busybox-6.18.33.ps1
 ```
 
+Run the xemu XBE launcher test:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\run-xemu-xromwell-hddfatx-autoboot.ps1
+```
+
 Capture proof with the C# window capture tool:
 
 ```powershell
@@ -128,6 +142,5 @@ Relevant changes:
 The immediate next targets are:
 
 - rename the BusyBox proof banner so HDD and ISO boots report their actual source
-- decide how much of the FATX HDD boot path should be enabled for XBE launcher testing
-- test `build\xromwell-hddfatx-autoboot-disc\default.xbe` on xemu, then on a softmodded Xbox once the package layout is ready
+- package `build\xromwell-hddfatx-autoboot-disc\default.xbe` for softmod dashboard testing
 - start adapting the Tiny Core desktop payload to the HDD staging flow
