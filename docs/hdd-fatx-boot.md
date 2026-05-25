@@ -50,7 +50,7 @@ C:\Users\Paul\Desktop\xbox_linux\run\screenshots\tinycore-hdd-kernel-fatx-file-s
 Current XBE-launcher Tiny Core desktop proof screenshot:
 
 ```text
-C:\Users\Paul\Desktop\xbox_linux\run\screenshots\xbe-tinycore-kernel-fatx-file-stage7-270-20260525-134852.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\xbe-package-tinycore-fatx-270-20260525-141349.png
 ```
 
 That proves Cromwell can:
@@ -70,7 +70,7 @@ That proves Cromwell can:
 The earlier BusyBox proof is still useful as a small diagnostic payload:
 
 ```text
-C:\Users\Paul\Desktop\xbox_linux\run\screenshots\hdd-busybox-relocated-heap-45-20260525-123353.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\xbe-package-busybox-smoke-90-20260525-140817.png
 ```
 
 ## Artifacts
@@ -144,17 +144,17 @@ Stage the smaller BusyBox diagnostic payload instead:
 powershell -ExecutionPolicy Bypass -File .\scripts\stage_hdd_fatx_linuxboot.ps1
 ```
 
-Build the softmod-facing XBE test package:
+Build the softmod-facing XBE test packages:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\package_xromwell_hddfatx_softmod.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\package_softmod_test_packages.ps1
 ```
 
 That produces:
 
 ```text
-C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-autoboot\
-C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-autoboot.zip
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-busybox-smoke.zip
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-tinycore-fatx.zip
 ```
 
 Run the current xemu HDD test:
@@ -186,6 +186,7 @@ Before real hardware testing:
 - use the FATX-enabled kernel artifact, `artifacts\kernels\xbox-linux-6.18.33-fatx-bzImage`
 - copy the full package contents to E exactly as documented
 - test the BusyBox diagnostic package first if you want a smaller first hardware smoke test
+- follow `docs\real-hardware-softmod-test.md`
 
 ## Cromwell Changes
 
