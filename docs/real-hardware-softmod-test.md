@@ -16,6 +16,12 @@ Tiny Core FATX desktop test:
 C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-tinycore-fatx.zip
 ```
 
+Tiny Core FATX desktop test with the 64 MB tuned kernel:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-tinycore-lean.zip
+```
+
 ## Current Hardware Result
 
 Tested on a softmodded Xbox on May 25, 2026:
@@ -31,6 +37,7 @@ The May 25 refresh adds:
 - a stable `xbox-aterm` wrapper for the wbar terminal icon
 - `/usr/local/bin/xbox-diag`, with a boot copy saved at `/tmp/xbox-diag.txt`
 - read-ahead tuning for `hd*`, `sd*`, and `loop*` block devices
+- a lean Tiny Core kernel package built from `xbox_tinycore_defconfig`
 
 ## Backup First
 
@@ -103,6 +110,55 @@ If the desktop is slow or a terminal still exits unexpectedly, collect the diagn
 /tmp/xbox-diag.txt
 ```
 
+## Tiny Core Lean Kernel
+
+For RAM testing, use:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-tinycore-lean.zip
+```
+
+Copy the package folder to:
+
+```text
+E:\Apps\XromwellTinyCoreLean\
+```
+
+Copy the contents of its `E-root\` folder to `E:\`. This uses the same root
+filenames as the standard Tiny Core package, so it replaces:
+
+```text
+E:\linuxboot.cfg
+E:\vmlinuz
+E:\initramf
+E:\linuxroot.ext2
+```
+
+Launch:
+
+```text
+E:\Apps\XromwellTinyCoreLean\default.xbe
+```
+
+xemu lean proof:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\tinycore-hdd-lean-kernel-meminfo-tall-20260525-161026.png
+```
+
+The proof terminal should show:
+
+```text
+Linux xbox 6.18.33-xboxdev-00007-g502b7bb738cf
+```
+
+In xemu, the lean kernel desktop proof reported:
+
+```text
+MemTotal:      53948 kB
+MemAvailable: 16940 kB
+```
+
 ## Cleanup
 
 Remove the app folders and the E-root payload files:
@@ -110,6 +166,7 @@ Remove the app folders and the E-root payload files:
 ```text
 E:\Apps\XromwellBusyBoxSmoke\
 E:\Apps\XromwellTinyCoreFatx\
+E:\Apps\XromwellTinyCoreLean\
 E:\linuxboot.cfg
 E:\vmlinuz
 E:\initramf

@@ -512,6 +512,9 @@ echo
 echo "== mounts =="
 mount
 echo
+echo "== memory =="
+cat /proc/meminfo 2>/dev/null || true
+echo
 echo "== block devices =="
 cat /proc/partitions 2>/dev/null || true
 echo
@@ -545,7 +548,7 @@ cat > /usr/local/bin/xbox-proof-aterm <<'EOX'
 export PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin
 export LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/lib
 xbox-diag >/tmp/xbox-diag.txt 2>&1 || true
-exec aterm -fn fixed -fg white -bg black -geometry 78x18+20+20 -title "Xbox Tiny Core" -e /bin/sh -c "echo XBOX_TINYCORE_NORMAL_DESKTOP_OK; uname -a; echo; echo framebuffer:; cat /sys/class/graphics/fb0/name /sys/class/graphics/fb0/virtual_size /sys/class/graphics/fb0/bits_per_pixel 2>/dev/null; echo; echo input:; grep -E 'Name|Handlers' /proc/bus/input/devices 2>/dev/null; echo; echo diag: /tmp/xbox-diag.txt; sleep 100000"
+exec aterm -fn fixed -fg white -bg black -geometry 78x26+20+20 -title "Xbox Tiny Core" -e /bin/sh -c "echo XBOX_TINYCORE_NORMAL_DESKTOP_OK; uname -a; echo; echo memory:; grep -E 'MemTotal|MemFree|MemAvailable|Buffers|Cached|SwapTotal|SwapFree' /proc/meminfo 2>/dev/null; echo; echo framebuffer:; cat /sys/class/graphics/fb0/name /sys/class/graphics/fb0/virtual_size /sys/class/graphics/fb0/bits_per_pixel 2>/dev/null; echo; echo input:; grep -E 'Name|Handlers' /proc/bus/input/devices 2>/dev/null; echo; echo diag: /tmp/xbox-diag.txt; sleep 100000"
 EOX
 chmod 755 /usr/local/bin/xbox-storage-tune /usr/local/bin/xbox-diag /usr/local/bin/xbox-aterm /usr/local/bin/xbox-proof-aterm
 

@@ -61,6 +61,16 @@ artifacts/kernels/xbox-linux-6.18.33-bzImage
 artifacts/kernels/xbox-linux-6.18.33.config
 artifacts/kernels/xbox-linux-6.18.33-fatx-bzImage
 artifacts/kernels/xbox-linux-6.18.33-fatx.config
+artifacts/kernels/xbox-linux-6.18.33-fatx-tinycore-bzImage
+artifacts/kernels/xbox-linux-6.18.33-fatx-tinycore.config
+```
+
+For the memory-tuned Tiny Core kernel:
+
+```bash
+cd ~/ogxbox/linux-6.18-xbox
+make ARCH=x86 xbox_tinycore_defconfig
+make ARCH=x86 -j"$(nproc)" bzImage
 ```
 
 The verified Tiny Core normal desktop boot reports:

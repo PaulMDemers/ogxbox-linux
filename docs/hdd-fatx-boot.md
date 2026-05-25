@@ -47,6 +47,12 @@ Current ROM/HDD Tiny Core desktop proof screenshot:
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\tinycore-hdd-hwfix-clean-kernel-restaged-20260525-154918.png
 ```
 
+Current ROM/HDD Tiny Core lean-kernel desktop proof screenshot:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\tinycore-hdd-lean-kernel-meminfo-tall-20260525-161026.png
+```
+
 Current XBE-launcher Tiny Core desktop proof screenshot:
 
 ```text
@@ -155,6 +161,7 @@ That produces:
 ```text
 C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-busybox-smoke.zip
 C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-tinycore-fatx.zip
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-tinycore-lean.zip
 ```
 
 Run the current xemu HDD test:
@@ -241,8 +248,39 @@ At desktop start, it writes:
 ```
 
 That diagnostic file includes framebuffer, input, mount, block-device,
-read-ahead, ATA mode, and storage-related `dmesg` lines. It is intended for the
-next real-hardware pass if disk access still feels slower than expected.
+memory, read-ahead, ATA mode, and storage-related `dmesg` lines. It is intended
+for the next real-hardware pass if disk access still feels slower than expected.
+
+The proof terminal also prints the key `/proc/meminfo` fields so a photo of the
+desktop is enough for a first RAM comparison.
+
+## Lean Tiny Core Kernel
+
+The kernel branch now includes:
+
+```text
+arch/x86/configs/xbox_tinycore_defconfig
+```
+
+This config keeps the current Tiny Core boot path but trims features that are
+not needed for the 64 MB desktop smoke test, including cgroups/memcg,
+namespaces, BPF syscall, modules, kexec, most netfilter/IPv6 plumbing, sound,
+USB storage/serial/audio, DRM, ext4/FUSE/UDF/VFAT, proc kcore, and several
+debug/inspection options.
+
+Current artifact:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\kernels\xbox-linux-6.18.33-fatx-tinycore-bzImage
+C:\Users\Paul\Desktop\xbox_linux\artifacts\kernels\xbox-linux-6.18.33-fatx-tinycore.config
+```
+
+Size comparison from the May 25 build:
+
+```text
+full FATX bzImage:  4530688 bytes
+lean Tiny Core bzImage: 2617856 bytes
+```
 
 This matches the old Xbox Linux boot model: keep Linux files on FATX and use an ext2 root image file for the real Linux filesystem.
 
