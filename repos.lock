@@ -14,7 +14,7 @@
       "branch": "xbox-5.8.1-bringup",
       "head": "cc89bd62a",
       "modernBranch": "xbox-6.18.y-bringup",
-      "modernHead": "561381adb",
+      "modernHead": "dd2056c7e30a",
       "modernBuildPath": "/home/paul/ogxbox/linux-6.18-xbox"
     },
     {
@@ -23,7 +23,7 @@
       "origin": "https://github.com/PaulMDemers/cromwell.git",
       "upstream": "https://github.com/XboxDev/cromwell.git",
       "branch": "xbox-linux-fast-atapi-autoboot",
-      "head": "deffb9b"
+      "head": "5d8fffe"
     },
     {
       "name": "xbox-linux-initramfs",
