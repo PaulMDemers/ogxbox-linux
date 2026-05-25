@@ -1,6 +1,7 @@
 param(
     [string]$OutputIso = "artifacts\cromwell-tinycore11-stage6-xfbdev-desktop-noxpad.iso",
-    [string]$KernelPath = "artifacts\kernels\xbox-linux-5.8.1-noxpad-bzImage"
+    [string]$KernelPath = "artifacts\kernels\xbox-linux-5.8.1-noxpad-bzImage",
+    [string]$Append = ""
 )
 
 $ErrorActionPreference = 'Stop'
@@ -44,6 +45,7 @@ python (Join-Path $repoRoot 'scripts\make_busybox_initramfs.py')
 $env:CROMWELL_ISO_MODE = 'tinycore-stage6-xfbdev-desktop-noxpad'
 $env:CROMWELL_ISO_OUT = $OutputIso
 $env:CROMWELL_KERNEL = $KernelPath
+$env:CROMWELL_APPEND = $Append
 $env:TINYCORE_VERSION = '11.x'
 try {
     python (Join-Path $repoRoot 'scripts\make_cromwell_iso.py')
@@ -52,6 +54,7 @@ finally {
     Remove-Item Env:CROMWELL_ISO_MODE -ErrorAction SilentlyContinue
     Remove-Item Env:CROMWELL_ISO_OUT -ErrorAction SilentlyContinue
     Remove-Item Env:CROMWELL_KERNEL -ErrorAction SilentlyContinue
+    Remove-Item Env:CROMWELL_APPEND -ErrorAction SilentlyContinue
     Remove-Item Env:TINYCORE_VERSION -ErrorAction SilentlyContinue
 }
 

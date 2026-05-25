@@ -16,6 +16,12 @@ Branch:
 xbox-6.18.y-bringup
 ```
 
+Current remote tip:
+
+```text
+46679a4860b1 x86: enable Xbox framebuffer and PATA devices
+```
+
 Initial commits:
 
 ```text
@@ -28,10 +34,10 @@ Initial commits:
 
 Build modern Linux trees on WSL ext4, not under `/mnt/c`. The Windows filesystem is case-insensitive by default, and the Linux tree contains paths that differ only by case.
 
-Current local build tree:
+Verified local build tree:
 
 ```text
-/home/paul/ogxbox/linux-6.18-xbox
+/home/paul/ogxbox/linux-6.18-xbox-remote
 ```
 
 ## Build Commands
@@ -55,10 +61,10 @@ artifacts/kernels/xbox-linux-6.18.33-bzImage
 artifacts/kernels/xbox-linux-6.18.33.config
 ```
 
-`file arch/x86/boot/bzImage` reported:
+The verified Tiny Core desktop boot reports:
 
 ```text
-Linux kernel x86 boot executable bzImage, version 6.18.33-xboxdev-00002-g561381adb5fb
+Linux xbox 6.18.33-xboxdev-00004-g46679a4860b1 #1 PREEMPT_DYNAMIC Sun May 24 21:45:06 EDT 2026 i686 GNU/Linux
 ```
 
 ## What Has Been Forward-Ported
@@ -70,8 +76,25 @@ Linux kernel x86 boot executable bzImage, version 6.18.33-xboxdev-00002-g561381a
 - forced PIT clocksource selection during boot
 - old Xbox EXTSMI eject interrupt handler
 - decompressor `misc.o` optimization workaround for newer Xbox revisions
+- sysfb/simplefb handoff for visible framebuffer console and Xfbdev
+- libata/PATA AMD support for xemu's CD-ROM path
 - refreshed 6.18-compatible `xbox_defconfig`
 
-## Next Boot Step
+## Verified Boot
 
-Do not replace the proven 5.8.1 desktop ISO path yet. First build a parallel Cromwell ISO that swaps only the kernel to `artifacts/kernels/xbox-linux-6.18.33-bzImage`, keeping the same Tiny Core 11 payload and no-xpad USB keyboard/tablet launch path.
+The working 6.18 desktop path is:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\build_tinycore11_desktop_iso.ps1 `
+  -KernelPath artifacts\kernels\xbox-linux-6.18.33-bzImage `
+  -OutputIso artifacts\cromwell-tinycore11-stage6-xfbdev-desktop-6.18.33.iso `
+  -Append 'console=tty0 ignore_loglevel loglevel=7'
+
+powershell -ExecutionPolicy Bypass -File .\run-xemu-cromwell-modernhdr-initrd32-tinycore11-stage6-xfbdev-desktop-6.18.33.ps1
+```
+
+Proof:
+
+```text
+run\screenshots\tinycore11-desktop-6.18.33-github-tip-initrd32-20260524-214752.png
+```

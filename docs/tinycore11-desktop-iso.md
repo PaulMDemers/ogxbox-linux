@@ -44,7 +44,8 @@ To build the same Tiny Core desktop payload with the 6.18.33 test kernel:
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\build_tinycore11_desktop_iso.ps1 `
   -KernelPath artifacts\kernels\xbox-linux-6.18.33-bzImage `
-  -OutputIso artifacts\cromwell-tinycore11-stage6-xfbdev-desktop-6.18.33.iso
+  -OutputIso artifacts\cromwell-tinycore11-stage6-xfbdev-desktop-6.18.33.iso `
+  -Append 'console=tty0 ignore_loglevel loglevel=7'
 ```
 
 ## Boot
@@ -60,6 +61,19 @@ The launcher uses:
 - `-device usb-kbd`
 - `-device usb-tablet`
 
+For the 6.18.33 path, use the initrd32 Cromwell handoff launcher:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\run-xemu-cromwell-modernhdr-initrd32-tinycore11-stage6-xfbdev-desktop-6.18.33.ps1
+```
+
+The launcher uses:
+
+- `artifacts\cromwell-autocd-modernhdr-initrd32_1024.bin`
+- `artifacts\cromwell-tinycore11-stage6-xfbdev-desktop-6.18.33.iso`
+- `-device usb-kbd`
+- `-device usb-tablet`
+
 ## Capture Proof
 
 ```powershell
@@ -70,3 +84,7 @@ Known-good proof screenshots from the first successful run:
 
 - `run\screenshots\tinycore11-stage6-xfbdev-desktop-20260524-162921.png`
 - `run\screenshots\tinycore11-stage6-xfbdev-desktop-input-20260524-162945.png`
+
+Known-good 6.18.33 proof screenshot:
+
+- `run\screenshots\tinycore11-desktop-6.18.33-github-tip-initrd32-20260524-214752.png`

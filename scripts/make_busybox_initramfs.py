@@ -11,6 +11,7 @@ OUT = ROOT / "artifacts" / "initramfs" / "xbox-busybox-raw.cpio"
 OUT_CONSOLE = ROOT / "artifacts" / "initramfs" / "xbox-busybox-console.cpio"
 OUT_STAGE2 = ROOT / "artifacts" / "initramfs" / "xbox-busybox-stage2.cpio"
 OUT_REBOOT_PROBE = ROOT / "artifacts" / "initramfs" / "xbox-busybox-reboot-probe.cpio"
+OUT_VISUAL_PROBE = ROOT / "artifacts" / "initramfs" / "xbox-busybox-visual-probe.cpio"
 OUT_TINYCORE_STAGE3 = ROOT / "artifacts" / "initramfs" / "xbox-tinycore-stage3.cpio"
 OUT_TINYCORE_STAGE4 = ROOT / "artifacts" / "initramfs" / "xbox-tinycore-stage4.cpio"
 OUT_TINYCORE_STAGE5 = ROOT / "artifacts" / "initramfs" / "xbox-tinycore-stage5-desktop-probe.cpio"
@@ -103,6 +104,37 @@ sleep 8
 reboot -f
 sleep 5
 echo b >/proc/sysrq-trigger 2>/dev/null
+while true; do sleep 60; done
+"""
+
+VISUAL_PROBE_INIT = b"""#!/bin/busybox sh
+exec </dev/console >/dev/console 2>&1
+
+/bin/busybox --install -s
+mount -t proc proc /proc 2>/dev/null
+mount -t sysfs sysfs /sys 2>/dev/null
+mount -t devtmpfs devtmpfs /dev 2>/dev/null
+mknod /dev/fb0 c 29 0 2>/dev/null || true
+mknod /dev/mem c 1 1 2>/dev/null || true
+
+echo
+echo "*** Xbox BusyBox visual framebuffer probe reached userspace ***"
+echo "cmdline: $(cat /proc/cmdline 2>/dev/null)"
+echo "uname: $(uname -a 2>/dev/null)"
+echo "fb devices:"
+cat /proc/fb 2>/dev/null || true
+cat /sys/class/graphics/fb0/name /sys/class/graphics/fb0/virtual_size /sys/class/graphics/fb0/bits_per_pixel 2>/dev/null || true
+echo
+
+echo "Painting /dev/fb0 and framebuffer memory windows"
+dd if=/fbmark.raw of=/dev/fb0 bs=4096 count=300 conv=notrunc 2>/tmp/fb0-dd.log || true
+cat /tmp/fb0-dd.log 2>/dev/null || true
+dd if=/fbmark.raw of=/dev/mem bs=4096 seek=15360 count=300 conv=notrunc 2>/tmp/mem-low-dd.log || true
+cat /tmp/mem-low-dd.log 2>/dev/null || true
+dd if=/fbmark.raw of=/dev/mem bs=4096 seek=998400 count=300 conv=notrunc 2>/tmp/mem-high-dd.log || true
+cat /tmp/mem-high-dd.log 2>/dev/null || true
+
+echo "Visual probe complete; holding."
 while true; do sleep 60; done
 """
 
@@ -541,7 +573,25 @@ def add_symlink(buf, name, target, ino):
     add_entry(buf, name, stat.S_IFLNK | 0o777, target.encode("ascii"), ino=ino)
 
 
-def build(init_data):
+def make_fb_marker(width=640, height=480):
+    colors = [
+        0x00ffffff,
+        0x0000ff00,
+        0x00ff00ff,
+        0x0000ffff,
+        0x00ff0000,
+        0x000000ff,
+    ]
+    buf = bytearray()
+    for y in range(height):
+        band = colors[(y // 48) % len(colors)]
+        for x in range(width):
+            color = band if ((x // 32) + (y // 32)) % 2 == 0 else band ^ 0x00ffffff
+            buf += color.to_bytes(4, "little")
+    return bytes(buf)
+
+
+def build(init_data, extra_entries=None):
     raw = bytearray()
     ino = 1
 
@@ -590,6 +640,8 @@ def build(init_data):
     add_file(raw, "etc/profile", SRC / "etc" / "profile", ino, 0o644); ino += 1
     add_file(raw, "etc/resolv.conf", SRC / "etc" / "resolv.conf", ino, 0o644); ino += 1
     add_file(raw, "usr/bin/busybox", SRC / "usr" / "bin" / "busybox", ino); ino += 1
+    for name, data, mode in extra_entries or []:
+        add_entry(raw, name, stat.S_IFREG | mode, data, ino=ino); ino += 1
     add_entry(raw, "TRAILER!!!", 0, ino=ino)
     return raw
 
@@ -600,6 +652,7 @@ def main():
     OUT_CONSOLE.write_bytes(build(CONSOLE_INIT))
     OUT_STAGE2.write_bytes(build(STAGE2_INIT))
     OUT_REBOOT_PROBE.write_bytes(build(REBOOT_PROBE_INIT))
+    OUT_VISUAL_PROBE.write_bytes(build(VISUAL_PROBE_INIT, [("fbmark.raw", make_fb_marker(), 0o644)]))
     OUT_TINYCORE_STAGE3.write_bytes(build(TINYCORE_STAGE3_INIT))
     OUT_TINYCORE_STAGE4.write_bytes(build(TINYCORE_STAGE4_INIT))
     OUT_TINYCORE_STAGE5.write_bytes(build(TINYCORE_STAGE5_INIT))
@@ -608,6 +661,7 @@ def main():
     print(OUT_CONSOLE)
     print(OUT_STAGE2)
     print(OUT_REBOOT_PROBE)
+    print(OUT_VISUAL_PROBE)
     print(OUT_TINYCORE_STAGE3)
     print(OUT_TINYCORE_STAGE4)
     print(OUT_TINYCORE_STAGE5)
