@@ -4,6 +4,8 @@ param(
     [string]$KernelPath = "artifacts\kernels\xbox-linux-6.18.33-bzImage",
     [string]$InitrdPath = "artifacts\initramfs\xbox-busybox-console.cpio",
     [string]$Append = "init=/init noswitchroot debug console=tty0 ignore_loglevel loglevel=7",
+    [string]$PayloadPath,
+    [string]$PayloadName = "linuxroot.ext2",
     [switch]$NoZip
 )
 
@@ -15,11 +17,15 @@ $eRoot = Join-Path $outFull 'E-root'
 $xbeFull = Join-Path $repoRoot $XbePath
 $kernelFull = Join-Path $repoRoot $KernelPath
 $initrdFull = Join-Path $repoRoot $InitrdPath
+$payloadFull = if ($PayloadPath) { Join-Path $repoRoot $PayloadPath } else { $null }
 
 foreach ($path in @($xbeFull, $kernelFull, $initrdFull)) {
     if (-not (Test-Path -LiteralPath $path)) {
         throw "Required file was not found: $path"
     }
+}
+if ($PayloadPath -and -not (Test-Path -LiteralPath $payloadFull)) {
+    throw "Required payload file was not found: $payloadFull"
 }
 
 Remove-Item -Recurse -Force -LiteralPath $outFull -ErrorAction SilentlyContinue
@@ -28,6 +34,9 @@ New-Item -ItemType Directory -Force -Path $outFull, $eRoot | Out-Null
 Copy-Item -Force -LiteralPath $xbeFull -Destination (Join-Path $outFull 'default.xbe')
 Copy-Item -Force -LiteralPath $kernelFull -Destination (Join-Path $eRoot 'vmlinuz')
 Copy-Item -Force -LiteralPath $initrdFull -Destination (Join-Path $eRoot 'initramf')
+if ($PayloadPath) {
+    Copy-Item -Force -LiteralPath $payloadFull -Destination (Join-Path $eRoot $PayloadName)
+}
 
 @"
 title Xbox HDD
@@ -54,14 +63,18 @@ Required E: root payload files:
     E:\linuxboot.cfg
     E:\vmlinuz
     E:\initramf
+    E:\$PayloadName
 
 Expected result:
   Launching default.xbe should start Xromwell, read E:\linuxboot.cfg, load
-  E:\vmlinuz and E:\initramf from FATX, and enter the BusyBox proof shell.
+  E:\vmlinuz and E:\initramf from FATX. With a FATX-enabled kernel and
+  E:\$PayloadName present, Linux mounts E: as FATX and loop-mounts the
+  Tiny Core payload by filename.
 
 Current payload:
   Kernel:  $KernelPath
   Initrd:  $InitrdPath
+  Payload: $PayloadPath
   Append:  $Append
 
 Notes:

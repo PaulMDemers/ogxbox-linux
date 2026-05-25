@@ -604,11 +604,15 @@ for dev in /dev/hdb /dev/hdc /dev/sr0 /dev/cdrom /dev/dvd; do
     fi
 done
 """,
-    b"""mkdir -p /mnt/cd /mnt/tcroot
-PAYLOAD_OFFSET=8053063680
+    b"""mkdir -p /mnt/cd /mnt/tcroot /mnt/xboxe
+PAYLOAD_OFFSET=
+PAYLOAD_FILE=/linuxroot.ext2
+E_PARTITION_OFFSET=2884108288
 for arg in $(cat /proc/cmdline 2>/dev/null); do
     case "$arg" in
         tc_payload_offset=*) PAYLOAD_OFFSET="${arg#tc_payload_offset=}" ;;
+        tc_payload_file=*) PAYLOAD_FILE="${arg#tc_payload_file=}" ;;
+        tc_fatx_e_offset=*) E_PARTITION_OFFSET="${arg#tc_fatx_e_offset=}" ;;
     esac
 done
 
@@ -634,23 +638,54 @@ if [ -z "$PAYLOAD_DISK" ]; then
     PAYLOAD_DISK=/dev/hda
 fi
 
-echo "Mounting Tiny Core ext2 HDD payload from $PAYLOAD_DISK at offset $PAYLOAD_OFFSET"
 mknod /dev/loop0 b 7 0 2>/dev/null || true
+mknod /dev/loop1 b 7 1 2>/dev/null || true
 for i in 1 2 3 4 5; do
     [ -e "$PAYLOAD_DISK" ] && break
     sleep 1
 done
-if losetup -o "$PAYLOAD_OFFSET" /dev/loop0 "$PAYLOAD_DISK" 2>/tmp/tc-losetup.err; then
-    echo "Attached /dev/loop0"
+
+if [ -n "$PAYLOAD_OFFSET" ]; then
+    echo "Mounting Tiny Core ext2 HDD payload from $PAYLOAD_DISK at offset $PAYLOAD_OFFSET"
+    if losetup -o "$PAYLOAD_OFFSET" /dev/loop0 "$PAYLOAD_DISK" 2>/tmp/tc-losetup.err; then
+        echo "Attached /dev/loop0"
+    else
+        echo "losetup failed:"
+        cat /tmp/tc-losetup.err 2>/dev/null || true
+    fi
+    if mount -t ext2 -o ro /dev/loop0 /mnt/cd 2>/tmp/tc-payload-mount.err; then
+        echo "Mounted ext2 payload on /mnt/cd"
+    else
+        echo "ext2 payload mount failed:"
+        cat /tmp/tc-payload-mount.err 2>/dev/null || true
+    fi
 else
-    echo "losetup failed:"
-    cat /tmp/tc-losetup.err 2>/dev/null || true
-fi
-if mount -t ext2 -o ro /dev/loop0 /mnt/cd 2>/tmp/tc-payload-mount.err; then
-    echo "Mounted ext2 payload on /mnt/cd"
-else
-    echo "ext2 payload mount failed:"
-    cat /tmp/tc-payload-mount.err 2>/dev/null || true
+    echo "Mounting Xbox E FATX from $PAYLOAD_DISK at offset $E_PARTITION_OFFSET"
+    if losetup -o "$E_PARTITION_OFFSET" /dev/loop0 "$PAYLOAD_DISK" 2>/tmp/tc-fatx-losetup.err; then
+        echo "Attached FATX loop /dev/loop0"
+    else
+        echo "FATX losetup failed:"
+        cat /tmp/tc-fatx-losetup.err 2>/dev/null || true
+    fi
+    if mount -t fatx -o ro /dev/loop0 /mnt/xboxe 2>/tmp/tc-fatx-mount.err; then
+        echo "Mounted FATX E on /mnt/xboxe"
+        ls -la /mnt/xboxe 2>/dev/null || true
+        if losetup /dev/loop1 "/mnt/xboxe$PAYLOAD_FILE" 2>/tmp/tc-file-losetup.err; then
+            echo "Attached ext2 image /mnt/xboxe$PAYLOAD_FILE to /dev/loop1"
+        else
+            echo "ext2 image losetup failed:"
+            cat /tmp/tc-file-losetup.err 2>/dev/null || true
+        fi
+        if mount -t ext2 -o ro /dev/loop1 /mnt/cd 2>/tmp/tc-payload-mount.err; then
+            echo "Mounted ext2 payload on /mnt/cd"
+        else
+            echo "ext2 payload mount failed:"
+            cat /tmp/tc-payload-mount.err 2>/dev/null || true
+        fi
+    else
+        echo "FATX mount failed:"
+        cat /tmp/tc-fatx-mount.err 2>/dev/null || true
+    fi
 fi
 """,
 )

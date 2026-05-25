@@ -19,7 +19,7 @@ xbox-6.18.y-bringup
 Current remote tip:
 
 ```text
-46679a4860b1 x86: enable Xbox framebuffer and PATA devices
+993a98a6c642 fs: add read-only FATX support
 ```
 
 Initial commits:
@@ -59,6 +59,8 @@ The built kernel copied back into the Windows workspace is:
 ```text
 artifacts/kernels/xbox-linux-6.18.33-bzImage
 artifacts/kernels/xbox-linux-6.18.33.config
+artifacts/kernels/xbox-linux-6.18.33-fatx-bzImage
+artifacts/kernels/xbox-linux-6.18.33-fatx.config
 ```
 
 The verified Tiny Core normal desktop boot reports:
@@ -80,6 +82,7 @@ Linux xbox 6.18.33-xboxdev-00004-g46679a4860b1 #1 PREEMPT_DYNAMIC Sun May 24 21:
 - sysfb/simplefb handoff for visible framebuffer console and Xfbdev
 - libata/PATA AMD support for xemu's CD-ROM path
 - refreshed 6.18-compatible `xbox_defconfig`
+- minimal read-only FATX filesystem support for mounting Xbox E and opening loopback root images by filename
 
 ## Verified Boot
 

@@ -30,7 +30,8 @@ Current staged FATX boot payload:
 
 - `vmlinuz`: `artifacts\kernels\xbox-linux-6.18.33-bzImage`
 - `initramf`: `artifacts\initramfs\xbox-tinycore-hdd-ext2-stage7-xfbdev-desktop.cpio`
-- append line: `init=/init noswitchroot debug console=tty0 ignore_loglevel loglevel=7 tc_payload_offset=<computed>`
+- `linuxroot.ext2`: `artifacts\hdd\xbox-tinycore-payload.ext2`
+- append line: `init=/init noswitchroot debug console=tty0 ignore_loglevel loglevel=7`
 
 The Tiny Core payload itself is a visible FATX file:
 
@@ -38,18 +39,18 @@ The Tiny Core payload itself is a visible FATX file:
 E:\linuxroot.ext2
 ```
 
-The staging tool allocates `linuxroot.ext2` contiguously on FATX, computes the file's physical disk offset, and injects that offset into `linuxboot.cfg` as `tc_payload_offset=...`. The stage7 initramfs mounts that ext2 payload through `/dev/loop0`, extracts `core.gz`, loads the desktop `.tcz` extensions, and starts the Tiny Core Xfbdev desktop.
+With the FATX-enabled 6.18 kernel, stage7 mounts the Xbox E partition as FATX, opens `E:\linuxroot.ext2` by filename, loop-mounts that ext2 image, extracts `core.gz`, loads the desktop `.tcz` extensions, and starts the Tiny Core Xfbdev desktop. No physical payload offset is needed for this path.
 
 Current ROM/HDD Tiny Core desktop proof screenshot:
 
 ```text
-C:\Users\Paul\Desktop\xbox_linux\run\screenshots\tinycore-hdd-fatx-file-stage7-120-20260525-130546.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\tinycore-hdd-kernel-fatx-file-stage7-offsetfix-180-20260525-134325.png
 ```
 
 Current XBE-launcher Tiny Core desktop proof screenshot:
 
 ```text
-C:\Users\Paul\Desktop\xbox_linux\run\screenshots\xbe-tinycore-hdd-fatx-file-stage7-retry-150-20260525-131209.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\xbe-tinycore-kernel-fatx-file-stage7-270-20260525-134852.png
 ```
 
 That proves Cromwell can:
@@ -61,7 +62,8 @@ That proves Cromwell can:
 - load `/vmlinuz` from FATX
 - load `/initramf` from FATX
 - enter the 6.18.33 stage7 initramfs
-- mount the Tiny Core ext2 payload from visible FATX file `E:\linuxroot.ext2`
+- mount the Xbox E partition as FATX from Linux
+- open the Tiny Core ext2 payload from visible FATX file `E:\linuxroot.ext2`
 - start the Tiny Core Xfbdev desktop
 - launch through `build\xromwell-hddfatx-autoboot-disc\default.xbe` when booted from the XDVDFS wrapper under Complex BIOS
 
@@ -133,7 +135,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\stage_hdd_ext2_tinycore_paylo
 Stage the E-root linuxboot files and visible FATX payload file for the Tiny Core HDD desktop:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\stage_hdd_fatx_linuxboot.ps1 -InitrdPath artifacts\initramfs\xbox-tinycore-hdd-ext2-stage7-xfbdev-desktop.cpio -Title 'Tiny Core HDD file' -Append 'init=/init noswitchroot debug console=tty0 ignore_loglevel loglevel=7' -PayloadPath artifacts\hdd\xbox-tinycore-payload.ext2 -PayloadName linuxroot.ext2 -AppendPayloadInfo
+powershell -ExecutionPolicy Bypass -File .\scripts\stage_hdd_fatx_linuxboot.ps1 -KernelPath artifacts\kernels\xbox-linux-6.18.33-fatx-bzImage -InitrdPath artifacts\initramfs\xbox-tinycore-hdd-ext2-stage7-xfbdev-desktop.cpio -Title 'Tiny Core HDD fatx' -Append 'init=/init noswitchroot debug console=tty0 ignore_loglevel loglevel=7' -PayloadPath artifacts\hdd\xbox-tinycore-payload.ext2 -PayloadName linuxroot.ext2
 ```
 
 Stage the smaller BusyBox diagnostic payload instead:
@@ -177,13 +179,13 @@ Capture proof with the C# window capture tool:
 
 The current Tiny Core HDD path no longer writes to hidden/raw tail sectors. It uses a normal visible FATX file, `E:\linuxroot.ext2`.
 
-Do not yet copy the Tiny Core package to a real Xbox by FTP and expect it to be self-locating. The modern Linux kernel cannot mount FATX, so stage7 needs the physical disk offset of `E:\linuxroot.ext2`. The xemu staging script computes that offset while writing the FATX file contiguously into the raw test image.
+The new FATX-enabled kernel makes the Tiny Core package self-locating: stage7 mounts E as FATX and opens `E:\linuxroot.ext2` by filename. That removes the old contiguity/offset requirement for the ext2 payload file.
 
-Before real hardware testing, use one of these safer options:
+Before real hardware testing:
 
-- build an Xbox-side installer that writes `E:\linuxroot.ext2` contiguously and updates `E:\linuxboot.cfg` with the measured offset
-- teach Cromwell to locate `linuxroot.ext2` in FATX, verify it is contiguous, and append `tc_payload_offset=...` at boot
-- test only the BusyBox diagnostic package first, because it does not depend on a loop-mounted ext2 payload file
+- use the FATX-enabled kernel artifact, `artifacts\kernels\xbox-linux-6.18.33-fatx-bzImage`
+- copy the full package contents to E exactly as documented
+- test the BusyBox diagnostic package first if you want a smaller first hardware smoke test
 
 ## Cromwell Changes
 
@@ -206,10 +208,21 @@ Relevant changes:
 - Kernel staging uses `KERNEL_LOAD_TMP` below `INITRD_START`, leaving the initramfs region clear.
 - The initrd window was widened to allow larger experiments, and Cromwell's heap was moved below `INITRD_START` so early video/FATX setup still has enough heap.
 
+## Kernel FATX Support
+
+The 6.18 branch now includes a minimal read-only `fs/fatx` driver:
+
+- `CONFIG_FATX_FS=y` in `arch\x86\configs\xbox_defconfig`
+- read-only FATX mount support
+- directory lookup/readdir
+- regular file reads and bmap/read_folio support for loopback images
+
+This matches the old Xbox Linux boot model: keep Linux files on FATX and use an ext2 root image file for the real Linux filesystem.
+
 ## Next Work
 
 The immediate next targets are:
 
-- turn the ext2 payload staging into a real-Xbox-safe installer flow; for xemu it writes a visible contiguous FATX file and computes the offset
+- package the FATX-enabled Tiny Core flow as the default softmod test package
 - add a second Tiny Core profile that boots to a lighter shell plus optional desktop startup
-- teach Cromwell or an Xbox-side installer to compute `tc_payload_offset` on real hardware instead of relying on host-side raw-image staging
+- broaden FATX driver testing against C/E/F-style layouts and fragmented files
