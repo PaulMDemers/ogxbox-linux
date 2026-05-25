@@ -30,28 +30,26 @@ Current staged FATX boot payload:
 
 - `vmlinuz`: `artifacts\kernels\xbox-linux-6.18.33-bzImage`
 - `initramf`: `artifacts\initramfs\xbox-tinycore-hdd-ext2-stage7-xfbdev-desktop.cpio`
-- append line: `init=/init noswitchroot debug console=tty0 ignore_loglevel loglevel=7 tc_payload_offset=8053063680`
+- append line: `init=/init noswitchroot debug console=tty0 ignore_loglevel loglevel=7 tc_payload_offset=<computed>`
 
-The Tiny Core payload itself is not stored in FATX. It lives in an ext2 filesystem image written into the raw HDD tail region:
+The Tiny Core payload itself is a visible FATX file:
 
 ```text
-offset: 8053063680
-source image: C:\Users\Paul\Desktop\xbox_linux\artifacts\hdd\xbox-tinycore-payload.ext2
-payload root: C:\Users\Paul\Desktop\xbox_linux\artifacts\hdd\tinycore-ext2-root
+E:\linuxroot.ext2
 ```
 
-The stage7 initramfs mounts that ext2 payload through `/dev/loop0`, extracts `core.gz`, loads the desktop `.tcz` extensions, and starts the Tiny Core Xfbdev desktop.
+The staging tool allocates `linuxroot.ext2` contiguously on FATX, computes the file's physical disk offset, and injects that offset into `linuxboot.cfg` as `tc_payload_offset=...`. The stage7 initramfs mounts that ext2 payload through `/dev/loop0`, extracts `core.gz`, loads the desktop `.tcz` extensions, and starts the Tiny Core Xfbdev desktop.
 
 Current ROM/HDD Tiny Core desktop proof screenshot:
 
 ```text
-C:\Users\Paul\Desktop\xbox_linux\run\screenshots\tinycore-hdd-ext2-stage7-scan-120-20260525-125202.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\tinycore-hdd-fatx-file-stage7-120-20260525-130546.png
 ```
 
 Current XBE-launcher Tiny Core desktop proof screenshot:
 
 ```text
-C:\Users\Paul\Desktop\xbox_linux\run\screenshots\xbe-tinycore-hdd-ext2-stage7-120-20260525-125439.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\xbe-tinycore-hdd-fatx-file-stage7-retry-150-20260525-131209.png
 ```
 
 That proves Cromwell can:
@@ -63,7 +61,7 @@ That proves Cromwell can:
 - load `/vmlinuz` from FATX
 - load `/initramf` from FATX
 - enter the 6.18.33 stage7 initramfs
-- mount the Tiny Core ext2 payload from the raw HDD tail
+- mount the Tiny Core ext2 payload from visible FATX file `E:\linuxroot.ext2`
 - start the Tiny Core Xfbdev desktop
 - launch through `build\xromwell-hddfatx-autoboot-disc\default.xbe` when booted from the XDVDFS wrapper under Complex BIOS
 
@@ -99,6 +97,12 @@ Tiny Core HDD payload image:
 C:\Users\Paul\Desktop\xbox_linux\artifacts\hdd\xbox-tinycore-payload.ext2
 ```
 
+That generated image is staged into FATX as:
+
+```text
+E:\linuxroot.ext2
+```
+
 ## Build And Stage
 
 Convert the baseline qcow2 to a disposable raw HDD:
@@ -120,16 +124,16 @@ Build the FATX-autoboot Cromwell ROM and XBE:
 powershell -ExecutionPolicy Bypass -File .\scripts\build_cromwell_hdd_fatx_autoboot.ps1
 ```
 
-Write the Tiny Core ext2 payload into the raw HDD tail:
+Build the Tiny Core ext2 payload image:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\stage_hdd_ext2_tinycore_payload.ps1
 ```
 
-Stage the E-root linuxboot files for the Tiny Core HDD desktop:
+Stage the E-root linuxboot files and visible FATX payload file for the Tiny Core HDD desktop:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\stage_hdd_fatx_linuxboot.ps1 -InitrdPath artifacts\initramfs\xbox-tinycore-hdd-ext2-stage7-xfbdev-desktop.cpio -Title 'Tiny Core HDD ext2' -Append 'init=/init noswitchroot debug console=tty0 ignore_loglevel loglevel=7 tc_payload_offset=8053063680'
+powershell -ExecutionPolicy Bypass -File .\scripts\stage_hdd_fatx_linuxboot.ps1 -InitrdPath artifacts\initramfs\xbox-tinycore-hdd-ext2-stage7-xfbdev-desktop.cpio -Title 'Tiny Core HDD file' -Append 'init=/init noswitchroot debug console=tty0 ignore_loglevel loglevel=7' -PayloadPath artifacts\hdd\xbox-tinycore-payload.ext2 -PayloadName linuxroot.ext2 -AppendPayloadInfo
 ```
 
 Stage the smaller BusyBox diagnostic payload instead:
@@ -169,6 +173,18 @@ Capture proof with the C# window capture tool:
 .\tools\capture-xemu-window\bin\Release\net10.0-windows\CaptureXemuWindow.exe --out-dir .\run\screenshots --prefix hdd-fatx-autoboot-busybox-6.18.33 --rect frame
 ```
 
+## Real Hardware Safety
+
+The current Tiny Core HDD path no longer writes to hidden/raw tail sectors. It uses a normal visible FATX file, `E:\linuxroot.ext2`.
+
+Do not yet copy the Tiny Core package to a real Xbox by FTP and expect it to be self-locating. The modern Linux kernel cannot mount FATX, so stage7 needs the physical disk offset of `E:\linuxroot.ext2`. The xemu staging script computes that offset while writing the FATX file contiguously into the raw test image.
+
+Before real hardware testing, use one of these safer options:
+
+- build an Xbox-side installer that writes `E:\linuxroot.ext2` contiguously and updates `E:\linuxboot.cfg` with the measured offset
+- teach Cromwell to locate `linuxroot.ext2` in FATX, verify it is contiguous, and append `tc_payload_offset=...` at boot
+- test only the BusyBox diagnostic package first, because it does not depend on a loop-mounted ext2 payload file
+
 ## Cromwell Changes
 
 Cromwell branch:
@@ -194,6 +210,6 @@ Relevant changes:
 
 The immediate next targets are:
 
-- turn the ext2 payload staging into a real-Xbox-safe installer flow; for xemu it writes the raw HDD tail directly
+- turn the ext2 payload staging into a real-Xbox-safe installer flow; for xemu it writes a visible contiguous FATX file and computes the offset
 - add a second Tiny Core profile that boots to a lighter shell plus optional desktop startup
-- decide whether to keep the current tail-offset layout or move to a formal Linux partition map for real hardware experiments
+- teach Cromwell or an Xbox-side installer to compute `tc_payload_offset` on real hardware instead of relying on host-side raw-image staging

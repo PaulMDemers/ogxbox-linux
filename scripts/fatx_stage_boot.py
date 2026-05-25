@@ -44,6 +44,16 @@ class FatxPartition:
         return self.fat_offset + (cluster_id * self.entry_size)
 
 
+@dataclass
+class FatxWriteResult:
+    name: str
+    size: int
+    start_cluster: int
+    cluster_count: int
+    disk_offset: int
+    contiguous: bool
+
+
 def read_at(fp, offset: int, size: int) -> bytes:
     fp.seek(offset)
     data = fp.read(size)
@@ -175,6 +185,30 @@ def allocate_clusters(fp, part: FatxPartition, count: int) -> list[int]:
     return clusters
 
 
+def allocate_contiguous_clusters(fp, part: FatxPartition, count: int) -> list[int]:
+    run_start: int | None = None
+    run_length = 0
+
+    for cluster_id in range(2, part.cluster_count):
+        if read_fat_entry(fp, part, cluster_id) == FREE_CLUSTER:
+            if run_start is None:
+                run_start = cluster_id
+                run_length = 1
+            else:
+                run_length += 1
+            if run_length == count:
+                clusters = list(range(run_start, run_start + count))
+                for index, allocated_cluster in enumerate(clusters):
+                    next_value = clusters[index + 1] if index + 1 < len(clusters) else END_OF_CHAIN
+                    write_fat_entry(fp, part, allocated_cluster, next_value)
+                return clusters
+        else:
+            run_start = None
+            run_length = 0
+
+    raise RuntimeError(f"not enough contiguous free FATX clusters: need {count}")
+
+
 def find_root_slot(root: bytearray) -> int:
     deleted_slot: int | None = None
     for offset in range(0, len(root), DIRECTORY_ENTRY_SIZE):
@@ -188,7 +222,7 @@ def find_root_slot(root: bytearray) -> int:
     raise RuntimeError("root directory is full")
 
 
-def write_root_file(fp, part: FatxPartition, name: str, data: bytes) -> None:
+def write_root_file(fp, part: FatxPartition, name: str, data: bytes, *, contiguous: bool = False) -> FatxWriteResult:
     encoded = name.encode("ascii")
     if not encoded or len(encoded) > 42:
         raise ValueError(f"FATX filename must be 1-42 ASCII bytes: {name!r}")
@@ -196,7 +230,10 @@ def write_root_file(fp, part: FatxPartition, name: str, data: bytes) -> None:
     remove_root_file(fp, part, name)
 
     cluster_count = max(1, math.ceil(len(data) / part.cluster_size))
-    clusters = allocate_clusters(fp, part, cluster_count)
+    if contiguous:
+        clusters = allocate_contiguous_clusters(fp, part, cluster_count)
+    else:
+        clusters = allocate_clusters(fp, part, cluster_count)
     for index, cluster_id in enumerate(clusters):
         chunk = data[index * part.cluster_size : (index + 1) * part.cluster_size]
         write_cluster(fp, part, cluster_id, chunk)
@@ -215,6 +252,14 @@ def write_root_file(fp, part: FatxPartition, name: str, data: bytes) -> None:
     if next_slot < len(root) and root[next_slot] == 0x00:
         root[next_slot] = 0xFF
     write_cluster(fp, part, ROOT_CLUSTER, root)
+    return FatxWriteResult(
+        name=name,
+        size=len(data),
+        start_cluster=clusters[0],
+        cluster_count=len(clusters),
+        disk_offset=part.cluster_offset(clusters[0]),
+        contiguous=all(clusters[index] + 1 == clusters[index + 1] for index in range(len(clusters) - 1)),
+    )
 
 
 def list_root(fp, part: FatxPartition) -> list[str]:
@@ -242,35 +287,55 @@ def main() -> int:
         default="init=/init noswitchroot debug console=tty0 ignore_loglevel loglevel=7",
     )
     parser.add_argument("--title", default="Xbox HDD")
+    parser.add_argument("--payload", type=Path)
+    parser.add_argument("--payload-name", default="linuxroot.ext2")
+    parser.add_argument("--append-payload-info", action="store_true")
     parser.add_argument("--list", action="store_true")
     args = parser.parse_args()
 
     if args.raw_image.suffix.lower() == ".qcow2":
         raise SystemExit("refusing to edit qcow2 directly; convert to a disposable raw image first")
 
-    initrd_line = "initrd no\n"
-    if args.initrd:
-        initrd_line = "initrd initramf\n"
-
-    cfg = (
-        f"title {args.title}\n"
-        "kernel vmlinuz\n"
-        f"{initrd_line}"
-        f"append {args.append}\n"
-    ).encode("ascii")
-
-    files = {
-        "linuxboot.cfg": cfg,
-        "vmlinuz": args.kernel.read_bytes(),
-    }
-    if args.initrd:
-        files["initramf"] = args.initrd.read_bytes()
-
     with args.raw_image.open("r+b") as fp:
         part = open_partition(fp, args.raw_image, args.partition)
+        append = args.append
+
+        if args.payload:
+            payload_result = write_root_file(fp, part, args.payload_name, args.payload.read_bytes(), contiguous=True)
+            if not payload_result.contiguous:
+                raise RuntimeError(f"/{args.payload_name} was not allocated contiguously")
+            print(
+                f"wrote /{args.payload_name}: {payload_result.size} bytes "
+                f"cluster={payload_result.start_cluster} clusters={payload_result.cluster_count} "
+                f"offset={payload_result.disk_offset}"
+            )
+            if args.append_payload_info:
+                append = (
+                    f"{append} tc_payload_offset={payload_result.disk_offset} "
+                    f"tc_payload_size={payload_result.size} tc_payload_file=/{args.payload_name}"
+                )
+
+        initrd_line = "initrd no\n"
+        if args.initrd:
+            initrd_line = "initrd initramf\n"
+
+        cfg = (
+            f"title {args.title}\n"
+            "kernel vmlinuz\n"
+            f"{initrd_line}"
+            f"append {append}\n"
+        ).encode("ascii")
+
+        files = {
+            "linuxboot.cfg": cfg,
+            "vmlinuz": args.kernel.read_bytes(),
+        }
+        if args.initrd:
+            files["initramf"] = args.initrd.read_bytes()
+
         for name, data in files.items():
-            write_root_file(fp, part, name, data)
-            print(f"wrote /{name}: {len(data)} bytes")
+            result = write_root_file(fp, part, name, data)
+            print(f"wrote /{name}: {result.size} bytes")
 
         print(f"\n{args.partition.upper()}: root directory:")
         for line in list_root(fp, part):
