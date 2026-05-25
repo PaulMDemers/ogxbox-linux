@@ -540,7 +540,7 @@ export TERM=xterm
 export HOME="${HOME:-/home/tc}"
 export USER="${USER:-tc}"
 cd "$HOME" 2>/dev/null || cd /
-exec aterm -fn fixed -fg white -bg black -geometry 78x24+20+20 -title "Xbox Terminal" -e /bin/sh
+exec aterm -fn fixed -fg white -bg black -geometry 78x24+20+20 -title "Xbox Terminal" -e /bin/sh -c "export HOME=/home/tc USER=tc TERM=xterm; cd /home/tc 2>/dev/null || cd /; exec /bin/sh -i" >/tmp/xbox-aterm.log 2>&1
 EOX
 
 cat > /usr/local/bin/xbox-proof-aterm <<'EOX'
@@ -585,9 +585,15 @@ chown -R tc.staff /home/tc 2>/dev/null || true
 
 export HOME=/home/tc
 export USER=tc
+if [ -f /usr/local/share/applications/aterm.desktop ]; then
+    sed -i 's#^Exec=.*#Exec=xbox-aterm#' /usr/local/share/applications/aterm.desktop 2>/dev/null || true
+fi
 setupdesktop >/tmp/setupdesktop.log 2>&1 || cat /tmp/setupdesktop.log
 wbar_setup.sh >/tmp/wbar-setup.log 2>&1 || cat /tmp/wbar-setup.log
-if [ -f /home/tc/.wbar ]; then
+if [ -e /usr/local/tce.icons ]; then
+    sed -i 's#^c: .*aterm.*#c: exec xbox-aterm#' /usr/local/tce.icons 2>/dev/null || true
+fi
+if [ -e /home/tc/.wbar ]; then
     sed -i 's#^c: .*aterm.*#c: exec xbox-aterm#' /home/tc/.wbar 2>/dev/null || true
 fi
 xbox-storage-tune >/tmp/xbox-storage-tune.log 2>&1 || true

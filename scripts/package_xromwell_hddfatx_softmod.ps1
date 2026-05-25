@@ -2,7 +2,9 @@ param(
     [string]$OutDir = "artifacts\softmod\xromwell-hddfatx-autoboot",
     [string]$XbePath = "build\xromwell-hddfatx-autoboot-disc\default.xbe",
     [string]$KernelPath = "artifacts\kernels\xbox-linux-6.18.33-bzImage",
+    [string]$KernelName = "vmlinuz",
     [string]$InitrdPath = "artifacts\initramfs\xbox-busybox-console.cpio",
+    [string]$InitrdName = "initramf",
     [string]$Append = "init=/init noswitchroot debug console=tty0 ignore_loglevel loglevel=7",
     [string]$PayloadPath,
     [string]$PayloadName = "linuxroot.ext2",
@@ -36,33 +38,33 @@ Remove-Item -Recurse -Force -LiteralPath $outFull -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path $outFull, $eRoot | Out-Null
 
 Copy-Item -Force -LiteralPath $xbeFull -Destination (Join-Path $outFull 'default.xbe')
-Copy-Item -Force -LiteralPath $kernelFull -Destination (Join-Path $eRoot 'vmlinuz')
-Copy-Item -Force -LiteralPath $initrdFull -Destination (Join-Path $eRoot 'initramf')
+Copy-Item -Force -LiteralPath $kernelFull -Destination (Join-Path $eRoot $KernelName)
+Copy-Item -Force -LiteralPath $initrdFull -Destination (Join-Path $eRoot $InitrdName)
 if ($PayloadPath) {
     Copy-Item -Force -LiteralPath $payloadFull -Destination (Join-Path $eRoot $PayloadName)
 }
 
 @"
 title Xbox HDD
-kernel vmlinuz
-initrd initramf
+kernel $KernelName
+initrd $InitrdName
 append $Append
 "@ | Set-Content -LiteralPath (Join-Path $eRoot 'linuxboot.cfg') -Encoding ASCII
 
 $requiredFiles = @(
     '    E:\linuxboot.cfg',
-    '    E:\vmlinuz',
-    '    E:\initramf'
+    "    E:\$KernelName",
+    "    E:\$InitrdName"
 )
 $expected = @(
     '  Launching default.xbe should start Xromwell, read E:\linuxboot.cfg,',
-    '  and load E:\vmlinuz and E:\initramf from FATX.'
+    "  and load E:\$KernelName and E:\$InitrdName from FATX."
 )
 if ($PayloadPath) {
     $requiredFiles += "    E:\$PayloadName"
     $expected += @(
         "  With E:\$PayloadName present, Linux mounts E: as FATX and",
-        '  loop-mounts the Tiny Core payload by filename.'
+        "  loop-mounts the payload by filename."
     )
 } else {
     $expected += '  This package should stop at the BusyBox proof shell.'

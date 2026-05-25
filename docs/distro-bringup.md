@@ -5,13 +5,15 @@ boot model:
 
 ```text
 E:\linuxboot.cfg
-E:\vmlinuz
-E:\initramf
-E:\linuxroot.ext2
+E:\debkrnl
+E:\debinit
+E:\debian.ext2
 ```
 
-Xromwell loads the kernel and initramfs from FATX. The generic distro
-initramfs mounts `E:` as FATX, opens `E:\linuxroot.ext2`, loop-mounts that ext2
+Xromwell loads the kernel and initramfs from FATX. The generic Debian distro
+package intentionally uses unique root filenames to avoid colliding with the
+Tiny Core packages on real FATX disks. The generic distro initramfs mounts `E:`
+as FATX, opens `E:\debian.ext2`, loop-mounts that ext2
 image, and `switch_root`s into the distro.
 
 ## Repository Setup
@@ -45,6 +47,12 @@ Current goal: minimal Debian 12 i386 console proof shell.
 Status: boots in xemu through the full FATX/ext2 path and `switch_root`s into
 the Debian root image.
 
+Real hardware status: the first softmod test did not reach Linux. Cromwell
+loaded `/vmlinuz`, then failed while reading `/initramf` from FATX with an
+invalid next-cluster value. The May 25 refresh addresses that by rebuilding
+Xromwell with a stricter FATX EOF/file-size stop and by packaging Debian as
+`debkrnl`, `debinit`, and `debian.ext2`.
+
 Build:
 
 ```powershell
@@ -65,6 +73,7 @@ xemu proof:
 
 ```text
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-bookworm-i386-switchroot-v2-20260525-165609.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-unique-fatx-boot-20260525-190910.png
 ```
 
 Expected proof banner:

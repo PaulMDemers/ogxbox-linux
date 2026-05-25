@@ -281,7 +281,9 @@ def main() -> int:
     parser.add_argument("raw_image", type=Path)
     parser.add_argument("--partition", default="E")
     parser.add_argument("--kernel", type=Path, required=True)
+    parser.add_argument("--kernel-name", default="vmlinuz")
     parser.add_argument("--initrd", type=Path)
+    parser.add_argument("--initrd-name", default="initramf")
     parser.add_argument(
         "--append",
         default="init=/init noswitchroot debug console=tty0 ignore_loglevel loglevel=7",
@@ -317,21 +319,21 @@ def main() -> int:
 
         initrd_line = "initrd no\n"
         if args.initrd:
-            initrd_line = "initrd initramf\n"
+            initrd_line = f"initrd {args.initrd_name}\n"
 
         cfg = (
             f"title {args.title}\n"
-            "kernel vmlinuz\n"
+            f"kernel {args.kernel_name}\n"
             f"{initrd_line}"
             f"append {append}\n"
         ).encode("ascii")
 
         files = {
             "linuxboot.cfg": cfg,
-            "vmlinuz": args.kernel.read_bytes(),
+            args.kernel_name: args.kernel.read_bytes(),
         }
         if args.initrd:
-            files["initramf"] = args.initrd.read_bytes()
+            files[args.initrd_name] = args.initrd.read_bytes()
 
         for name, data in files.items():
             result = write_root_file(fp, part, name, data)

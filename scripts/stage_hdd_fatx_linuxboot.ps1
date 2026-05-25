@@ -1,7 +1,9 @@
 param(
     [string]$RawHdd = "run\hdd\xbox_hdd_hddboot.raw",
     [string]$KernelPath = "artifacts\kernels\xbox-linux-6.18.33-bzImage",
+    [string]$KernelName = "vmlinuz",
     [string]$InitrdPath = "artifacts\initramfs\xbox-busybox-console.cpio",
+    [string]$InitrdName = "initramf",
     [switch]$NoInitrd,
     [string]$Append = "init=/init noswitchroot debug console=tty0 ignore_loglevel loglevel=7",
     [string]$Title = "Xbox HDD",
@@ -28,6 +30,7 @@ $argsForPython = @(
     (Join-Path $repoRoot 'scripts\fatx_stage_boot.py'),
     $rawHddFull,
     '--kernel', $kernelFull,
+    '--kernel-name', $KernelName,
     '--append', $Append,
     '--title', $Title
 )
@@ -36,7 +39,7 @@ if (-not $NoInitrd) {
     if (-not (Test-Path -LiteralPath $initrdFull)) {
         throw "Missing required file: $initrdFull"
     }
-    $argsForPython += @('--initrd', $initrdFull)
+    $argsForPython += @('--initrd', $initrdFull, '--initrd-name', $InitrdName)
 }
 
 if ($PayloadPath) {
