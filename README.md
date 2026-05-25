@@ -25,6 +25,7 @@ See:
 - `docs/tinycore11-desktop-iso.md` for the reproducible desktop ISO build
 - `docs/kernel-6.18-bringup.md` for the first modern longterm kernel build
 - `docs/xromwell-softmod-launcher.md` for the softmod-facing XBE launcher path
+- `docs/hdd-fatx-boot.md` for the first FATX HDD boot staging workflow
 - `cromwell-notes.md` for boot path notes
 - `tinycore-notes.md` for Tiny Core payload notes
 - `repos.lock` for the related source forks and branches
