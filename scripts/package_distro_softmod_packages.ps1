@@ -15,6 +15,6 @@ $packager = Join-Path $repoRoot 'scripts\package_xromwell_hddfatx_softmod.ps1'
     -InitrdName 'debinit' `
     -PayloadPath 'artifacts\hdd\xbox-debian-bookworm-i386.ext2' `
     -PayloadName 'debian.ext2' `
-    -Append 'init=/init noswitchroot debug console=tty0 ignore_loglevel loglevel=7 xbox_payload_file=/debian.ext2 xbox_root_init=/xbox-init xbox_desktop=1' `
+    -Append 'init=/init noswitchroot debug console=tty0 ignore_loglevel loglevel=7 xbox_payload_file=/debian.ext2 xbox_root_init=/xbox-init xbox_desktop=1 xbox_x_mouse=0' `
     -PackageTitle 'Xromwell FATX Debian Bookworm i386 X Desktop Test' `
     -DashboardFolder 'XromwellDebianBookworm'

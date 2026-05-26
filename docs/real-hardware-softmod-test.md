@@ -219,12 +219,20 @@ E:\Apps\XromwellDebianBookworm\default.xbe
 
 Expected result: Xromwell loads `/debkrnl` and `/debinit`, then Debian starts
 the minimal Xfbdev/flwm desktop and opens an `aterm` proof terminal. If X exits,
-it falls back to the console proof shell. The xemu proofs for this path are:
+it falls back to the console proof shell.
+
+The May 25 X desktop refresh uses `xbox_x_mouse=0`, so the first hardware
+desktop proof does not open `/dev/input/mice` from Xfbdev. It also skips the
+previous `udevadm trigger` step that ran immediately after input enumeration.
+If this reaches the desktop, mouse support can be re-enabled in a later package.
+
+The xemu proofs for this path are:
 
 ```text
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-unique-fatx-boot-20260525-190910.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-header-cluster-fatx-boot-20260525-202235.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-xfbdev-flwm-aterm-devpts-20260525-210306.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-xfbdev-no-udev-nomouse-20260525-213104.png
 ```
 
 ## Cleanup

@@ -43,7 +43,6 @@ EOF
     chmod 755 "$ROOT/usr/sbin/policy-rc.d"
     chroot "$ROOT" env DEBIAN_FRONTEND=noninteractive apt-get update
     chroot "$ROOT" env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-        udev \
         xserver-xorg-core \
         xserver-xorg-video-fbdev \
         xserver-xorg-input-evdev \
@@ -246,6 +245,14 @@ export XAUTHORITY=/tmp/root-home/.Xauthority
 mkdir -p "$HOME" "$XDG_RUNTIME_DIR"
 chmod 700 "$HOME" "$XDG_RUNTIME_DIR"
 
+X_MOUSE=0
+for arg in $(cat /proc/cmdline 2>/dev/null); do
+    case "$arg" in
+        xbox_x_mouse=1) X_MOUSE=1 ;;
+        xbox_x_mouse=0) X_MOUSE=0 ;;
+    esac
+done
+
 [ -e /dev/fb0 ] || mknod -m 660 /dev/fb0 c 29 0 2>/dev/null || true
 [ -e /dev/tty0 ] || mknod -m 620 /dev/tty0 c 4 0 2>/dev/null || true
 [ -e /dev/tty1 ] || mknod -m 620 /dev/tty1 c 4 1 2>/dev/null || true
@@ -260,23 +267,33 @@ echo "input:"
 ls -l /dev/input 2>/dev/null || true
 echo
 
-if [ -x /lib/systemd/systemd-udevd ]; then
-    /lib/systemd/systemd-udevd --daemon 2>/tmp/udevd.log || true
-    udevadm trigger --action=add 2>/tmp/udev-trigger.log || true
-    udevadm settle --timeout=5 2>/tmp/udev-settle.log || true
-fi
-
 rm -f /tmp/.X0-lock /tmp/.X11-unix/X0 /tmp/Xorg.0.log
 mkdir -p /tmp/.X11-unix
 
 if [ -x /usr/local/bin/Xfbdev ]; then
     export LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/lib
     export DISPLAY=:0
-    /usr/local/bin/Xfbdev :0 -screen 640x480x32 -mouse /dev/input/mice,5 -nolisten tcp >/tmp/xfbdev.log 2>&1 &
+    echo "Starting Xfbdev server"
+    if [ "$X_MOUSE" = "1" ]; then
+        echo "Xfbdev mouse: /dev/input/mice"
+        /usr/local/bin/Xfbdev :0 -screen 640x480x32 -mouse /dev/input/mice,5 -nolisten tcp >/tmp/xfbdev.log 2>&1 &
+    else
+        echo "Xfbdev mouse: disabled"
+        /usr/local/bin/Xfbdev :0 -screen 640x480x32 -nolisten tcp >/tmp/xfbdev.log 2>&1 &
+    fi
     XPID=$!
     sleep 2
+    if ! kill -0 "$XPID" 2>/dev/null; then
+        echo "Xfbdev exited before session start"
+        cat /tmp/xfbdev.log 2>/dev/null || true
+        exit 1
+    fi
+    echo "Starting X session"
     /usr/local/bin/xbox-xsession >/tmp/xsession.log 2>&1
     status=$?
+    echo "X session exited with status $status"
+    cat /tmp/xsession.log 2>/dev/null || true
+    cat /tmp/xfbdev.log 2>/dev/null || true
     kill "$XPID" 2>/dev/null || true
     wait "$XPID" 2>/dev/null || true
     exit "$status"

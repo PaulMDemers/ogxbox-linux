@@ -69,6 +69,13 @@ framebuffer in xemu, so the current desktop proof vendors the same Tiny Core
 `flwm_topside` with an `aterm` proof terminal. The desktop path is enabled by
 `xbox_desktop=1`; if X exits, `/xbox-init` falls back to the console shell.
 
+The first real-hardware X test reached the `xbox-startx` input-device listing,
+then hung with a slow cursor blink and later crashed/oopsed. The follow-up
+package removes the `udevadm trigger` step and ships with Xfbdev mouse input
+disabled via `xbox_x_mouse=0`, to avoid probing the real Xbox input stack during
+the first desktop proof. Once the desktop is stable on hardware, re-enable mouse
+input with `xbox_x_mouse=1`.
+
 Build:
 
 ```powershell
@@ -92,6 +99,7 @@ C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-bookworm-i386-switchroot
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-unique-fatx-boot-20260525-190910.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-header-cluster-fatx-boot-20260525-202235.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-xfbdev-flwm-aterm-devpts-20260525-210306.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-xfbdev-no-udev-nomouse-20260525-213104.png
 ```
 
 Expected proof banner:
