@@ -192,6 +192,22 @@ dmesg | grep -Ei 'FATX|loop|ata|pata|ide|dma|udma|pio|hda|sda|xbox' | tail -80
 EOF
 chmod 755 "$ROOT/usr/local/bin/xbox-storage-tune" "$ROOT/usr/local/bin/xbox-diag"
 
+cat > "$ROOT/usr/local/bin/xbox-terminal" <<'EOF'
+#!/bin/sh
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/sbin:/usr/local/bin
+export LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/lib
+export TERM=xterm
+export HOME="${HOME:-/tmp/root-home}"
+mkdir -p "$HOME"
+exec aterm -fn fixed -fg white -bg black -title "Xbox Debian" "$@" >/tmp/xbox-terminal.log 2>&1
+EOF
+
+cat > "$ROOT/usr/local/bin/xterm" <<'EOF'
+#!/bin/sh
+exec /usr/local/bin/xbox-terminal "$@"
+EOF
+chmod 755 "$ROOT/usr/local/bin/xbox-terminal" "$ROOT/usr/local/bin/xterm"
+
 cat > "$ROOT/etc/X11/xbox-xorg.conf" <<'EOF'
 Section "ServerFlags"
     Option "AllowMouseOpenFail" "true"

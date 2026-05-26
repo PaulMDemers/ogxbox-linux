@@ -239,6 +239,12 @@ invalid, unallocated, and out-of-partition cluster-chain entries instead of
 feeding them into `LoadFATXCluster`. The refreshed softmod zip contains that
 XBE and should show `rev. 16788e0` on the Xromwell banner.
 
+Real hardware then reached the Debian desktop and opened the proof terminal.
+Because the lean build removed Debian's `xterm` package, launching `xterm`
+after closing the proof terminal did nothing. The current payload includes
+`/usr/local/bin/xterm` as a compatibility wrapper around the Tiny Core `aterm`
+binary, plus `/usr/local/bin/xbox-terminal` as the stable terminal launcher.
+
 The xemu proofs for this path are:
 
 ```text
@@ -248,6 +254,7 @@ C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-xfbdev-flwm-aterm-devpts
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-xfbdev-no-udev-nomouse-20260525-213104.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-lean-xfbdev-storage-tune-v2-20260525-220159.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-lean-xfbdev-fatx-chain-guard-clean-20260525-223033.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-xterm-aterm-wrapper-20260525-224511.png
 ```
 
 ## Cleanup

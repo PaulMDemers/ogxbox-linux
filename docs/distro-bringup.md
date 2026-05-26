@@ -93,6 +93,11 @@ or out-of-partition cluster-chain entries are rejected instead of being used as
 disk addresses. If this still fails on hardware, the next data point should be
 the cleaner chain-break message and the cluster where the real FATX chain stops.
 
+After that fix, real hardware reached the Debian desktop and opened the proof
+terminal. The lean root now includes `/usr/local/bin/xterm` as an `aterm`
+compatibility wrapper so menu items or shell commands that still launch `xterm`
+can open a terminal even though Debian's full `xterm` package is not installed.
+
 Build:
 
 ```powershell
@@ -119,6 +124,7 @@ C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-xfbdev-flwm-aterm-devpts
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-xfbdev-no-udev-nomouse-20260525-213104.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-lean-xfbdev-storage-tune-v2-20260525-220159.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-lean-xfbdev-fatx-chain-guard-clean-20260525-223033.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-xterm-aterm-wrapper-20260525-224511.png
 ```
 
 Expected proof banner:
