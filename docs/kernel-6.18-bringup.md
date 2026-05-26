@@ -63,6 +63,8 @@ artifacts/kernels/xbox-linux-6.18.33-fatx-bzImage
 artifacts/kernels/xbox-linux-6.18.33-fatx.config
 artifacts/kernels/xbox-linux-6.18.33-fatx-tinycore-bzImage
 artifacts/kernels/xbox-linux-6.18.33-fatx-tinycore.config
+artifacts/kernels/xbox-linux-6.18.33-fatx-rw-existing-bzImage
+artifacts/kernels/xbox-linux-6.18.33-fatx-rw-existing.config
 ```
 
 For the memory-tuned Tiny Core kernel:
@@ -93,6 +95,11 @@ Linux xbox 6.18.33-xboxdev-00004-g46679a4860b1 #1 PREEMPT_DYNAMIC Sun May 24 21:
 - libata/PATA AMD support for xemu's CD-ROM path
 - refreshed 6.18-compatible `xbox_defconfig`
 - minimal read-only FATX filesystem support for mounting Xbox E and opening loopback root images by filename
+- experimental FATX existing-file write support for xemu persistence testing
+
+The FATX write path is intentionally limited to overwriting data inside
+existing files. It does not create, delete, rename, extend, or allocate FATX
+files. See `docs\fatx-existing-file-write.md`.
 
 ## Verified Boot
 

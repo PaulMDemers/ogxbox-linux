@@ -41,13 +41,17 @@ The staged plan is:
 2. Keep the new initramfs `xbox_fatx_mode=` and `xbox_root_mode=` command-line
    knobs, but do not enable them in real-hardware packages yet.
 3. Build a FATX write-test payload that operates only on disposable xemu HDD
-   images and test FAT entry updates, directory entry updates, and file data
-   writes there.
-4. Once FATX writes survive repeated xemu mount/write/unmount/verify cycles,
-   make a tiny opt-in real-hardware smoke package that writes one new test file
-   to `E:\`.
-5. Only after that, allow a read-write `debian.ext2` loop image or an overlay
+   images.
+4. First support overwriting data inside an existing FATX file. This is enough
+   for `E:\debian.ext2` because the ext2 filesystem inside the file owns the
+   Linux-side allocation and metadata.
+5. Once existing-file writes survive repeated xemu mount/write/unmount/verify
+   cycles, test Debian with `xbox_fatx_mode=rw xbox_root_mode=rw`.
+6. Only after that, allow a read-write `debian.ext2` loop image or an overlay
    upper/work directory backed by FATX.
+
+The first existing-file write smoke test passes in xemu. See
+`docs\fatx-existing-file-write.md`.
 
 The safer alternative, if we want persistence before FATX write support, is a
 native Linux partition or another Xbox disk area dedicated to Linux. That avoids
