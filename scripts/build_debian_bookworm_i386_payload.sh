@@ -116,16 +116,21 @@ export TERM=linux
 export HOME=/root
 DESKTOP=0
 PERSIST_SMOKE=0
+SYNC_RO_SMOKE=0
 for arg in $(cat /proc/cmdline 2>/dev/null); do
     case "$arg" in
         xbox_desktop=1) DESKTOP=1 ;;
         xbox_persist_smoke=1) PERSIST_SMOKE=1 ;;
+        xbox_sync_ro_smoke=1) SYNC_RO_SMOKE=1 ;;
     esac
 done
 xbox-storage-tune >/tmp/xbox-storage-tune.log 2>&1 || true
 xbox-diag >/tmp/xbox-diag.txt 2>&1 || true
 if [ "$PERSIST_SMOKE" = "1" ] && [ -x /usr/local/bin/xbox-persist-smoke ]; then
     /usr/local/bin/xbox-persist-smoke >/tmp/xbox-persist-smoke.txt 2>&1 || true
+fi
+if [ "$SYNC_RO_SMOKE" = "1" ] && [ -x /usr/local/bin/xbox-sync-ro ]; then
+    /usr/local/bin/xbox-sync-ro >/tmp/xbox-sync-ro.txt 2>&1 || true
 fi
 
 echo
@@ -151,6 +156,11 @@ echo
 if [ -s /tmp/xbox-persist-smoke.txt ]; then
     echo "persistence smoke:"
     cat /tmp/xbox-persist-smoke.txt
+    echo
+fi
+if [ -s /tmp/xbox-sync-ro.txt ]; then
+    echo "sync-ro smoke:"
+    cat /tmp/xbox-sync-ro.txt
     echo
 fi
 if [ "$DESKTOP" = "1" ] && [ -x /usr/local/bin/xbox-startx ]; then
@@ -432,7 +442,7 @@ EORC
 
 xsetroot -solid '#1f3f4f' 2>/dev/null || true
 if command -v flwm_topside >/dev/null 2>&1 && command -v aterm >/dev/null 2>&1; then
-    aterm -fn fixed -fg white -bg black -geometry 78x24+20+32 -title "Xbox Debian" -e /bin/sh -lc 'echo XBOX_DEBIAN_X_DESKTOP_OK; uname -a; echo; echo memory:; grep -E "MemTotal|MemFree|MemAvailable|Buffers|Cached|SwapTotal|SwapFree" /proc/meminfo 2>/dev/null; echo; echo tools: ping wget apt xbox-perf xbox-sync-ro; echo; echo read-ahead:; grep read_ahead_kb /tmp/xbox-diag.txt 2>/dev/null || true; echo; if [ -s /tmp/xbox-persist-smoke.txt ]; then echo persistence:; grep -E "XBOX_(PERSIST_MARKER|NORMAL_USE_FILE)_(WRITTEN|PRESENT|WRITE_FAILED|RENAME_FAILED|20260526)" /tmp/xbox-persist-smoke.txt 2>/dev/null || tail -10 /tmp/xbox-persist-smoke.txt; echo; fi; echo diag: /tmp/xbox-diag.txt; exec /bin/sh -i' >/tmp/aterm.log 2>&1 &
+    aterm -fn fixed -fg white -bg black -geometry 78x24+20+32 -title "Xbox Debian" -e /bin/sh -lc 'echo XBOX_DEBIAN_X_DESKTOP_OK; uname -a; echo; echo memory:; grep -E "MemTotal|MemFree|MemAvailable|Buffers|Cached|SwapTotal|SwapFree" /proc/meminfo 2>/dev/null; echo; echo tools: ping wget apt xbox-perf xbox-sync-ro; echo; echo read-ahead:; grep read_ahead_kb /tmp/xbox-diag.txt 2>/dev/null || true; echo; if [ -s /tmp/xbox-persist-smoke.txt ]; then echo persistence:; grep -E "XBOX_(PERSIST_MARKER|NORMAL_USE_FILE)_(WRITTEN|PRESENT|WRITE_FAILED|RENAME_FAILED|20260526)" /tmp/xbox-persist-smoke.txt 2>/dev/null || tail -10 /tmp/xbox-persist-smoke.txt; echo; fi; if [ -s /tmp/xbox-sync-ro.txt ]; then echo sync-ro:; grep -E "XBOX_ROOT_REMOUNT_RO_(OK|FAILED)" /tmp/xbox-sync-ro.txt 2>/dev/null || cat /tmp/xbox-sync-ro.txt; echo; fi; echo diag: /tmp/xbox-diag.txt; exec /bin/sh -i' >/tmp/aterm.log 2>&1 &
     exec flwm_topside
 fi
 xterm -geometry 78x24+20+32 -title "Xbox Debian" -e /bin/sh -lc 'echo XBOX_DEBIAN_X_DESKTOP_OK; uname -a; exec /bin/sh -i' &

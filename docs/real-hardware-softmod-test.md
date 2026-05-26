@@ -202,6 +202,11 @@ the next boot found them again. A read-only fsck of the extracted ext2 image
 still reported bitmap differences, so this package is not power-loss safe yet.
 Run `xbox-sync-ro` before powering off when possible.
 
+The clean-remount xemu test did pass: `xbox-sync-ro` reported
+`XBOX_ROOT_REMOUNT_RO_OK`, then a host-side hard kill followed by extracted
+image `e2fsck -fn` completed without bitmap warnings. If you test rw on real
+hardware, run `xbox-sync-ro` before resetting or powering off.
+
 Before copying the Debian `E-root\` contents, delete any previous root boot
 files with these names from `E:\`:
 

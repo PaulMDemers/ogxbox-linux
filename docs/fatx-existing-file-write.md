@@ -272,3 +272,45 @@ The Debian image now includes:
 
 Run `xbox-sync-ro` before powering off when possible. It syncs and attempts to
 remount `/` read-only.
+
+## Clean Remount Test
+
+The opt-in command-line flag:
+
+```text
+xbox_sync_ro_smoke=1
+```
+
+runs `xbox-sync-ro` automatically after the persistence helper. In xemu it
+reported:
+
+```text
+XBOX_ROOT_REMOUNT_RO_OK
+```
+
+Proof screenshot:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-rw-syncro-proof-20260526-115314.png
+```
+
+After that proof, xemu was force-stopped from the host. `E:\debian.ext2` was
+then extracted by filename from the FATX HDD and checked with:
+
+```powershell
+python .\scripts\extract_fatx_root_file.py .\run\hdd\xbox_hdd_hddboot.raw debian.ext2 .\run\fatx-extract\debian-after-syncro.ext2
+wsl -e bash -lc "cd /mnt/c/Users/Paul/Desktop/xbox_linux && e2fsck -fn run/fatx-extract/debian-after-syncro.ext2"
+```
+
+Result:
+
+```text
+Pass 1: Checking inodes, blocks, and sizes
+Pass 2: Checking directory structure
+Pass 3: Checking directory connectivity
+Pass 4: Checking reference counts
+Pass 5: Checking group summary information
+run/fatx-extract/debian-after-syncro.ext2: 9666/98304 files (0.1% non-contiguous), 71093/98304 blocks
+```
+
+No bitmap-difference warning was reported after the read-only remount path.

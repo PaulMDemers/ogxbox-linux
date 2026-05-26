@@ -57,6 +57,7 @@ Status:
 
   - xemu two-boot marker and normal-file persistence smoke: PASS
   - xemu sync plus hard-kill boot recovery: PASS
+  - xemu xbox-sync-ro plus hard-kill fsck check: PASS
   - read-only fsck after hard-kill: reports ext2 bitmap differences
   - real hardware: NOT YET VALIDATED
 
@@ -65,6 +66,8 @@ Shutdown guidance:
   - run xbox-sync-ro before powering off when possible
   - sync plus hard power-off preserved files in xemu, but fsck still reported
     a dirty/inconsistent ext2 image
+  - xbox-sync-ro remounted / read-only in xemu, and e2fsck -fn on the extracted
+    ext2 image completed without warnings after a host-side hard kill
   - do not treat this package as power-loss safe yet
 
 Real hardware guidance:

@@ -185,6 +185,11 @@ copy of `E:\debian.ext2` still reported ext2 bitmap differences. Use
 `xbox-sync-ro` before power-off when possible and do not treat the rw package as
 power-loss safe yet.
 
+The clean-remount variant with `xbox_sync_ro_smoke=1` reported
+`XBOX_ROOT_REMOUNT_RO_OK`; after a host-side hard kill, extracting
+`E:\debian.ext2` and running `e2fsck -fn` completed without bitmap warnings.
+That makes `xbox-sync-ro` the current required shutdown path for rw testing.
+
 See `docs\persistence-and-performance-plan.md` and
 `docs\fatx-existing-file-write.md` for the staged persistence plan and proof.
 

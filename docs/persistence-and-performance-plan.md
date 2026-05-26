@@ -64,6 +64,11 @@ differences, so the current rw package is persistence-capable but not
 power-loss safe. The Debian image now includes `xbox-sync-ro` for manual
 sync/remount-read-only before power-off.
 
+The clean-remount pass with `xbox_sync_ro_smoke=1` then reported
+`XBOX_ROOT_REMOUNT_RO_OK`; after a host-side hard kill, `e2fsck -fn` on the
+extracted ext2 image completed without bitmap warnings. For rw testing, run
+`xbox-sync-ro` before powering off.
+
 The safer alternative, if we want persistence before FATX write support, is a
 native Linux partition or another Xbox disk area dedicated to Linux. That avoids
 teaching the kernel to modify FATX, but it is less convenient for the desired
