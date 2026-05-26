@@ -54,6 +54,19 @@ The May 25 refresh adds:
 - read-ahead tuning for `hd*`, `sd*`, and `loop*` block devices
 - a lean Tiny Core kernel package built from `xbox_tinycore_defconfig`
 
+## Near-Term Hardware Verification
+
+Verify these on real hardware when the Xbox is available:
+
+- RW shell smoke package on AV/composite: first boot writes both marker files,
+  reports `XBOX_ROOT_REMOUNT_RO_OK`, and second boot reports both files present.
+- Forced-HDTV 480p Debian package on the HDMI adapter: Xromwell banner is
+  visible, reports Cromwell `e719de4`, and shows cable `HDTV`.
+- Forced-HDTV 480p package fallback behavior: keep the normal AV/composite
+  package available because the forced-HDTV build may be blank on composite.
+- Debian desktop usability after the video test: confirm whether the same
+  terminal, mouse, and slow disk behavior appear under HDMI/HDTV 480p.
+
 ## Backup First
 
 Back up any existing files with these names from `E:\`:

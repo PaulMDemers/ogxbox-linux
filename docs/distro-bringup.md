@@ -234,3 +234,31 @@ Planned artifact:
 ```text
 C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-dsl2024-i386.zip
 ```
+
+### Devuan
+
+Devuan is worth a port attempt, especially because it keeps the Debian package
+model while avoiding systemd in early userspace. That is a good fit for the
+Xbox because PID 1, udev, journald, logind, and tmpfs pressure all matter on a
+64 MB machine.
+
+Current upstream status as of May 26, 2026:
+
+- Devuan 6 Excalibur is based on Debian 13 Trixie.
+- Excalibur has i386 packages in the repository, but its release notes say the
+  i386 packages do not include a `linux-image` and there is no i386 installer
+  ISO.
+- Devuan 5 Daedalus remains the cleaner i386 baseline because it shipped i386
+  installer media and maps to Debian 12 Bookworm, which is already our working
+  Debian base.
+
+Recommended path: build a Devuan Daedalus i386 root first, using our existing
+generic distro initramfs, Xfbdev/flwm/aterm desktop closure, and Xbox kernel.
+Treat Excalibur as a later package-repository experiment rather than the first
+Devuan target.
+
+Planned artifact:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386.zip
+```
