@@ -33,12 +33,17 @@ Tested on a softmodded Xbox on May 25, 2026:
 - Composite/AV cables work. An HDMI adapter produced no video with the current mode/handoff.
 - The Tiny Core terminal icon still flashed and exited in the first hardware test.
 - The first Debian package did not reach Linux: Cromwell failed while reading the FATX initrd chain.
+- The second Debian package used the renamed files and Xromwell `6cb54cc`, but
+  still failed while loading `/debinit` on the 250 GB disk. The cluster spacing
+  in the photo matches a 64 KB FATX cluster size, while Cromwell was still
+  assuming 16 KB clusters.
 
 The May 25 refresh adds:
 
 - a FATX contiguous-file read fast path in the 6.18 kernel for the `linuxroot.ext2` loop image
 - a stable `xbox-aterm` wrapper for the wbar terminal icon, plus forced wbar/desktop rewrites to use it
 - a Cromwell FATX loader fix that stops walking the FAT chain once the requested file size has been read
+- a Cromwell FATX loader fix that reads sectors-per-cluster from the FATX header, needed for upgraded disks using 64 KB clusters
 - unique Debian root filenames: `debkrnl`, `debinit`, and `debian.ext2`
 - `/usr/local/bin/xbox-diag`, with a boot copy saved at `/tmp/xbox-diag.txt`
 - read-ahead tuning for `hd*`, `sd*`, and `loop*` block devices
@@ -215,6 +220,7 @@ the console proof shell. The xemu proof for this exact naming layout is:
 
 ```text
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-unique-fatx-boot-20260525-190910.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-header-cluster-fatx-boot-20260525-202235.png
 ```
 
 ## Cleanup

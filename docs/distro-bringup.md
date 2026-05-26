@@ -53,6 +53,14 @@ invalid next-cluster value. The May 25 refresh addresses that by rebuilding
 Xromwell with a stricter FATX EOF/file-size stop and by packaging Debian as
 `debkrnl`, `debinit`, and `debian.ext2`.
 
+The next real-hardware Debian test with Xromwell `6cb54cc` still failed before
+Linux, but the new photo exposed the missing piece: on the 250 GB disk, the
+kernel and initrd cluster spacing matches a 64 KB FATX cluster size. Cromwell
+had been hardcoded to 16 KB clusters, which works in the xemu test image but
+walks the wrong real FATX chain on larger/reformatted disks. Xromwell
+`5eaba1e` reads sectors-per-cluster from the FATX header and uses a 64 KB load
+buffer.
+
 Build:
 
 ```powershell
@@ -74,6 +82,7 @@ xemu proof:
 ```text
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-bookworm-i386-switchroot-v2-20260525-165609.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-unique-fatx-boot-20260525-190910.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-header-cluster-fatx-boot-20260525-202235.png
 ```
 
 Expected proof banner:
