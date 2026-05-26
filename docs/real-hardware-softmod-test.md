@@ -37,6 +37,8 @@ Tested on a softmodded Xbox on May 25, 2026:
   still failed while loading `/debinit` on the 250 GB disk. The cluster spacing
   in the photo matches a 64 KB FATX cluster size, while Cromwell was still
   assuming 16 KB clusters.
+- Debian boots to the proof shell on real softmodded Xbox hardware with
+  Xromwell `5eaba1e`.
 
 The May 25 refresh adds:
 
@@ -215,12 +217,14 @@ Launch:
 E:\Apps\XromwellDebianBookworm\default.xbe
 ```
 
-Expected result: Xromwell loads `/debkrnl` and `/debinit`, then Debian reaches
-the console proof shell. The xemu proof for this exact naming layout is:
+Expected result: Xromwell loads `/debkrnl` and `/debinit`, then Debian starts
+the minimal Xfbdev/flwm desktop and opens an `aterm` proof terminal. If X exits,
+it falls back to the console proof shell. The xemu proofs for this path are:
 
 ```text
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-unique-fatx-boot-20260525-190910.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-header-cluster-fatx-boot-20260525-202235.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-xfbdev-flwm-aterm-devpts-20260525-210306.png
 ```
 
 ## Cleanup

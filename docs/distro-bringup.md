@@ -42,10 +42,11 @@ Debian 13 `trixie` is current, but i386 is no longer a regular installable
 architecture for Debian 13. Debian 12 `bookworm` remains the practical target
 for a real 32-bit Xbox-class machine.
 
-Current goal: minimal Debian 12 i386 console proof shell.
+Current goal: minimal Debian 12 i386 desktop proof.
 
 Status: boots in xemu through the full FATX/ext2 path and `switch_root`s into
-the Debian root image.
+the Debian root image. It also boots on real softmodded Xbox hardware to the
+Debian proof shell with Xromwell `5eaba1e`.
 
 Real hardware status: the first softmod test did not reach Linux. Cromwell
 loaded `/vmlinuz`, then failed while reading `/initramf` from FATX with an
@@ -61,11 +62,18 @@ walks the wrong real FATX chain on larger/reformatted disks. Xromwell
 `5eaba1e` reads sectors-per-cluster from the FATX header and uses a 64 KB load
 buffer.
 
+After the hardware proof shell milestone, the Debian image grew a minimal X
+desktop path. Debian Bookworm's Xorg fbdev server did not bind to the Xbox
+framebuffer in xemu, so the current desktop proof vendors the same Tiny Core
+`Xfbdev` extension stack that already works on this kernel, then starts
+`flwm_topside` with an `aterm` proof terminal. The desktop path is enabled by
+`xbox_desktop=1`; if X exits, `/xbox-init` falls back to the console shell.
+
 Build:
 
 ```powershell
 python .\scripts\make_distro_initramfs.py
-powershell -ExecutionPolicy Bypass -File .\scripts\build_debian_bookworm_i386_payload.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\build_debian_bookworm_i386_payload.ps1 -Desktop
 powershell -ExecutionPolicy Bypass -File .\scripts\package_distro_softmod_packages.ps1
 ```
 
@@ -83,12 +91,14 @@ xemu proof:
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-bookworm-i386-switchroot-v2-20260525-165609.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-unique-fatx-boot-20260525-190910.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-header-cluster-fatx-boot-20260525-202235.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-xfbdev-flwm-aterm-devpts-20260525-210306.png
 ```
 
 Expected proof banner:
 
 ```text
 XBOX_DEBIAN_BOOKWORM_I386_ROOT_OK
+XBOX_DEBIAN_X_DESKTOP_OK
 ```
 
 The root image is currently read-only because it is loop-mounted from the
