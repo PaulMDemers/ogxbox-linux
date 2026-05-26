@@ -6,7 +6,7 @@ IMAGE="${2:-/mnt/c/Users/Paul/Desktop/xbox_linux/artifacts/hdd/xbox-debian-bookw
 SUITE="${3:-bookworm}"
 ARCH="${4:-i386}"
 MIRROR="${5:-http://deb.debian.org/debian}"
-SIZE_MIB="${6:-512}"
+SIZE_MIB="${6:-384}"
 FORCE="${7:-0}"
 DESKTOP="${8:-0}"
 
@@ -33,25 +33,6 @@ if [ ! -x "$ROOT/bin/sh" ]; then
         --variant=minbase \
         --include=busybox,sysvinit-core,ifupdown,isc-dhcp-client,iproute2,netbase,procps,psmisc,less,nano,kmod \
         "$SUITE" "$ROOT" "$MIRROR"
-fi
-
-if [ "$DESKTOP" = "1" ] && [ ! -e "$ROOT/.xbox-desktop-packages-installed" ]; then
-    cat > "$ROOT/usr/sbin/policy-rc.d" <<'EOF'
-#!/bin/sh
-exit 101
-EOF
-    chmod 755 "$ROOT/usr/sbin/policy-rc.d"
-    chroot "$ROOT" env DEBIAN_FRONTEND=noninteractive apt-get update
-    chroot "$ROOT" env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-        xserver-xorg-core \
-        xserver-xorg-video-fbdev \
-        xserver-xorg-input-evdev \
-        xinit \
-        jwm \
-        xterm \
-        x11-xserver-utils
-    rm -f "$ROOT/usr/sbin/policy-rc.d"
-    touch "$ROOT/.xbox-desktop-packages-installed"
 fi
 
 if [ "$DESKTOP" = "1" ] && [ ! -e "$ROOT/.xbox-tinycore-xfbdev-installed" ]; then
@@ -118,7 +99,7 @@ mount -t devpts devpts /dev/pts -o mode=0620,ptmxmode=0666,gid=5 2>/dev/null || 
 mount -t tmpfs -o mode=0755,nosuid,nodev,size=8m tmpfs /run 2>/dev/null || true
 mount -t tmpfs -o mode=1777,nosuid,nodev,size=16m tmpfs /tmp 2>/dev/null || true
 
-export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/sbin:/usr/local/bin
 export TERM=linux
 export HOME=/root
 DESKTOP=0
@@ -127,6 +108,8 @@ for arg in $(cat /proc/cmdline 2>/dev/null); do
         xbox_desktop=1) DESKTOP=1 ;;
     esac
 done
+xbox-storage-tune >/tmp/xbox-storage-tune.log 2>&1 || true
+xbox-diag >/tmp/xbox-diag.txt 2>&1 || true
 
 echo
 echo "XBOX_DEBIAN_BOOKWORM_I386_ROOT_OK"
@@ -165,6 +148,50 @@ EOF
 chmod 755 "$ROOT/xbox-init"
 
 mkdir -p "$ROOT/etc/X11" "$ROOT/usr/local/bin"
+
+cat > "$ROOT/usr/local/bin/xbox-storage-tune" <<'EOF'
+#!/bin/sh
+for q in /sys/block/hd*/queue/read_ahead_kb /sys/block/sd*/queue/read_ahead_kb; do
+    [ -w "$q" ] || continue
+    echo 1024 > "$q" 2>/dev/null || true
+done
+EOF
+
+cat > "$ROOT/usr/local/bin/xbox-diag" <<'EOF'
+#!/bin/sh
+echo "== xbox debian diag =="
+uname -a
+echo
+echo "== framebuffer =="
+cat /sys/class/graphics/fb0/name /sys/class/graphics/fb0/virtual_size /sys/class/graphics/fb0/bits_per_pixel 2>/dev/null || true
+echo
+echo "== input =="
+grep -E 'Name|Handlers' /proc/bus/input/devices 2>/dev/null || true
+echo
+echo "== mounts =="
+mount
+echo
+echo "== memory =="
+cat /proc/meminfo 2>/dev/null || true
+echo
+echo "== block devices =="
+cat /proc/partitions 2>/dev/null || true
+echo
+echo "== read ahead =="
+for q in /sys/block/hd*/queue/read_ahead_kb /sys/block/sd*/queue/read_ahead_kb /sys/block/loop*/queue/read_ahead_kb; do
+    [ -r "$q" ] && echo "$q=$(cat "$q")"
+done
+echo
+echo "== ata modes =="
+for f in /sys/class/ata_device/dev*/pio_mode /sys/class/ata_device/dev*/dma_mode /sys/class/ata_device/dev*/xfer_mode; do
+    [ -r "$f" ] && echo "$f=$(cat "$f")"
+done
+echo
+echo "== storage dmesg =="
+dmesg | grep -Ei 'FATX|loop|ata|pata|ide|dma|udma|pio|hda|sda|xbox' | tail -80
+EOF
+chmod 755 "$ROOT/usr/local/bin/xbox-storage-tune" "$ROOT/usr/local/bin/xbox-diag"
+
 cat > "$ROOT/etc/X11/xbox-xorg.conf" <<'EOF'
 Section "ServerFlags"
     Option "AllowMouseOpenFail" "true"
@@ -226,7 +253,7 @@ EORC
 
 xsetroot -solid '#1f3f4f' 2>/dev/null || true
 if command -v flwm_topside >/dev/null 2>&1 && command -v aterm >/dev/null 2>&1; then
-    aterm -fn fixed -fg white -bg black -geometry 78x24+20+32 -title "Xbox Debian" -e /bin/sh -lc 'echo XBOX_DEBIAN_X_DESKTOP_OK; uname -a; exec /bin/sh -i' >/tmp/aterm.log 2>&1 &
+    aterm -fn fixed -fg white -bg black -geometry 78x24+20+32 -title "Xbox Debian" -e /bin/sh -lc 'echo XBOX_DEBIAN_X_DESKTOP_OK; uname -a; echo; echo memory:; grep -E "MemTotal|MemFree|MemAvailable|Buffers|Cached|SwapTotal|SwapFree" /proc/meminfo 2>/dev/null; echo; echo read-ahead:; grep read_ahead_kb /tmp/xbox-diag.txt 2>/dev/null || true; echo; echo diag: /tmp/xbox-diag.txt; exec /bin/sh -i' >/tmp/aterm.log 2>&1 &
     exec flwm_topside
 fi
 xterm -geometry 78x24+20+32 -title "Xbox Debian" -e /bin/sh -lc 'echo XBOX_DEBIAN_X_DESKTOP_OK; uname -a; exec /bin/sh -i' &
@@ -238,7 +265,7 @@ cat > "$ROOT/usr/local/bin/xbox-startx" <<'EOF'
 #!/bin/sh
 exec </dev/console >/dev/console 2>&1
 
-export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/sbin:/usr/local/bin
 export HOME=/tmp/root-home
 export XDG_RUNTIME_DIR=/tmp/root-runtime
 export XAUTHORITY=/tmp/root-home/.Xauthority

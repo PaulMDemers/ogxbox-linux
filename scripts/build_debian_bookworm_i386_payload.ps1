@@ -4,7 +4,7 @@ param(
     [string]$Mirror = "http://deb.debian.org/debian",
     [string]$WslBuildRoot = "/home/paul/ogxbox/distro-build/debian-bookworm-i386-root",
     [string]$ImagePath = "artifacts\hdd\xbox-debian-bookworm-i386.ext2",
-    [int]$ImageSizeMiB = 512,
+    [int]$ImageSizeMiB = 384,
     [switch]$Desktop,
     [switch]$ForceBootstrap
 )
@@ -29,8 +29,8 @@ $imageWsl = Convert-ToWslPath $imageFull
 $scriptWsl = Convert-ToWslPath $scriptFull
 $force = if ($ForceBootstrap) { "1" } else { "0" }
 $desktopFlag = if ($Desktop) { "1" } else { "0" }
-if ($Desktop -and $ImageSizeMiB -lt 768) {
-    $ImageSizeMiB = 768
+if ($Desktop -and $ImageSizeMiB -lt 384) {
+    $ImageSizeMiB = 384
 }
 
 & wsl.exe -u root -e bash $scriptWsl $WslBuildRoot $imageWsl $Suite $Arch $Mirror $ImageSizeMiB $force $desktopFlag

@@ -76,6 +76,16 @@ disabled via `xbox_x_mouse=0`, to avoid probing the real Xbox input stack during
 the first desktop proof. Once the desktop is stable on hardware, re-enable mouse
 input with `xbox_x_mouse=1`.
 
+The next hardware test did reach the Debian desktop, but it was too laggy to be
+usable. The current lean package removes the Debian Xorg/JWM/xterm package set,
+keeps only the Tiny Core `Xfbdev`/`flwm_topside`/`aterm` closure, and adds the
+same disk read-ahead diagnostics/tuning used by the Tiny Core lean path. The
+rebuilt Debian root is about 170 MB in a 384 MB ext2 image, and the softmod zip
+is about 71 MB. For Debian, read-ahead tuning is applied to the disk block
+device only; loop-device read-ahead is left at the kernel default after an xemu
+test showed corrupt-looking early userspace segfaults when loop readahead was
+tuned before diagnostics.
+
 Build:
 
 ```powershell
@@ -100,6 +110,7 @@ C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-unique-fatx-boot-2026052
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-header-cluster-fatx-boot-20260525-202235.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-xfbdev-flwm-aterm-devpts-20260525-210306.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-xfbdev-no-udev-nomouse-20260525-213104.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-lean-xfbdev-storage-tune-v2-20260525-220159.png
 ```
 
 Expected proof banner:

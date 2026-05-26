@@ -226,6 +226,13 @@ desktop proof does not open `/dev/input/mice` from Xfbdev. It also skips the
 previous `udevadm trigger` step that ran immediately after input enumeration.
 If this reaches the desktop, mouse support can be re-enabled in a later package.
 
+Hardware follow-up: this package reached the Debian X desktop, but it was still
+too slow to use comfortably. The current package is a lean rebuild: it removes
+the Debian Xorg/JWM/xterm packages, uses only the Tiny Core Xfbdev/flwm/aterm
+closure, shrinks the ext2 payload to 384 MB, and applies the Tiny Core-style
+read-ahead tuning to the disk block device. The terminal now prints memory,
+read-ahead values, and the diagnostic path `/tmp/xbox-diag.txt`.
+
 The xemu proofs for this path are:
 
 ```text
@@ -233,6 +240,7 @@ C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-unique-fatx-boot-2026052
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-header-cluster-fatx-boot-20260525-202235.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-xfbdev-flwm-aterm-devpts-20260525-210306.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-xfbdev-no-udev-nomouse-20260525-213104.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-lean-xfbdev-storage-tune-v2-20260525-220159.png
 ```
 
 ## Cleanup
