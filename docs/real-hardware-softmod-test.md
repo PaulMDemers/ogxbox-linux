@@ -197,6 +197,11 @@ writes inside `E:\debian.ext2`, so keep the normal read-only Debian package as
 the known-good fallback and back up `E:\debian.ext2` before trying it on
 hardware.
 
+In xemu, synced marker and normal-use files survived a host-side hard kill and
+the next boot found them again. A read-only fsck of the extracted ext2 image
+still reported bitmap differences, so this package is not power-loss safe yet.
+Run `xbox-sync-ro` before powering off when possible.
+
 Before copying the Debian `E-root\` contents, delete any previous root boot
 files with these names from `E:\`:
 

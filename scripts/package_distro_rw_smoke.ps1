@@ -37,6 +37,7 @@ through FATX read-write, then mounts the ext2 root image read-write.
 What this test writes:
 
   /root/xbox-persist-smoke.txt
+  /root/xbox-normal-use.txt
 
 inside the Debian ext2 root image.
 
@@ -54,8 +55,17 @@ What it does NOT support today:
 
 Status:
 
-  - xemu two-boot persistence smoke: PASS
+  - xemu two-boot marker and normal-file persistence smoke: PASS
+  - xemu sync plus hard-kill boot recovery: PASS
+  - read-only fsck after hard-kill: reports ext2 bitmap differences
   - real hardware: NOT YET VALIDATED
+
+Shutdown guidance:
+
+  - run xbox-sync-ro before powering off when possible
+  - sync plus hard power-off preserved files in xemu, but fsck still reported
+    a dirty/inconsistent ext2 image
+  - do not treat this package as power-loss safe yet
 
 Real hardware guidance:
 

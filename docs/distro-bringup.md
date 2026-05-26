@@ -179,6 +179,12 @@ C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-debian-bookw
 It includes `RW-SMOKE-WARNING.txt` and should not replace the normal Debian
 package yet.
 
+The rw package also passed a xemu sync-plus-hard-kill reboot test for both the
+marker file and a small normal-use file, but read-only `e2fsck` on an extracted
+copy of `E:\debian.ext2` still reported ext2 bitmap differences. Use
+`xbox-sync-ro` before power-off when possible and do not treat the rw package as
+power-loss safe yet.
+
 See `docs\persistence-and-performance-plan.md` and
 `docs\fatx-existing-file-write.md` for the staged persistence plan and proof.
 

@@ -57,6 +57,13 @@ The first Debian ext2 persistence smoke also passes in xemu: Debian writes
 `/root/xbox-persist-smoke.txt` with `xbox_fatx_mode=rw xbox_root_mode=rw`, then
 sees the same marker on the next boot without restaging `E:\debian.ext2`.
 
+The next xemu pass wrote both `/root/xbox-persist-smoke.txt` and
+`/root/xbox-normal-use.txt`, synced, then survived a host-side hard kill and
+reboot. A read-only fsck of the extracted ext2 image still reported bitmap
+differences, so the current rw package is persistence-capable but not
+power-loss safe. The Debian image now includes `xbox-sync-ro` for manual
+sync/remount-read-only before power-off.
+
 The safer alternative, if we want persistence before FATX write support, is a
 native Linux partition or another Xbox disk area dedicated to Linux. That avoids
 teaching the kernel to modify FATX, but it is less convenient for the desired

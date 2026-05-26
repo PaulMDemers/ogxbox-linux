@@ -207,3 +207,68 @@ Second boot without restaging:
 ```text
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-rw-softmod-package-present-20260526-102256.png
 ```
+
+## Normal File And Hard-Kill Check
+
+The persistence helper now writes two files:
+
+```text
+/root/xbox-persist-smoke.txt
+/root/xbox-normal-use.txt
+```
+
+The second file is a small normal-use stand-in for "create/edit a file in
+Debian, sync, reboot, and make sure it is still there."
+
+The package was booted in xemu, allowed to write and sync both files, then xemu
+was force-stopped from the host instead of shutting Debian down cleanly.
+
+First boot after write/sync:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-rw-normal-hardkill-written-20260526-105121.png
+```
+
+Second boot after host-side hard kill, without restaging:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-rw-normal-hardkill-present-20260526-105325.png
+```
+
+Both files survived and were visible after reboot:
+
+```text
+XBOX_PERSIST_MARKER_PRESENT
+XBOX_PERSIST_MARKER_20260526
+XBOX_NORMAL_USE_FILE_PRESENT
+XBOX_NORMAL_USE_FILE_20260526
+```
+
+However, this is not power-loss clean yet. After extracting `E:\debian.ext2`
+from the disposable FATX HDD and running read-only fsck, ext2 reported bitmap
+differences:
+
+```text
+Block bitmap differences:  -77824 +96260
+WARNING: Filesystem still has errors
+```
+
+A repair test on a copy completed and the two persisted files were still
+readable with `debugfs`, but the result means the rw package should not be
+treated as power-loss safe.
+
+Useful extraction/fsck commands:
+
+```powershell
+python .\scripts\extract_fatx_root_file.py .\run\hdd\xbox_hdd_hddboot.raw debian.ext2 .\run\fatx-extract\debian-after-hardkill.ext2
+wsl -e bash -lc "cd /mnt/c/Users/Paul/Desktop/xbox_linux && e2fsck -fn run/fatx-extract/debian-after-hardkill.ext2"
+```
+
+The Debian image now includes:
+
+```text
+/usr/local/bin/xbox-sync-ro
+```
+
+Run `xbox-sync-ro` before powering off when possible. It syncs and attempts to
+remount `/` read-only.

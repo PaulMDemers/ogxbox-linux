@@ -268,15 +268,20 @@ cat > "$ROOT/usr/local/bin/xbox-persist-smoke" <<'EOF'
 export PATH=/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/sbin:/usr/local/bin
 MARKER=/root/xbox-persist-smoke.txt
 TMP=/root/xbox-persist-smoke.txt.tmp
+NORMAL=/root/xbox-normal-use.txt
+NORMAL_TMP=/root/xbox-normal-use.txt.tmp
 
 echo "== xbox persistence smoke =="
 echo "root mount:"
 awk '$2 == "/" { print }' /proc/mounts 2>/dev/null || true
 echo
 
-if [ -s "$MARKER" ]; then
+if [ -s "$MARKER" ] && [ -s "$NORMAL" ]; then
     echo "XBOX_PERSIST_MARKER_PRESENT"
     cat "$MARKER"
+    echo
+    echo "XBOX_NORMAL_USE_FILE_PRESENT"
+    cat "$NORMAL"
     exit 0
 fi
 
@@ -302,11 +307,53 @@ if [ "$status" -ne 0 ]; then
     exit "$status"
 fi
 
+echo "writing normal file: $NORMAL"
+{
+    echo "XBOX_NORMAL_USE_FILE_20260526"
+    echo "This file simulates a small user-created persistent file."
+    echo "created_utc=$(date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || date)"
+} > "$NORMAL_TMP"
+status=$?
+if [ "$status" -ne 0 ]; then
+    echo "XBOX_NORMAL_USE_FILE_WRITE_FAILED status=$status"
+    rm -f "$NORMAL_TMP" 2>/dev/null || true
+    exit "$status"
+fi
+
+mv "$NORMAL_TMP" "$NORMAL"
+status=$?
+if [ "$status" -ne 0 ]; then
+    echo "XBOX_NORMAL_USE_FILE_RENAME_FAILED status=$status"
+    rm -f "$NORMAL_TMP" 2>/dev/null || true
+    exit "$status"
+fi
+
 sync
 echo "XBOX_PERSIST_MARKER_WRITTEN"
 cat "$MARKER"
+echo
+echo "XBOX_NORMAL_USE_FILE_WRITTEN"
+cat "$NORMAL"
 EOF
-chmod 755 "$ROOT/usr/local/bin/xbox-storage-tune" "$ROOT/usr/local/bin/xbox-diag" "$ROOT/usr/local/bin/xbox-perf" "$ROOT/usr/local/bin/xbox-persist-smoke"
+
+cat > "$ROOT/usr/local/bin/xbox-sync-ro" <<'EOF'
+#!/bin/sh
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/sbin:/usr/local/bin
+
+echo "syncing filesystems"
+sync
+echo "remounting / read-only"
+if mount -o remount,ro /; then
+    echo "XBOX_ROOT_REMOUNT_RO_OK"
+    echo "It is now safer to power off or reset."
+    exit 0
+fi
+
+echo "XBOX_ROOT_REMOUNT_RO_FAILED"
+echo "Some process may still have writable files open. Run sync again before power-off."
+exit 1
+EOF
+chmod 755 "$ROOT/usr/local/bin/xbox-storage-tune" "$ROOT/usr/local/bin/xbox-diag" "$ROOT/usr/local/bin/xbox-perf" "$ROOT/usr/local/bin/xbox-persist-smoke" "$ROOT/usr/local/bin/xbox-sync-ro"
 
 cat > "$ROOT/usr/local/bin/xbox-terminal" <<'EOF'
 #!/bin/sh
@@ -385,7 +432,7 @@ EORC
 
 xsetroot -solid '#1f3f4f' 2>/dev/null || true
 if command -v flwm_topside >/dev/null 2>&1 && command -v aterm >/dev/null 2>&1; then
-    aterm -fn fixed -fg white -bg black -geometry 78x24+20+32 -title "Xbox Debian" -e /bin/sh -lc 'echo XBOX_DEBIAN_X_DESKTOP_OK; uname -a; echo; echo memory:; grep -E "MemTotal|MemFree|MemAvailable|Buffers|Cached|SwapTotal|SwapFree" /proc/meminfo 2>/dev/null; echo; echo tools: ping wget apt xbox-perf; echo; echo read-ahead:; grep read_ahead_kb /tmp/xbox-diag.txt 2>/dev/null || true; echo; if [ -s /tmp/xbox-persist-smoke.txt ]; then echo persistence:; grep -E "XBOX_PERSIST_MARKER_(WRITTEN|PRESENT|WRITE_FAILED|RENAME_FAILED|20260526)" /tmp/xbox-persist-smoke.txt 2>/dev/null || tail -8 /tmp/xbox-persist-smoke.txt; echo; fi; echo diag: /tmp/xbox-diag.txt; exec /bin/sh -i' >/tmp/aterm.log 2>&1 &
+    aterm -fn fixed -fg white -bg black -geometry 78x24+20+32 -title "Xbox Debian" -e /bin/sh -lc 'echo XBOX_DEBIAN_X_DESKTOP_OK; uname -a; echo; echo memory:; grep -E "MemTotal|MemFree|MemAvailable|Buffers|Cached|SwapTotal|SwapFree" /proc/meminfo 2>/dev/null; echo; echo tools: ping wget apt xbox-perf xbox-sync-ro; echo; echo read-ahead:; grep read_ahead_kb /tmp/xbox-diag.txt 2>/dev/null || true; echo; if [ -s /tmp/xbox-persist-smoke.txt ]; then echo persistence:; grep -E "XBOX_(PERSIST_MARKER|NORMAL_USE_FILE)_(WRITTEN|PRESENT|WRITE_FAILED|RENAME_FAILED|20260526)" /tmp/xbox-persist-smoke.txt 2>/dev/null || tail -10 /tmp/xbox-persist-smoke.txt; echo; fi; echo diag: /tmp/xbox-diag.txt; exec /bin/sh -i' >/tmp/aterm.log 2>&1 &
     exec flwm_topside
 fi
 xterm -geometry 78x24+20+32 -title "Xbox Debian" -e /bin/sh -lc 'echo XBOX_DEBIAN_X_DESKTOP_OK; uname -a; exec /bin/sh -i' &
