@@ -20,6 +20,8 @@ PAYLOAD_FILE=/linuxroot.ext2
 PAYLOAD_DISK=
 ROOT_INIT=/xbox-init
 ROOT_FSTYPE=ext2
+FATX_MODE=ro
+ROOT_MODE=ro
 E_PARTITION_OFFSET=2884108288
 CHROOT_PROOF=0
 
@@ -29,6 +31,10 @@ for arg in $(cat /proc/cmdline 2>/dev/null); do
         xbox_payload_disk=*) PAYLOAD_DISK="${arg#xbox_payload_disk=}" ;;
         xbox_root_init=*) ROOT_INIT="${arg#xbox_root_init=}" ;;
         xbox_root_fstype=*) ROOT_FSTYPE="${arg#xbox_root_fstype=}" ;;
+        xbox_fatx_mode=rw) FATX_MODE=rw ;;
+        xbox_fatx_mode=ro) FATX_MODE=ro ;;
+        xbox_root_mode=rw) ROOT_MODE=rw ;;
+        xbox_root_mode=ro) ROOT_MODE=ro ;;
         xbox_fatx_e_offset=*) E_PARTITION_OFFSET="${arg#xbox_fatx_e_offset=}" ;;
         xbox_chroot_proof=1) CHROOT_PROOF=1 ;;
     esac
@@ -39,6 +45,8 @@ echo "*** Xbox distro stage1 FATX/ext2 loader ***"
 echo "cmdline: $(cat /proc/cmdline 2>/dev/null)"
 echo "payload: $PAYLOAD_FILE"
 echo "root init: $ROOT_INIT"
+echo "fatx mode: $FATX_MODE"
+echo "root mode: $ROOT_MODE"
 echo
 
 if [ -z "$PAYLOAD_DISK" ]; then
@@ -70,7 +78,7 @@ if ! /bin/busybox losetup -o "$E_PARTITION_OFFSET" /dev/loop0 "$PAYLOAD_DISK" 2>
     exec setsid cttyhack sh
 fi
 
-if ! /bin/busybox mount -t fatx -o ro /dev/loop0 /mnt/xboxe 2>/tmp/fatx-mount.err; then
+if ! /bin/busybox mount -t fatx -o "$FATX_MODE" /dev/loop0 /mnt/xboxe 2>/tmp/fatx-mount.err; then
     echo "FATX mount failed:"
     cat /tmp/fatx-mount.err 2>/dev/null || true
     exec setsid cttyhack sh
@@ -85,7 +93,7 @@ if ! /bin/busybox losetup /dev/loop1 "/mnt/xboxe$PAYLOAD_FILE" 2>/tmp/root-loset
     exec setsid cttyhack sh
 fi
 
-if ! /bin/busybox mount -t "$ROOT_FSTYPE" -o ro /dev/loop1 /mnt/root 2>/tmp/root-mount.err; then
+if ! /bin/busybox mount -t "$ROOT_FSTYPE" -o "$ROOT_MODE" /dev/loop1 /mnt/root 2>/tmp/root-mount.err; then
     echo "Root image mount failed:"
     cat /tmp/root-mount.err 2>/dev/null || true
     exec setsid cttyhack sh

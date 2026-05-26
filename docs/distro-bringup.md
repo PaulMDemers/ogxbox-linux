@@ -98,6 +98,12 @@ terminal. The lean root now includes `/usr/local/bin/xterm` as an `aterm`
 compatibility wrapper so menu items or shell commands that still launch `xterm`
 can open a terminal even though Debian's full `xterm` package is not installed.
 
+The next usability package adds `ping`, `wget`, and `ca-certificates` to the
+base Debian root, plus `/usr/local/bin/xbox-perf` for quick hardware timing
+checks. It also updates the Xfbdev boot text: `xbox_x_mouse=0` disables only the
+explicit `-mouse /dev/input/mice,5` argument, and the default pointer path may
+still work on real hardware.
+
 Working checkpoint:
 
 ```text
@@ -105,6 +111,15 @@ ogxbox-linux: 20ab453 Add Debian xterm terminal wrapper
 cromwell:     16788e0 fatx: reject invalid cluster chain entries
 softmod zip:  C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-debian-bookworm-i386.zip
 xemu ISO:     C:\Users\Paul\Desktop\xbox_linux\artifacts\xromwell-hddfatx-autoboot-initrd32.iso
+```
+
+Current usability rebuild:
+
+```text
+root tools:   ping, wget, ca-certificates, apt, xbox-perf
+root image:   C:\Users\Paul\Desktop\xbox_linux\artifacts\hdd\xbox-debian-bookworm-i386.ext2
+softmod zip:  C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-debian-bookworm-i386.zip
+xemu proof:   C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-base-tools-perf-20260525-231713.png
 ```
 
 Build:
@@ -134,6 +149,7 @@ C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-xfbdev-no-udev-nomouse-2
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-lean-xfbdev-storage-tune-v2-20260525-220159.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-lean-xfbdev-fatx-chain-guard-clean-20260525-223033.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-xterm-aterm-wrapper-20260525-224511.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-base-tools-perf-20260525-231713.png
 ```
 
 Expected proof banner:
@@ -147,6 +163,8 @@ The root image is currently read-only because it is loop-mounted from the
 read-only FATX driver. That is enough for a first console proof. A writable
 Debian system will need either FATX write support, a separate native Linux
 partition/file placement scheme, or a tmpfs/overlay plan.
+
+See `docs\persistence-and-performance-plan.md` for the staged persistence plan.
 
 ### Damn Small Linux 2024 i386
 

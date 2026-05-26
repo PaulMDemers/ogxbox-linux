@@ -18,7 +18,9 @@ On a softmodded Xbox:
 
 Known current limits:
 
-- Xfbdev mouse input is disabled with `xbox_x_mouse=0`.
+- The explicit Xfbdev mouse device argument is disabled with
+  `xbox_x_mouse=0`; real hardware may still expose a working default pointer
+  path.
 - The root image is mounted read-only from the FATX-backed ext2 file.
 - The desktop is a minimal proof environment, not yet a polished daily-use
   Debian system.
@@ -69,14 +71,16 @@ powershell -ExecutionPolicy Bypass -File .\scripts\package_distro_softmod_packag
 
 ```text
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-xterm-aterm-wrapper-20260525-224511.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-base-tools-perf-20260525-231713.png
 ```
 
 ## Next Step
 
 Move from desktop proof to usability:
 
-- re-enable/test mouse input safely
-- add a writable overlay or writable root strategy
-- trim/optimize the Debian userspace further
+- measure hardware lag with `xbox-perf`
+- implement persistence through a staged FATX write-test plan or a native Linux
+  storage area
+- continue trimming/optimizing the Debian userspace
 - decide whether to continue Debian first or bring DSL 2024 up through the same
   proven package flow

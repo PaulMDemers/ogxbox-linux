@@ -9,6 +9,7 @@ MIRROR="${5:-http://deb.debian.org/debian}"
 SIZE_MIB="${6:-384}"
 FORCE="${7:-0}"
 DESKTOP="${8:-0}"
+BASE_PACKAGES="busybox,sysvinit-core,ifupdown,isc-dhcp-client,iproute2,netbase,procps,psmisc,less,nano,kmod,iputils-ping,wget,ca-certificates"
 
 if ! command -v debootstrap >/dev/null 2>&1; then
     apt-get update
@@ -31,8 +32,19 @@ if [ ! -x "$ROOT/bin/sh" ]; then
     debootstrap \
         --arch="$ARCH" \
         --variant=minbase \
-        --include=busybox,sysvinit-core,ifupdown,isc-dhcp-client,iproute2,netbase,procps,psmisc,less,nano,kmod \
+        --include="$BASE_PACKAGES" \
         "$SUITE" "$ROOT" "$MIRROR"
+fi
+
+if ! chroot "$ROOT" sh -c 'dpkg-query -W iputils-ping wget ca-certificates >/dev/null 2>&1'; then
+    cat > "$ROOT/usr/sbin/policy-rc.d" <<'EOF'
+#!/bin/sh
+exit 101
+EOF
+    chmod 755 "$ROOT/usr/sbin/policy-rc.d"
+    chroot "$ROOT" env DEBIAN_FRONTEND=noninteractive apt-get update
+    chroot "$ROOT" env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends iputils-ping wget ca-certificates
+    rm -f "$ROOT/usr/sbin/policy-rc.d"
 fi
 
 if [ "$DESKTOP" = "1" ] && [ ! -e "$ROOT/.xbox-tinycore-xfbdev-installed" ]; then
@@ -129,6 +141,8 @@ echo
 echo "network devices:"
 ip link 2>/dev/null || true
 echo
+echo "tools: ping wget apt xbox-perf"
+echo
 if [ "$DESKTOP" = "1" ] && [ -x /usr/local/bin/xbox-startx ]; then
     echo "Launching Debian X proof desktop"
     echo
@@ -190,7 +204,55 @@ echo
 echo "== storage dmesg =="
 dmesg | grep -Ei 'FATX|loop|ata|pata|ide|dma|udma|pio|hda|sda|xbox' | tail -80
 EOF
-chmod 755 "$ROOT/usr/local/bin/xbox-storage-tune" "$ROOT/usr/local/bin/xbox-diag"
+
+cat > "$ROOT/usr/local/bin/xbox-perf" <<'EOF'
+#!/bin/sh
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/sbin:/usr/local/bin
+TMP_OUT=/tmp/xbox-perf.out
+TMP_ERR=/tmp/xbox-perf.err
+
+ms_now() {
+    ns=$(date +%s%N 2>/dev/null || true)
+    case "$ns" in
+        *N*|"") date +%s000 2>/dev/null ;;
+        *) echo $((ns / 1000000)) ;;
+    esac
+}
+
+run_probe() {
+    label="$1"
+    shift
+    echo "-- $label"
+    start=$(ms_now)
+    "$@" >"$TMP_OUT" 2>"$TMP_ERR"
+    status=$?
+    end=$(ms_now)
+    echo "status=$status elapsed_ms=$((end - start))"
+    if [ -s "$TMP_ERR" ]; then
+        sed -n '1,6p' "$TMP_ERR"
+    fi
+}
+
+echo "== xbox perf smoke =="
+uname -a
+echo
+run_probe "true" /bin/true
+run_probe "sh -c true" /bin/sh -c true
+run_probe "free -m" /usr/bin/free -m
+run_probe "busybox free" /bin/busybox free
+run_probe "cat /proc/meminfo" /bin/cat /proc/meminfo
+run_probe "ps" /bin/ps
+echo
+echo "== memory snapshot =="
+grep -E 'MemTotal|MemFree|MemAvailable|Buffers|Cached|SwapTotal|SwapFree' /proc/meminfo 2>/dev/null || true
+echo
+echo "== read ahead =="
+for q in /sys/block/hd*/queue/read_ahead_kb /sys/block/sd*/queue/read_ahead_kb /sys/block/loop*/queue/read_ahead_kb; do
+    [ -r "$q" ] && echo "$q=$(cat "$q")"
+done
+rm -f "$TMP_OUT" "$TMP_ERR"
+EOF
+chmod 755 "$ROOT/usr/local/bin/xbox-storage-tune" "$ROOT/usr/local/bin/xbox-diag" "$ROOT/usr/local/bin/xbox-perf"
 
 cat > "$ROOT/usr/local/bin/xbox-terminal" <<'EOF'
 #!/bin/sh
@@ -269,7 +331,7 @@ EORC
 
 xsetroot -solid '#1f3f4f' 2>/dev/null || true
 if command -v flwm_topside >/dev/null 2>&1 && command -v aterm >/dev/null 2>&1; then
-    aterm -fn fixed -fg white -bg black -geometry 78x24+20+32 -title "Xbox Debian" -e /bin/sh -lc 'echo XBOX_DEBIAN_X_DESKTOP_OK; uname -a; echo; echo memory:; grep -E "MemTotal|MemFree|MemAvailable|Buffers|Cached|SwapTotal|SwapFree" /proc/meminfo 2>/dev/null; echo; echo read-ahead:; grep read_ahead_kb /tmp/xbox-diag.txt 2>/dev/null || true; echo; echo diag: /tmp/xbox-diag.txt; exec /bin/sh -i' >/tmp/aterm.log 2>&1 &
+    aterm -fn fixed -fg white -bg black -geometry 78x24+20+32 -title "Xbox Debian" -e /bin/sh -lc 'echo XBOX_DEBIAN_X_DESKTOP_OK; uname -a; echo; echo memory:; grep -E "MemTotal|MemFree|MemAvailable|Buffers|Cached|SwapTotal|SwapFree" /proc/meminfo 2>/dev/null; echo; echo tools: ping wget apt xbox-perf; echo; echo read-ahead:; grep read_ahead_kb /tmp/xbox-diag.txt 2>/dev/null || true; echo; echo diag: /tmp/xbox-diag.txt; exec /bin/sh -i' >/tmp/aterm.log 2>&1 &
     exec flwm_topside
 fi
 xterm -geometry 78x24+20+32 -title "Xbox Debian" -e /bin/sh -lc 'echo XBOX_DEBIAN_X_DESKTOP_OK; uname -a; exec /bin/sh -i' &
@@ -318,10 +380,10 @@ if [ -x /usr/local/bin/Xfbdev ]; then
     export DISPLAY=:0
     echo "Starting Xfbdev server"
     if [ "$X_MOUSE" = "1" ]; then
-        echo "Xfbdev mouse: /dev/input/mice"
+        echo "Xfbdev explicit mouse device: /dev/input/mice"
         /usr/local/bin/Xfbdev :0 -screen 640x480x32 -mouse /dev/input/mice,5 -nolisten tcp >/tmp/xfbdev.log 2>&1 &
     else
-        echo "Xfbdev mouse: disabled"
+        echo "Xfbdev explicit mouse device: disabled; default pointer input may still work"
         /usr/local/bin/Xfbdev :0 -screen 640x480x32 -nolisten tcp >/tmp/xfbdev.log 2>&1 &
     fi
     XPID=$!
