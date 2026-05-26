@@ -132,6 +132,20 @@ Build the FATX-autoboot Cromwell ROM and XBE:
 powershell -ExecutionPolicy Bypass -File .\scripts\build_cromwell_hdd_fatx_autoboot.ps1
 ```
 
+Build the separate forced-HDTV 480p Cromwell ROM and XBE:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\build_cromwell_hdd_fatx_autoboot_hdtv480p.ps1
+```
+
+That variant adds `XBOX_FORCE_AV_HDTV_480P` and writes:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\cromwell-hddfatx-autoboot-hdtv480p_1024.bin
+C:\Users\Paul\Desktop\xbox_linux\artifacts\xromwell-hddfatx-autoboot-hdtv480p.iso
+C:\Users\Paul\Desktop\xbox_linux\build\xromwell-hddfatx-autoboot-hdtv480p-disc\default.xbe
+```
+
 Build the Tiny Core ext2 payload image:
 
 ```powershell

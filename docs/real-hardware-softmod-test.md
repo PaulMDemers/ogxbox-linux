@@ -198,6 +198,22 @@ Shell-only rw storage smoke package:
 C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-debian-bookworm-rw-shell-smoke.zip
 ```
 
+Forced-HDTV 480p Debian desktop package for HDMI/component adapters:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-debian-bookworm-i386-hdtv480p.zip
+```
+
+Use the HDTV 480p package only as a separate dashboard app. It may be blank on
+composite/AV cables because it forces Cromwell into the HDTV output path.
+Expected dashboard folder:
+
+```text
+E:\Apps\XromwellDebianBookwormHdtv480p\
+```
+
+The Xromwell banner should show Cromwell `e719de4` and cable `HDTV`.
+
 Use the shell-only package first for real-hardware rw validation. It writes the
 persistence marker and normal-use file, runs `xbox-sync-ro`, and should report
 `XBOX_ROOT_REMOUNT_RO_OK` before reset or power-off. See:

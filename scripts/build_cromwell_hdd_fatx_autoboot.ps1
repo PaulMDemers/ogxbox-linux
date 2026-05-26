@@ -2,7 +2,8 @@ param(
     [string]$CromwellPath = "sources\cromwell-xboxdev",
     [string]$OutRom = "artifacts\cromwell-hddfatx-autoboot-modernhdr-initrd32_1024.bin",
     [string]$OutXbeDir = "build\xromwell-hddfatx-autoboot-disc",
-    [string]$OutIso = "artifacts\xromwell-hddfatx-autoboot-initrd32.iso"
+    [string]$OutIso = "artifacts\xromwell-hddfatx-autoboot-initrd32.iso",
+    [string]$ExtraCromCflags = "-DXBOX_LINUX_AUTOBOOT_FATX -DFATX_PROGRESS"
 )
 
 $ErrorActionPreference = 'Stop'
@@ -26,7 +27,8 @@ if ($cromwellWsl -match '^([A-Za-z]):/(.*)$') {
     $cromwellWsl = "/mnt/$drive/$($Matches[2])"
 }
 
-wsl --cd $cromwellWsl bash -lc 'make all EXTRA_CROM_CFLAGS="-DXBOX_LINUX_AUTOBOOT_FATX -DFATX_PROGRESS"'
+$makeCommand = "make all EXTRA_CROM_CFLAGS='$ExtraCromCflags'"
+wsl --cd $cromwellWsl bash -lc $makeCommand
 
 $rom = Join-Path $cromwell 'image\cromwell_1024.bin'
 $xbe = Join-Path $cromwell 'xbe\xromwell.xbe'

@@ -61,6 +61,55 @@ Why first:
 Expected result: the HDMI adapter should receive component-style 480p output
 from Cromwell, making the boot screen and Linux handoff visible on more TVs.
 
+## Forced HDTV 480p Checkpoint
+
+Implemented in Cromwell:
+
+```text
+e719de4 video: add forced HDTV 480p build option
+```
+
+The build flag is:
+
+```text
+XBOX_FORCE_AV_HDTV_480P
+```
+
+Build the forced-HDTV Cromwell artifacts with:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\build_cromwell_hdd_fatx_autoboot_hdtv480p.ps1
+```
+
+Artifacts:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\cromwell-hddfatx-autoboot-hdtv480p_1024.bin
+C:\Users\Paul\Desktop\xbox_linux\artifacts\xromwell-hddfatx-autoboot-hdtv480p.iso
+C:\Users\Paul\Desktop\xbox_linux\build\xromwell-hddfatx-autoboot-hdtv480p-disc\default.xbe
+```
+
+Package the Debian desktop test app with:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\package_distro_hdtv480p_softmod.ps1
+```
+
+Softmod package:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-debian-bookworm-i386-hdtv480p.zip
+```
+
+xemu sanity proof used `avpack=hdtv` and booted through to the Debian desktop:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-hdtv480p-xemu-20260526-124002.png
+```
+
+Real hardware test expectation: the Xromwell banner should report Cromwell
+revision `e719de4` and the cable should display as `HDTV`.
+
 ## Later 720p / 1080i Work
 
 Real 720p or 1080i support needs more than changing the enum. We need:
@@ -97,4 +146,3 @@ default-hdtv1080i.xbe    later, after GPU timing work
 Forcing HDTV output can make composite/AV cables go blank. Keep the normal
 Xromwell package as the recovery path and ship the forced-HDTV build as a
 separate dashboard app, not as a replacement.
-
