@@ -186,6 +186,17 @@ Use:
 C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-debian-bookworm-i386.zip
 ```
 
+Separate experimental rw persistence smoke package:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-debian-bookworm-rw-smoke.zip
+```
+
+The rw smoke package is xemu-proven but not yet real-hardware validated. It
+writes inside `E:\debian.ext2`, so keep the normal read-only Debian package as
+the known-good fallback and back up `E:\debian.ext2` before trying it on
+hardware.
+
 Before copying the Debian `E-root\` contents, delete any previous root boot
 files with these names from `E:\`:
 

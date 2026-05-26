@@ -148,3 +148,62 @@ C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-rw-persist-present-20260
 
 The default real-hardware Debian package should stay read-only until we decide
 to create a separate opt-in rw package.
+
+## RW Softmod Smoke Package
+
+An opt-in softmod package now exists separately from the normal read-only
+Debian package:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-debian-bookworm-rw-smoke.zip
+```
+
+Build it with:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\package_distro_rw_smoke.ps1
+```
+
+Package folder:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-debian-bookworm-rw-smoke
+```
+
+Expected Xbox dashboard folder:
+
+```text
+E:\Apps\XromwellDebianBookwormRwSmoke\
+```
+
+Expected Xbox `E:` root files from `E-root\`:
+
+```text
+E:\linuxboot.cfg
+E:\debkrnl
+E:\debinit
+E:\debian.ext2
+```
+
+The package includes:
+
+```text
+RW-SMOKE-WARNING.txt
+```
+
+That warning is intentionally blunt: this package is xemu-proven but not yet
+real-hardware validated, and the normal read-only Debian package should remain
+the known-good fallback.
+
+Package-sourced xemu proof was done by staging the disposable xemu HDD from the
+package's own `E-root` files. First boot:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-rw-softmod-package-written-20260526-102052.png
+```
+
+Second boot without restaging:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-rw-softmod-package-present-20260526-102256.png
+```

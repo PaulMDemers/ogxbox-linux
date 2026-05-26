@@ -170,6 +170,15 @@ and `xbox_persist_smoke=1`, Debian writes `/root/xbox-persist-smoke.txt` inside
 the ext2 root and sees it again on the next boot without restaging the FATX
 payload. The default real-hardware Debian package remains read-only.
 
+A separate opt-in rw smoke package is available for controlled testing:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-debian-bookworm-rw-smoke.zip
+```
+
+It includes `RW-SMOKE-WARNING.txt` and should not replace the normal Debian
+package yet.
+
 See `docs\persistence-and-performance-plan.md` and
 `docs\fatx-existing-file-write.md` for the staged persistence plan and proof.
 
