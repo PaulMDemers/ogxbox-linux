@@ -39,6 +39,9 @@ Tested on a softmodded Xbox on May 25, 2026:
   assuming 16 KB clusters.
 - Debian boots to the proof shell on real softmodded Xbox hardware with
   Xromwell `5eaba1e`.
+- Debian now boots to the minimal Xfbdev/flwm desktop on real softmodded Xbox
+  hardware with Xromwell `16788e0`. The proof terminal opens, and `xterm`
+  launches a terminal through the `aterm` compatibility wrapper.
 
 The May 25 refresh adds:
 
@@ -244,6 +247,14 @@ Because the lean build removed Debian's `xterm` package, launching `xterm`
 after closing the proof terminal did nothing. The current payload includes
 `/usr/local/bin/xterm` as a compatibility wrapper around the Tiny Core `aterm`
 binary, plus `/usr/local/bin/xbox-terminal` as the stable terminal launcher.
+
+This is the current working real-hardware checkpoint:
+
+```text
+ogxbox-linux: 20ab453 Add Debian xterm terminal wrapper
+cromwell:     16788e0 fatx: reject invalid cluster chain entries
+package:      C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-debian-bookworm-i386.zip
+```
 
 The xemu proofs for this path are:
 

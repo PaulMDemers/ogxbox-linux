@@ -44,9 +44,9 @@ for a real 32-bit Xbox-class machine.
 
 Current goal: minimal Debian 12 i386 desktop proof.
 
-Status: boots in xemu through the full FATX/ext2 path and `switch_root`s into
-the Debian root image. It also boots on real softmodded Xbox hardware to the
-Debian proof shell with Xromwell `5eaba1e`.
+Status: boots in xemu and on real softmodded Xbox hardware through the full
+FATX/ext2 path into a minimal Xfbdev/flwm desktop. The proof terminal opens,
+and `xterm` commands now work through the `aterm` compatibility wrapper.
 
 Real hardware status: the first softmod test did not reach Linux. Cromwell
 loaded `/vmlinuz`, then failed while reading `/initramf` from FATX with an
@@ -97,6 +97,15 @@ After that fix, real hardware reached the Debian desktop and opened the proof
 terminal. The lean root now includes `/usr/local/bin/xterm` as an `aterm`
 compatibility wrapper so menu items or shell commands that still launch `xterm`
 can open a terminal even though Debian's full `xterm` package is not installed.
+
+Working checkpoint:
+
+```text
+ogxbox-linux: 20ab453 Add Debian xterm terminal wrapper
+cromwell:     16788e0 fatx: reject invalid cluster chain entries
+softmod zip:  C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-debian-bookworm-i386.zip
+xemu ISO:     C:\Users\Paul\Desktop\xbox_linux\artifacts\xromwell-hddfatx-autoboot-initrd32.iso
+```
 
 Build:
 
