@@ -115,13 +115,18 @@ export PATH=/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/sbin:/usr/local/bin
 export TERM=linux
 export HOME=/root
 DESKTOP=0
+PERSIST_SMOKE=0
 for arg in $(cat /proc/cmdline 2>/dev/null); do
     case "$arg" in
         xbox_desktop=1) DESKTOP=1 ;;
+        xbox_persist_smoke=1) PERSIST_SMOKE=1 ;;
     esac
 done
 xbox-storage-tune >/tmp/xbox-storage-tune.log 2>&1 || true
 xbox-diag >/tmp/xbox-diag.txt 2>&1 || true
+if [ "$PERSIST_SMOKE" = "1" ] && [ -x /usr/local/bin/xbox-persist-smoke ]; then
+    /usr/local/bin/xbox-persist-smoke >/tmp/xbox-persist-smoke.txt 2>&1 || true
+fi
 
 echo
 echo "XBOX_DEBIAN_BOOKWORM_I386_ROOT_OK"
@@ -143,6 +148,11 @@ ip link 2>/dev/null || true
 echo
 echo "tools: ping wget apt xbox-perf"
 echo
+if [ -s /tmp/xbox-persist-smoke.txt ]; then
+    echo "persistence smoke:"
+    cat /tmp/xbox-persist-smoke.txt
+    echo
+fi
 if [ "$DESKTOP" = "1" ] && [ -x /usr/local/bin/xbox-startx ]; then
     echo "Launching Debian X proof desktop"
     echo
@@ -252,7 +262,51 @@ for q in /sys/block/hd*/queue/read_ahead_kb /sys/block/sd*/queue/read_ahead_kb /
 done
 rm -f "$TMP_OUT" "$TMP_ERR"
 EOF
-chmod 755 "$ROOT/usr/local/bin/xbox-storage-tune" "$ROOT/usr/local/bin/xbox-diag" "$ROOT/usr/local/bin/xbox-perf"
+
+cat > "$ROOT/usr/local/bin/xbox-persist-smoke" <<'EOF'
+#!/bin/sh
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/sbin:/usr/local/bin
+MARKER=/root/xbox-persist-smoke.txt
+TMP=/root/xbox-persist-smoke.txt.tmp
+
+echo "== xbox persistence smoke =="
+echo "root mount:"
+awk '$2 == "/" { print }' /proc/mounts 2>/dev/null || true
+echo
+
+if [ -s "$MARKER" ]; then
+    echo "XBOX_PERSIST_MARKER_PRESENT"
+    cat "$MARKER"
+    exit 0
+fi
+
+echo "writing marker: $MARKER"
+{
+    echo "XBOX_PERSIST_MARKER_20260526"
+    echo "uname=$(uname -a)"
+    echo "cmdline=$(cat /proc/cmdline 2>/dev/null)"
+    echo "created_utc=$(date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || date)"
+} > "$TMP"
+status=$?
+if [ "$status" -ne 0 ]; then
+    echo "XBOX_PERSIST_MARKER_WRITE_FAILED status=$status"
+    rm -f "$TMP" 2>/dev/null || true
+    exit "$status"
+fi
+
+mv "$TMP" "$MARKER"
+status=$?
+if [ "$status" -ne 0 ]; then
+    echo "XBOX_PERSIST_MARKER_RENAME_FAILED status=$status"
+    rm -f "$TMP" 2>/dev/null || true
+    exit "$status"
+fi
+
+sync
+echo "XBOX_PERSIST_MARKER_WRITTEN"
+cat "$MARKER"
+EOF
+chmod 755 "$ROOT/usr/local/bin/xbox-storage-tune" "$ROOT/usr/local/bin/xbox-diag" "$ROOT/usr/local/bin/xbox-perf" "$ROOT/usr/local/bin/xbox-persist-smoke"
 
 cat > "$ROOT/usr/local/bin/xbox-terminal" <<'EOF'
 #!/bin/sh
@@ -331,7 +385,7 @@ EORC
 
 xsetroot -solid '#1f3f4f' 2>/dev/null || true
 if command -v flwm_topside >/dev/null 2>&1 && command -v aterm >/dev/null 2>&1; then
-    aterm -fn fixed -fg white -bg black -geometry 78x24+20+32 -title "Xbox Debian" -e /bin/sh -lc 'echo XBOX_DEBIAN_X_DESKTOP_OK; uname -a; echo; echo memory:; grep -E "MemTotal|MemFree|MemAvailable|Buffers|Cached|SwapTotal|SwapFree" /proc/meminfo 2>/dev/null; echo; echo tools: ping wget apt xbox-perf; echo; echo read-ahead:; grep read_ahead_kb /tmp/xbox-diag.txt 2>/dev/null || true; echo; echo diag: /tmp/xbox-diag.txt; exec /bin/sh -i' >/tmp/aterm.log 2>&1 &
+    aterm -fn fixed -fg white -bg black -geometry 78x24+20+32 -title "Xbox Debian" -e /bin/sh -lc 'echo XBOX_DEBIAN_X_DESKTOP_OK; uname -a; echo; echo memory:; grep -E "MemTotal|MemFree|MemAvailable|Buffers|Cached|SwapTotal|SwapFree" /proc/meminfo 2>/dev/null; echo; echo tools: ping wget apt xbox-perf; echo; echo read-ahead:; grep read_ahead_kb /tmp/xbox-diag.txt 2>/dev/null || true; echo; if [ -s /tmp/xbox-persist-smoke.txt ]; then echo persistence:; grep -E "XBOX_PERSIST_MARKER_(WRITTEN|PRESENT|WRITE_FAILED|RENAME_FAILED|20260526)" /tmp/xbox-persist-smoke.txt 2>/dev/null || tail -8 /tmp/xbox-persist-smoke.txt; echo; fi; echo diag: /tmp/xbox-diag.txt; exec /bin/sh -i' >/tmp/aterm.log 2>&1 &
     exec flwm_topside
 fi
 xterm -geometry 78x24+20+32 -title "Xbox Debian" -e /bin/sh -lc 'echo XBOX_DEBIAN_X_DESKTOP_OK; uname -a; exec /bin/sh -i' &

@@ -88,7 +88,63 @@ Use the same kernel against the Debian package in xemu only, with:
 xbox_fatx_mode=rw xbox_root_mode=rw
 ```
 
-If Debian can write a marker inside the ext2 root and that marker survives a
-reboot, then we can create a separate opt-in rw test package. The default real
-hardware package should stay read-only until that full persistence cycle passes
-cleanly.
+That persistence cycle now passes in xemu.
+
+## Debian Persistence Smoke
+
+The Debian root includes an opt-in smoke helper:
+
+```text
+/usr/local/bin/xbox-persist-smoke
+```
+
+It runs only when the kernel command line includes:
+
+```text
+xbox_persist_smoke=1
+```
+
+The helper writes this marker inside the Debian ext2 root:
+
+```text
+/root/xbox-persist-smoke.txt
+```
+
+Rebuild Debian and stage the disposable xemu HDD:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\build_debian_bookworm_i386_payload.ps1 -Desktop -ImageSizeMiB 384
+powershell -ExecutionPolicy Bypass -File .\scripts\stage_debian_rw_persistence_smoke.ps1
+```
+
+Run xemu, wait for the desktop, then capture:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\run-xemu-cromwell-hdd-fatx-busybox-6.18.33.ps1
+.\tools\capture-xemu-window\bin\Release\net10.0-windows\CaptureXemuWindow.exe --out-dir .\run\screenshots --prefix debian-rw-persist-written --rect frame
+```
+
+Expected first boot output:
+
+```text
+XBOX_PERSIST_MARKER_WRITTEN
+XBOX_PERSIST_MARKER_20260526
+```
+
+Stop xemu, then start it again without restaging the HDD. Expected second boot
+output:
+
+```text
+XBOX_PERSIST_MARKER_PRESENT
+XBOX_PERSIST_MARKER_20260526
+```
+
+Proof screenshots:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-rw-persist-written-20260526-100738.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-rw-persist-present-20260526-100948.png
+```
+
+The default real-hardware Debian package should stay read-only until we decide
+to create a separate opt-in rw package.

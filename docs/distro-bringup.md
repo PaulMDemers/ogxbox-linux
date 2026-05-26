@@ -164,7 +164,14 @@ read-only FATX driver. That is enough for a first console proof. A writable
 Debian system will need either FATX write support, a separate native Linux
 partition/file placement scheme, or a tmpfs/overlay plan.
 
-See `docs\persistence-and-performance-plan.md` for the staged persistence plan.
+The first xemu-only FATX existing-file write path is now working. With the
+experimental rw-existing FATX kernel, `xbox_fatx_mode=rw xbox_root_mode=rw`,
+and `xbox_persist_smoke=1`, Debian writes `/root/xbox-persist-smoke.txt` inside
+the ext2 root and sees it again on the next boot without restaging the FATX
+payload. The default real-hardware Debian package remains read-only.
+
+See `docs\persistence-and-performance-plan.md` and
+`docs\fatx-existing-file-write.md` for the staged persistence plan and proof.
 
 ### Damn Small Linux 2024 i386
 

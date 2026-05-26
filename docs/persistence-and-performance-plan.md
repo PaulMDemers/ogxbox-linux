@@ -53,6 +53,10 @@ The staged plan is:
 The first existing-file write smoke test passes in xemu. See
 `docs\fatx-existing-file-write.md`.
 
+The first Debian ext2 persistence smoke also passes in xemu: Debian writes
+`/root/xbox-persist-smoke.txt` with `xbox_fatx_mode=rw xbox_root_mode=rw`, then
+sees the same marker on the next boot without restaging `E:\debian.ext2`.
+
 The safer alternative, if we want persistence before FATX write support, is a
 native Linux partition or another Xbox disk area dedicated to Linux. That avoids
 teaching the kernel to modify FATX, but it is less convenient for the desired
