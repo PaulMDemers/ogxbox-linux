@@ -257,8 +257,40 @@ generic distro initramfs, Xfbdev/flwm/aterm desktop closure, and Xbox kernel.
 Treat Excalibur as a later package-repository experiment rather than the first
 Devuan target.
 
-Planned artifact:
+Current result: Devuan Daedalus i386 boots in xemu through the same
+FATX/ext2 path to the minimal Xfbdev/flwm/aterm desktop. The first build uses
+the Debian Bookworm image composer as a base, but bootstraps `daedalus` from
+Devuan's merged repository and rewrites the root identity and apt sources.
+
+Build:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\build_devuan_daedalus_i386_payload.ps1 -Desktop
+powershell -ExecutionPolicy Bypass -File .\scripts\package_devuan_daedalus_i386_softmod.ps1
+```
+
+Artifacts:
 
 ```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\hdd\xbox-devuan-daedalus-i386.ext2
 C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386.zip
+```
+
+xemu proof:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-daedalus-i386-xfbdev-20260526-145241.png
+```
+
+Expected proof banner:
+
+```text
+XBOX_DEVUAN_DAEDALUS_I386_ROOT_OK
+XBOX_DEVUAN_X_DESKTOP_OK
+```
+
+The generated ext2 image passed `e2fsck -fn`:
+
+```text
+artifacts/hdd/xbox-devuan-daedalus-i386.ext2: 9696/98304 files (0.1% non-contiguous), 52064/98304 blocks
 ```

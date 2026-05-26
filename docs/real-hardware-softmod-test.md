@@ -217,6 +217,12 @@ Forced-HDTV 480p Debian desktop package for HDMI/component adapters:
 C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-debian-bookworm-i386-hdtv480p.zip
 ```
 
+Devuan Daedalus i386 desktop test:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386.zip
+```
+
 Use the HDTV 480p package only as a separate dashboard app. It may be blank on
 composite/AV cables because it forces Cromwell into the HDTV output path.
 Expected dashboard folder:
@@ -226,6 +232,28 @@ E:\Apps\XromwellDebianBookwormHdtv480p\
 ```
 
 The Xromwell banner should show Cromwell `e719de4` and cable `HDTV`.
+
+Expected Devuan dashboard folder:
+
+```text
+E:\Apps\XromwellDevuanDaedalus\
+```
+
+Copy the package `E-root\` files to `E:\`:
+
+```text
+E:\linuxboot.cfg
+E:\devkrnl
+E:\devinit
+E:\devuan.ext2
+```
+
+Expected Devuan proof markers:
+
+```text
+XBOX_DEVUAN_DAEDALUS_I386_ROOT_OK
+XBOX_DEVUAN_X_DESKTOP_OK
+```
 
 Use the shell-only package first for real-hardware rw validation. It writes the
 persistence marker and normal-use file, runs `xbox-sync-ro`, and should report
