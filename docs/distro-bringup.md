@@ -86,6 +86,13 @@ device only; loop-device read-ahead is left at the kernel default after an xemu
 test showed corrupt-looking early userspace segfaults when loop readahead was
 tuned before diagnostics.
 
+The first lean real-hardware package failed before Linux while loading
+`/debinit`: Xromwell saw an invalid FATX next-cluster value and then tried to
+read that bogus cluster. Cromwell `16788e0` hardens the FATX loader so invalid
+or out-of-partition cluster-chain entries are rejected instead of being used as
+disk addresses. If this still fails on hardware, the next data point should be
+the cleaner chain-break message and the cluster where the real FATX chain stops.
+
 Build:
 
 ```powershell
@@ -111,6 +118,7 @@ C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-header-cluster-fatx-boot
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-xfbdev-flwm-aterm-devpts-20260525-210306.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-xfbdev-no-udev-nomouse-20260525-213104.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-lean-xfbdev-storage-tune-v2-20260525-220159.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-lean-xfbdev-fatx-chain-guard-clean-20260525-223033.png
 ```
 
 Expected proof banner:

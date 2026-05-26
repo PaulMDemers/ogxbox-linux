@@ -233,6 +233,12 @@ closure, shrinks the ext2 payload to 384 MB, and applies the Tiny Core-style
 read-ahead tuning to the disk block device. The terminal now prints memory,
 read-ahead values, and the diagnostic path `/tmp/xbox-diag.txt`.
 
+The first lean package then failed in Xromwell while loading `/debinit` from
+real FATX with an invalid next-cluster value. Cromwell `16788e0` now rejects
+invalid, unallocated, and out-of-partition cluster-chain entries instead of
+feeding them into `LoadFATXCluster`. The refreshed softmod zip contains that
+XBE and should show `rev. 16788e0` on the Xromwell banner.
+
 The xemu proofs for this path are:
 
 ```text
@@ -241,6 +247,7 @@ C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-header-cluster-fatx-boot
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-xfbdev-flwm-aterm-devpts-20260525-210306.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-xfbdev-no-udev-nomouse-20260525-213104.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-lean-xfbdev-storage-tune-v2-20260525-220159.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-lean-xfbdev-fatx-chain-guard-clean-20260525-223033.png
 ```
 
 ## Cleanup
