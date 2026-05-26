@@ -314,3 +314,30 @@ run/fatx-extract/debian-after-syncro.ext2: 9666/98304 files (0.1% non-contiguous
 ```
 
 No bitmap-difference warning was reported after the read-only remount path.
+
+## Shell-Only RW Hardware Checklist
+
+A lower-risk package now exists for real hardware:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-debian-bookworm-rw-shell-smoke.zip
+```
+
+Build it with:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\package_distro_rw_shell_smoke.ps1
+```
+
+It uses the same rw FATX and rw ext2 path, but does not start the desktop. It
+writes the marker files, runs `xbox-sync-ro`, and stops at the proof shell.
+
+xemu proof:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-rw-shell-smoke-20260526-121332.png
+```
+
+The extracted `E:\debian.ext2` from this run passed `e2fsck -fn` without bitmap
+warnings after a host-side hard kill. Use
+`docs\real-hardware-rw-smoke-checklist.md` for the hardware test order.

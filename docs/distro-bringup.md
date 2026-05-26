@@ -190,6 +190,23 @@ The clean-remount variant with `xbox_sync_ro_smoke=1` reported
 `E:\debian.ext2` and running `e2fsck -fn` completed without bitmap warnings.
 That makes `xbox-sync-ro` the current required shutdown path for rw testing.
 
+A shell-only rw smoke package is now available for the first real-hardware rw
+test:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-debian-bookworm-rw-shell-smoke.zip
+```
+
+It writes the persistence marker and normal-use file, remounts `/` read-only,
+and lands at the proof shell without starting X. The xemu package proof is:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-rw-shell-smoke-20260526-121332.png
+```
+
+The extracted image passed `e2fsck -fn` after the `xbox-sync-ro` path. Use
+`docs\real-hardware-rw-smoke-checklist.md` before copying it to hardware.
+
 See `docs\persistence-and-performance-plan.md` and
 `docs\fatx-existing-file-write.md` for the staged persistence plan and proof.
 

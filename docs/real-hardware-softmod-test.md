@@ -192,6 +192,20 @@ Separate experimental rw persistence smoke package:
 C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-debian-bookworm-rw-smoke.zip
 ```
 
+Shell-only rw storage smoke package:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-debian-bookworm-rw-shell-smoke.zip
+```
+
+Use the shell-only package first for real-hardware rw validation. It writes the
+persistence marker and normal-use file, runs `xbox-sync-ro`, and should report
+`XBOX_ROOT_REMOUNT_RO_OK` before reset or power-off. See:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\docs\real-hardware-rw-smoke-checklist.md
+```
+
 The rw smoke package is xemu-proven but not yet real-hardware validated. It
 writes inside `E:\debian.ext2`, so keep the normal read-only Debian package as
 the known-good fallback and back up `E:\debian.ext2` before trying it on
