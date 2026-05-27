@@ -315,17 +315,19 @@ contents of `E-root\` to `E:\`. This keeps the huge ext2 image out of the
 FATX root directory while keeping Xromwell's kernel/initrd loads at root,
 which is the hardware-proven path.
 
-The current Devuan softmod packages use Xromwell `1045ad9`. Its FATX lookup is
-case-insensitive, and it eagerly reads medium FATX chain maps so the known
-hardware `FATX: spc=2 csize=1024 table=1253376` case is cached once before
-loading `/devkrnl` and `/devinit`. The expected line on that disk is:
+The current Devuan softmod packages use Xromwell `62835f4`. Its FATX lookup is
+case-insensitive, and it uses a 4 KiB lazy chain-map page cache for the known
+hardware `FATX: spc=2 csize=1024 table=1253376` case. This avoids both the
+slow one-entry-at-a-time path from `5518ffc` and the whole-table read stall
+seen with `1045ad9`. The expected line on that disk is:
 
 ```text
-FATX: table read 1253376/1253376 ...
+FATX: cached lazy table 1253376 page=4096 ...
 ```
 
-If it prints `FATX: lazy table ...` for that same 1.25 MiB table, the wrong XBE
-is being tested. If it stops before Linux, photograph the final `FATX:` line.
+If it prints `FATX: table read ...` for that same 1.25 MiB table, the old
+eager-table XBE is being tested. If it stops before Linux, photograph the final
+`FATX:` line.
 
 The current stage1 also prints:
 
@@ -358,6 +360,12 @@ as the lead distro package for the next usability pass.
 
 The terminal, desktop, and complete desktop packages are separate install
 profiles because Xromwell reads the global `E:\linuxboot.cfg`.
+
+Test the `62835f4` Devuan desktop package first. It is the current baseline
+because xemu reaches X after the cached-page FATX loader. The complete package
+should be tested after the baseline passes; the latest xemu run confirms
+Xromwell passes the FATX stage but the complete root falls back to the console
+after a userspace `cat` segfault.
 
 For the complete desktop profile, right-click the desktop for the `jwm` app
 menu. The intended first-pass checks are that `dillo`, `links2`, `xfe`, `mc`,

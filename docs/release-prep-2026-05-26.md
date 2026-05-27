@@ -107,6 +107,8 @@ C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-fatx-ci-xromwel
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-fatx-lazy-chain-xromwell-20260527-021847.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-root-init-progress-final-20260527-124834.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-xromwell-1045ad9-final-20260527-130924.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\xromwell-complete-62835f4-cached-table-12s-20260527-134907.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-xromwell-62835f4-20260527-135137.png
 ```
 
 Softmod/HDD-path proofs:
@@ -116,11 +118,19 @@ C:\Users\Paul\Desktop\xbox_linux\run\screenshots\release-tinycore-network-202605
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\release-devuan-terminal-network-20260526-230426.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\release-devuan-desktop-network-20260526-230629.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-minimal-rebuilt-xromwell-1045ad9-20260527-131602.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\xromwell-62835f4-cached-table-12s-20260527-134628.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-minimal-xromwell-62835f4-20260527-134816.png
 ```
 
 These proofs reach the intended terminal or desktop and show the automatic
 network bring-up path. The emulator reports no carrier for `eth0`, as expected
 for the current xemu network setup.
+
+The `62835f4` minimal Devuan proof reaches the desktop. The `62835f4`
+complete run proves Xromwell gets past the FATX loader, but the complete root
+currently falls back to the console after a userspace `cat` segfault instead
+of reaching X; keep complete behind minimal for real-hardware testing until
+that root-init path is checked again.
 
 ## Filesystem Checks
 
@@ -184,21 +194,20 @@ and `devinit`; Linux then opens `/LINUX/DEVUAN.EXT2` from the mounted FATX
 partition. The current layout is xemu-proven by the
 `devuan-complete-fatx-ci-xromwell` screenshot above.
 
-The current softmod zips include Xromwell `1045ad9`. It keeps
-case-insensitive FATX path matching and raises the eager FATX chain-map cache
-window to 4 MiB. This specifically targets real Xbox E: partitions like the
-May 27 hardware photos that reported `spc=2 csize=1024 table=1253376`; that
-table should now be read once up front as `FATX: table read 1253376/1253376`,
-not walked lazily one cluster at a time during `/devkrnl` and `/devinit`
-loads. Lazy chain-map reads remain a fallback for much larger tables or failed
-table allocations/reads. If real hardware still stops before Linux, photograph
-the final `FATX:` line.
+The current softmod zips include Xromwell `62835f4`. It keeps
+case-insensitive FATX path matching and replaces the failed eager 1.25 MiB
+table read with a 4 KiB lazy chain-map page cache. This specifically targets
+real Xbox E: partitions like the May 27 hardware photos that reported
+`spc=2 csize=1024 table=1253376`: `5518ffc` walked the table one entry at a
+time and was slow, while `1045ad9` tried to read the whole table up front and
+stalled before printing `table read`. The expected line on that disk is now
+`FATX: cached lazy table 1253376 page=4096 ...`.
 
-The matching xemu Xromwell proof shows banner revision `1045ad9` and reaches
-both the rebuilt minimal Devuan desktop and the complete Devuan desktop. The
-xemu FATX partition also has a 1.25 MiB chain table, but xemu is still not a
-complete substitute for the real 1 KiB-cluster upgraded Xbox disk because host
-storage hides much of the per-read cost.
+If real hardware still stops before Linux, photograph the final `FATX:` line.
+The matching xemu Xromwell proofs for the prior `1045ad9` build reached both
+the rebuilt minimal Devuan desktop and the complete Devuan desktop, but xemu is
+not a complete substitute for the real 1 KiB-cluster upgraded Xbox disk because
+host storage hides much of the per-read cost.
 
 The May 27 root-init refresh also prints the target root init before
 `switch_root` and prints `XBOX_ROOT_INIT_STARTED` as the first visible line

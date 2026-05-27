@@ -357,23 +357,33 @@ C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-root-init-progr
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\xromwell-1045ad9-eager-table-12s-20260527-130735.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-xromwell-1045ad9-final-20260527-130924.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-minimal-rebuilt-xromwell-1045ad9-20260527-131602.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\xromwell-62835f4-cached-table-12s-20260527-134628.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-minimal-xromwell-62835f4-20260527-134816.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\xromwell-complete-62835f4-cached-table-12s-20260527-134907.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-xromwell-62835f4-20260527-135137.png
 ```
 
 The second proof confirms the Devuan desktop still boots after adding
 `xbox-network-up`. In xemu, `eth0` shows `NO-CARRIER`, so real hardware is the
 meaningful DHCP test.
 
-The May 27 Xromwell refresh now uses `1045ad9`, which keeps the
-case-insensitive FATX path lookup and eagerly caches medium chain maps up to
-4 MiB. This targets the real-hardware slowdown after
-`FATX: spc=2 csize=1024 table=1253376`; the expected next progress line is
-`FATX: table read 1253376/1253376 ...`, not `FATX: lazy table ...`.
+The May 27 Xromwell refresh now uses `62835f4`, which keeps the
+case-insensitive FATX path lookup and caches lazy FATX chain-map reads in
+4 KiB pages. This targets the real-hardware slowdown after
+`FATX: spc=2 csize=1024 table=1253376` without repeating the failed
+`1045ad9` whole-table read. The expected next progress line is
+`FATX: cached lazy table 1253376 page=4096 ...`.
 
 The rebuilt minimal Devuan desktop is the performance baseline again. It uses
-the same Xromwell `1045ad9`, the same stage1 initramfs, and the same 6.18.33
+the same Xromwell `62835f4`, the same stage1 initramfs, and the same 6.18.33
 FATX kernel, but the smaller 384 MiB root image and flwm desktop. The complete
 desktop remains a heavier experiment until real hardware confirms it boots and
 responds acceptably.
+
+The `62835f4` complete xemu run gets past Xromwell and into Devuan userspace,
+but currently falls back to the proof shell after a `cat` segfault instead of
+reaching X. Treat that as a complete-image userspace/root-init regression, not
+as a FATX loader failure.
 
 The follow-up root-init refresh keeps normal `switch_root`, prints the root
 init target before the handoff, prints `XBOX_ROOT_INIT_STARTED` immediately
