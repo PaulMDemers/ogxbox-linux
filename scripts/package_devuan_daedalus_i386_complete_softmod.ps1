@@ -54,7 +54,9 @@ This package keeps the large complete desktop payload inside E:\LINUX instead
 of at E:\ root. Xromwell still loads only the small root-level kernel and
 initrd files. Linux then mounts E: and loop-mounts E:\LINUX\DEVUAN.EXT2.
 This avoids stressing Xromwell's first FATX root directory lookup with an
-805 MB root-level devuan.ext2 entry.
+805 MB root-level devuan.ext2 entry. Current Xromwell builds also read very
+large FATX chain maps lazily, which is important for upgraded Xbox disks whose
+E: partition uses small clusters.
 
 Copy to the Xbox:
 
@@ -85,6 +87,9 @@ Notes:
 
   - Xromwell still reads the global E:\linuxboot.cfg, so install one Xromwell
     Linux profile at a time.
+  - The expected Xromwell banner revision for this package is 5518ffc or newer.
+    On large/small-cluster E: partitions it should print a FATX lazy table
+    progress line before loading linuxboot.cfg.
   - This is still experimental and should be tested from a backed-up softmod.
 "@ | Set-Content -LiteralPath (Join-Path $outFull 'README.txt') -Encoding ASCII
 

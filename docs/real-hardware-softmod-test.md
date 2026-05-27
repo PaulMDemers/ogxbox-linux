@@ -109,6 +109,10 @@ E:\linuxroot.ext2
 E:\debkrnl
 E:\debinit
 E:\debian.ext2
+E:\devkrnl
+E:\devinit
+E:\devuan.ext2
+E:\LINUX\DEVUAN.EXT2
 ```
 
 ## BusyBox First
@@ -311,10 +315,13 @@ contents of `E-root\` to `E:\`. This keeps the huge ext2 image out of the
 FATX root directory while keeping Xromwell's kernel/initrd loads at root,
 which is the hardware-proven path.
 
-The current complete package uses Xromwell `4b865c7`. Its FATX lookup is
-case-insensitive and the banner prints `FATX:` progress lines while opening the
-partition, reading the chain table, and finding `linuxboot.cfg`. If it stops
-before Linux, photograph the final `FATX:` line.
+The current complete package uses Xromwell `5518ffc`. Its FATX lookup is
+case-insensitive, and it lazily reads large FATX chain maps so upgraded disks
+with small E: clusters do not need a huge early allocation before loading
+`linuxboot.cfg`. If the earlier hardware stall was the `FATX: spc=2 csize=1024`
+case, the next build should show `FATX: lazy table ...` after that line and
+continue into the kernel/initrd load. If it stops before Linux, photograph the
+final `FATX:` line.
 
 Expected Devuan proof markers:
 

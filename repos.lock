@@ -23,7 +23,7 @@
       "origin": "https://github.com/PaulMDemers/cromwell.git",
       "upstream": "https://github.com/XboxDev/cromwell.git",
       "branch": "xbox-linux-fast-atapi-autoboot",
-      "head": "4b865c7"
+      "head": "5518ffc"
     },
     {
       "name": "xbox-linux-initramfs",

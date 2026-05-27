@@ -104,6 +104,7 @@ C:\Users\Paul\Desktop\xbox_linux\run\screenshots\release-devuan-complete-network
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-nested-fatx-20260527-011856.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-root-kernel-nested-payload-20260527-013706.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-fatx-ci-xromwell-20260527-015756.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-fatx-lazy-chain-xromwell-20260527-021847.png
 ```
 
 Softmod/HDD-path proofs:
@@ -114,7 +115,7 @@ C:\Users\Paul\Desktop\xbox_linux\run\screenshots\release-devuan-terminal-network
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\release-devuan-desktop-network-20260526-230629.png
 ```
 
-All seven proofs reach the intended terminal or desktop and show the automatic
+These proofs reach the intended terminal or desktop and show the automatic
 network bring-up path. The emulator reports no carrier for `eth0`, as expected
 for the current xemu network setup.
 
@@ -180,11 +181,14 @@ and `devinit`; Linux then opens `/LINUX/DEVUAN.EXT2` from the mounted FATX
 partition. The current layout is xemu-proven by the
 `devuan-complete-fatx-ci-xromwell` screenshot above.
 
-The current complete zip includes Xromwell `4b865c7`, which makes FATX path
-component matching case-insensitive and prints progress around the FATX
-partition open, chain table read, and `linuxboot.cfg` lookup. If real hardware
-still stops at `AUTOBOOT: FatX (E:)`, the next photo should show the last
-`FATX:` progress line.
+The current complete zip includes Xromwell `5518ffc`. It makes FATX path
+component matching case-insensitive, prints progress around the FATX partition
+open and `linuxboot.cfg` lookup, and lazily reads large FATX chain maps instead
+of allocating the whole table up front. This specifically targets real Xbox E:
+partitions like the May 27 hardware photo that reported `spc=2 csize=1024` and
+then stopped before the table-read message. With this build, that case should
+print a `FATX: lazy table ...` progress line and continue. If real hardware
+still stops before Linux, photograph the final `FATX:` line.
 
 The ISO profiles do not share this limitation because their `linuxboot.cfg`
 and payload live on the disc image.

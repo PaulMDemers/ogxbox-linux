@@ -352,11 +352,18 @@ C:\Users\Paul\Desktop\xbox_linux\run\screenshots\release-devuan-complete-network
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-nested-fatx-20260527-011856.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-root-kernel-nested-payload-20260527-013706.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-fatx-ci-xromwell-20260527-015756.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-fatx-lazy-chain-xromwell-20260527-021847.png
 ```
 
 The second proof confirms the Devuan desktop still boots after adding
 `xbox-network-up`. In xemu, `eth0` shows `NO-CARRIER`, so real hardware is the
 meaningful DHCP test.
+
+The May 27 complete-package refresh includes Xromwell `5518ffc`, which keeps
+the case-insensitive FATX path lookup and adds lazy FATX chain-map reads for
+large/small-cluster E: partitions. This targets the real-hardware stall after
+`FATX: spc=2 csize=1024`; the expected next progress line is
+`FATX: lazy table ...`.
 
 Expected proof banner:
 
