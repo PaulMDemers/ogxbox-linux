@@ -157,6 +157,8 @@ fi
 /bin/busybox mount --move /sys /mnt/root/sys 2>/dev/null || /bin/busybox mount -t sysfs sysfs /mnt/root/sys 2>/dev/null || true
 /bin/busybox mount --move /dev /mnt/root/dev 2>/dev/null || /bin/busybox mount -t devtmpfs devtmpfs /mnt/root/dev 2>/dev/null || true
 
+echo "Root init target:"
+ls -l "/mnt/root$ROOT_INIT" 2>/dev/null || true
 echo "Switching to distro root"
 exec /bin/busybox switch_root /mnt/root "$ROOT_INIT"
 """

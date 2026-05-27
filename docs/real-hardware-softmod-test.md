@@ -323,6 +323,24 @@ case, the next build should show `FATX: lazy table ...` after that line and
 continue into the kernel/initrd load. If it stops before Linux, photograph the
 final `FATX:` line.
 
+The current stage1 also prints:
+
+```text
+Root init target:
+Switching to distro root
+```
+
+The first expected line after the handoff is:
+
+```text
+XBOX_ROOT_INIT_STARTED
+```
+
+If real hardware pauses after `Switching to distro root`, wait a couple of
+minutes. If it never prints `XBOX_ROOT_INIT_STARTED`, the handoff itself is
+still suspect. If it does print that marker but pauses later, the next issue is
+inside Devuan userspace rather than Cromwell/FATX/stage1.
+
 Expected Devuan proof markers:
 
 ```text

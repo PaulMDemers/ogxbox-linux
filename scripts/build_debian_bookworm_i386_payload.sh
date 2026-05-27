@@ -152,14 +152,32 @@ for arg in $(cat /proc/cmdline 2>/dev/null); do
         xbox_sync_ro_smoke=1) SYNC_RO_SMOKE=1 ;;
     esac
 done
+
+echo
+echo "XBOX_ROOT_INIT_STARTED"
+echo "desktop=$DESKTOP persist_smoke=$PERSIST_SMOKE sync_ro_smoke=$SYNC_RO_SMOKE"
+echo
+if grep -q 'xbox_init_pause=1' /proc/cmdline 2>/dev/null; then
+    echo "xbox_init_pause=1: pausing before early helpers"
+    sleep 10
+fi
+echo "Starting early Xbox helpers"
 xbox-storage-tune >/tmp/xbox-storage-tune.log 2>&1 || true
+echo "storage tune: done"
 xbox-network-up --background >/tmp/xbox-network-up-launch.log 2>&1 || true
-xbox-diag >/tmp/xbox-diag.txt 2>&1 || true
+echo "network helper: backgrounded"
+( xbox-diag >/tmp/xbox-diag.txt 2>&1; echo "diag complete" >/tmp/xbox-diag.done ) &
+echo "diag helper: backgrounded"
+
 if [ "$PERSIST_SMOKE" = "1" ] && [ -x /usr/local/bin/xbox-persist-smoke ]; then
+    echo "persistence smoke: running"
     /usr/local/bin/xbox-persist-smoke >/tmp/xbox-persist-smoke.txt 2>&1 || true
+    echo "persistence smoke: done"
 fi
 if [ "$SYNC_RO_SMOKE" = "1" ] && [ -x /usr/local/bin/xbox-sync-ro ]; then
+    echo "sync-ro smoke: running"
     /usr/local/bin/xbox-sync-ro >/tmp/xbox-sync-ro.txt 2>&1 || true
+    echo "sync-ro smoke: done"
 fi
 
 echo

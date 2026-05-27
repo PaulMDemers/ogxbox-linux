@@ -105,6 +105,7 @@ C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-nested-fatx-202
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-root-kernel-nested-payload-20260527-013706.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-fatx-ci-xromwell-20260527-015756.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-fatx-lazy-chain-xromwell-20260527-021847.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-root-init-progress-final-20260527-124834.png
 ```
 
 Softmod/HDD-path proofs:
@@ -189,6 +190,11 @@ partitions like the May 27 hardware photo that reported `spc=2 csize=1024` and
 then stopped before the table-read message. With this build, that case should
 print a `FATX: lazy table ...` progress line and continue. If real hardware
 still stops before Linux, photograph the final `FATX:` line.
+
+The May 27 root-init refresh also prints the target root init before
+`switch_root` and prints `XBOX_ROOT_INIT_STARTED` as the first visible line
+inside `/xbox-init`. Early diagnostics now run in the background so a slow
+`xbox-diag` pass cannot hide the first userspace marker.
 
 The ISO profiles do not share this limitation because their `linuxboot.cfg`
 and payload live on the disc image.

@@ -353,6 +353,7 @@ C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-nested-fatx-202
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-root-kernel-nested-payload-20260527-013706.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-fatx-ci-xromwell-20260527-015756.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-fatx-lazy-chain-xromwell-20260527-021847.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-root-init-progress-final-20260527-124834.png
 ```
 
 The second proof confirms the Devuan desktop still boots after adding
@@ -364,6 +365,11 @@ the case-insensitive FATX path lookup and adds lazy FATX chain-map reads for
 large/small-cluster E: partitions. This targets the real-hardware stall after
 `FATX: spc=2 csize=1024`; the expected next progress line is
 `FATX: lazy table ...`.
+
+The follow-up root-init refresh keeps normal `switch_root`, prints the root
+init target before the handoff, prints `XBOX_ROOT_INIT_STARTED` immediately
+inside `/xbox-init`, and backgrounds `xbox-diag`. The matching no-pause xemu
+proof reaches the complete desktop.
 
 Expected proof banner:
 
