@@ -19,6 +19,7 @@ HEADER_SIZE = 0x1000
 DIRECTORY_ENTRY_SIZE = 0x40
 ROOT_CLUSTER = 1
 ATTR_ARCHIVE = 0x20
+ATTR_DIRECTORY = 0x10
 FREE_CLUSTER = 0x00000000
 END_OF_CHAIN = 0xFFFFFFFF
 
@@ -125,7 +126,11 @@ def write_cluster(fp, part: FatxPartition, cluster_id: int, data: bytes) -> None
 
 
 def root_entries(fp, part: FatxPartition) -> list[tuple[int, bytearray]]:
-    root = bytearray(read_cluster(fp, part, ROOT_CLUSTER))
+    return directory_entries(fp, part, ROOT_CLUSTER)
+
+
+def directory_entries(fp, part: FatxPartition, directory_cluster: int) -> list[tuple[int, bytearray]]:
+    root = bytearray(read_cluster(fp, part, directory_cluster))
     entries: list[tuple[int, bytearray]] = []
     for offset in range(0, len(root), DIRECTORY_ENTRY_SIZE):
         entry = root[offset : offset + DIRECTORY_ENTRY_SIZE]
@@ -154,7 +159,11 @@ def free_chain(fp, part: FatxPartition, start_cluster: int) -> None:
 
 
 def remove_root_file(fp, part: FatxPartition, name: str) -> None:
-    root = bytearray(read_cluster(fp, part, ROOT_CLUSTER))
+    remove_directory_entry(fp, part, ROOT_CLUSTER, name)
+
+
+def remove_directory_entry(fp, part: FatxPartition, directory_cluster: int, name: str) -> None:
+    root = bytearray(read_cluster(fp, part, directory_cluster))
     target = name.lower()
     for offset in range(0, len(root), DIRECTORY_ENTRY_SIZE):
         entry = root[offset : offset + DIRECTORY_ENTRY_SIZE]
@@ -166,7 +175,7 @@ def remove_root_file(fp, part: FatxPartition, name: str) -> None:
             if start_cluster:
                 free_chain(fp, part, start_cluster)
             root[offset] = 0xE5
-    write_cluster(fp, part, ROOT_CLUSTER, root)
+    write_cluster(fp, part, directory_cluster, root)
 
 
 def allocate_clusters(fp, part: FatxPartition, count: int) -> list[int]:
@@ -222,13 +231,80 @@ def find_root_slot(root: bytearray) -> int:
     raise RuntimeError("root directory is full")
 
 
-def write_root_file(fp, part: FatxPartition, name: str, data: bytes, *, contiguous: bool = False) -> FatxWriteResult:
+def split_fatx_path(path: str) -> list[str]:
+    parts = [part for part in path.replace("\\", "/").split("/") if part]
+    if not parts:
+        raise ValueError("empty FATX path")
+    for part in parts:
+        encoded = part.encode("ascii")
+        if not encoded or len(encoded) > 42:
+            raise ValueError(f"FATX filename must be 1-42 ASCII bytes: {part!r}")
+    return parts
+
+
+def find_entry(fp, part: FatxPartition, directory_cluster: int, name: str) -> bytearray | None:
+    target = name.lower()
+    for _, entry in directory_entries(fp, part, directory_cluster):
+        entry_name = decode_name(entry)
+        if entry_name and entry_name.lower() == target:
+            return entry
+    return None
+
+
+def add_directory_entry(
+    fp,
+    part: FatxPartition,
+    directory_cluster: int,
+    name: str,
+    flags: int,
+    start_cluster: int,
+    size: int,
+) -> None:
     encoded = name.encode("ascii")
-    if not encoded or len(encoded) > 42:
-        raise ValueError(f"FATX filename must be 1-42 ASCII bytes: {name!r}")
+    root = bytearray(read_cluster(fp, part, directory_cluster))
+    slot = find_root_slot(root)
+    entry = bytearray(DIRECTORY_ENTRY_SIZE)
+    entry[0] = len(encoded)
+    entry[1] = flags
+    entry[2 : 2 + len(encoded)] = encoded
+    struct.pack_into("<I", entry, 0x2C, start_cluster)
+    struct.pack_into("<I", entry, 0x30, size)
+    root[slot : slot + DIRECTORY_ENTRY_SIZE] = entry
 
-    remove_root_file(fp, part, name)
+    next_slot = slot + DIRECTORY_ENTRY_SIZE
+    if next_slot < len(root) and root[next_slot] == 0x00:
+        root[next_slot] = 0xFF
+    write_cluster(fp, part, directory_cluster, root)
 
+
+def ensure_directory(fp, part: FatxPartition, parent_cluster: int, name: str) -> int:
+    entry = find_entry(fp, part, parent_cluster, name)
+    if entry is not None:
+        if not (entry[1] & ATTR_DIRECTORY):
+            raise RuntimeError(f"{name!r} exists and is not a directory")
+        return struct.unpack_from("<I", entry, 0x2C)[0]
+
+    cluster = allocate_clusters(fp, part, 1)[0]
+    write_cluster(fp, part, cluster, b"")
+    add_directory_entry(fp, part, parent_cluster, name, ATTR_DIRECTORY, cluster, 0)
+    return cluster
+
+
+def resolve_parent_directory(fp, part: FatxPartition, path: str) -> tuple[int, str]:
+    parts = split_fatx_path(path)
+    directory_cluster = ROOT_CLUSTER
+    for name in parts[:-1]:
+        directory_cluster = ensure_directory(fp, part, directory_cluster, name)
+    return directory_cluster, parts[-1]
+
+
+def write_root_file(fp, part: FatxPartition, name: str, data: bytes, *, contiguous: bool = False) -> FatxWriteResult:
+    return write_path_file(fp, part, name, data, contiguous=contiguous)
+
+
+def write_path_file(fp, part: FatxPartition, path: str, data: bytes, *, contiguous: bool = False) -> FatxWriteResult:
+    directory_cluster, name = resolve_parent_directory(fp, part, path)
+    remove_directory_entry(fp, part, directory_cluster, name)
     cluster_count = max(1, math.ceil(len(data) / part.cluster_size))
     if contiguous:
         clusters = allocate_contiguous_clusters(fp, part, cluster_count)
@@ -238,22 +314,9 @@ def write_root_file(fp, part: FatxPartition, name: str, data: bytes, *, contiguo
         chunk = data[index * part.cluster_size : (index + 1) * part.cluster_size]
         write_cluster(fp, part, cluster_id, chunk)
 
-    root = bytearray(read_cluster(fp, part, ROOT_CLUSTER))
-    slot = find_root_slot(root)
-    entry = bytearray(DIRECTORY_ENTRY_SIZE)
-    entry[0] = len(encoded)
-    entry[1] = ATTR_ARCHIVE
-    entry[2 : 2 + len(encoded)] = encoded
-    struct.pack_into("<I", entry, 0x2C, clusters[0])
-    struct.pack_into("<I", entry, 0x30, len(data))
-    root[slot : slot + DIRECTORY_ENTRY_SIZE] = entry
-
-    next_slot = slot + DIRECTORY_ENTRY_SIZE
-    if next_slot < len(root) and root[next_slot] == 0x00:
-        root[next_slot] = 0xFF
-    write_cluster(fp, part, ROOT_CLUSTER, root)
+    add_directory_entry(fp, part, directory_cluster, name, ATTR_ARCHIVE, clusters[0], len(data))
     return FatxWriteResult(
-        name=name,
+        name=path,
         size=len(data),
         start_cluster=clusters[0],
         cluster_count=len(clusters),

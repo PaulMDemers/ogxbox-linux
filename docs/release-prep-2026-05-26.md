@@ -101,6 +101,7 @@ Complete desktop proof:
 
 ```text
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\release-devuan-complete-network-printwindow-20260526-234850.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-nested-fatx-20260527-011856.png
 ```
 
 Softmod/HDD-path proofs:
@@ -148,9 +149,31 @@ The current Xromwell HDD packages still read the global FATX file:
 E:\linuxboot.cfg
 ```
 
-That means the Devuan terminal, desktop, and complete desktop zips are separate
-install profiles, not independent simultaneously-selectable dashboard entries.
-Copy one package's `E-root\` contents to `E:\` at a time.
+That means the release zips are separate install profiles, not independent
+simultaneously-selectable dashboard entries.
+
+Tiny Core lean, Devuan terminal, and Devuan desktop copy their `E-root\`
+contents to `E:\`.
+
+The complete desktop zip is different because its ext2 image is much larger.
+It keeps the big files under the dashboard app folder:
+
+```text
+E:\Apps\XromwellDevuanDaedalusComplete\default.xbe
+E:\Apps\XromwellDevuanDaedalusComplete\devkrnl
+E:\Apps\XromwellDevuanDaedalusComplete\devinit
+E:\Apps\XromwellDevuanDaedalusComplete\devuan.ext2
+```
+
+Only its pointer config is copied to the root:
+
+```text
+E:\linuxboot.cfg
+```
+
+This avoids putting the 805 MB `devuan.ext2` as a root-level FATX file during
+Xromwell's first `AUTOBOOT: FatX (E:)` lookup. The nested layout is xemu-proven
+by the `devuan-complete-nested-fatx` screenshot above.
 
 The ISO profiles do not share this limitation because their `linuxboot.cfg`
 and payload live on the disc image.

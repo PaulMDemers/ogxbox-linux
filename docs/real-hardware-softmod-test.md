@@ -286,7 +286,8 @@ Expected Devuan complete desktop dashboard folder:
 E:\Apps\XromwellDevuanDaedalusComplete\
 ```
 
-Copy the package `E-root\` files to `E:\`:
+For Devuan terminal and minimal desktop, copy the package `E-root\` files to
+`E:\`:
 
 ```text
 E:\linuxboot.cfg
@@ -294,6 +295,19 @@ E:\devkrnl
 E:\devinit
 E:\devuan.ext2
 ```
+
+For Devuan complete desktop, use the nested package layout instead:
+
+```text
+E:\Apps\XromwellDevuanDaedalusComplete\default.xbe
+E:\Apps\XromwellDevuanDaedalusComplete\devkrnl
+E:\Apps\XromwellDevuanDaedalusComplete\devinit
+E:\Apps\XromwellDevuanDaedalusComplete\devuan.ext2
+E:\linuxboot.cfg
+```
+
+Copy `Apps\XromwellDevuanDaedalusComplete\` to `E:\Apps\`, then copy only
+`E-root\linuxboot.cfg` to `E:\`.
 
 Expected Devuan proof markers:
 
@@ -307,8 +321,7 @@ Current hardware result: boots to the desktop and feels fast/snappy. Use this
 as the lead distro package for the next usability pass.
 
 The terminal, desktop, and complete desktop packages are separate install
-profiles because Xromwell reads the global `E:\linuxboot.cfg`. Copy one
-package's `E-root\` contents to `E:\` at a time.
+profiles because Xromwell reads the global `E:\linuxboot.cfg`.
 
 For the complete desktop profile, right-click the desktop for the `jwm` app
 menu. The intended first-pass checks are that `dillo`, `links2`, `xfe`, `mc`,
