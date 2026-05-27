@@ -57,8 +57,8 @@ a7dd859 fatx: speed up HDD Linux loads
 4dcc618 fatx: coalesce file cluster reads
 ```
 
-The critical change is `5eaba1e`. Before that, Cromwell assumed a 16 KiB FATX
-cluster size:
+The first suspected change was `5eaba1e`, where Cromwell stopped assuming a
+16 KiB FATX cluster size:
 
 ```c
 partition->clusterSize = 0x4000;
@@ -66,16 +66,17 @@ partition->clusterCount = partition->partitionSize / 0x4000;
 ```
 
 After `5eaba1e`, it reads the sectors-per-cluster value from the FATX header.
-On the test Xbox, Xromwell reports:
+Re-reading the hardware screenshots shows the test Xbox is still reporting
+16 KiB clusters:
 
 ```text
-FATX: spc=2 csize=1024 clusters=313280 ent=4 table=1253376
+FATX: spc=32 csize=16384 clusters=312280 ent=4 table=1253376
 ```
 
-That is a very different access pattern: kernel reads become thousands of
-1 KiB cluster reads or chain lookups, and the chain table is 1.25 MiB. xemu is
-passing this path, but the real IDE/FATX path is hanging before the first
-coalesced 64 KiB progress marker.
+So the cluster-size math itself is probably not the current regression. The
+common hardware pain point is the 1.25 MiB FATX chain table and the first
+`/devkrnl` file read. xemu is passing this path, but the real IDE/FATX path is
+hanging before the first coalesced 64 KiB progress marker.
 
 Other changes after the good point may still matter, but they are secondary:
 
@@ -112,30 +113,62 @@ The historical Cromwell build system stamps `-dirty` into these banners after
 building generated objects inside the worktree, so use the package filenames
 and dashboard folder names as the commit identifiers.
 
+## Hardware Follow-Up
+
+The first rollback packages, `fe80736` and `16788e0`, both stopped at
+`AUTOBOOT FATX (E:)` on real hardware. Both of those Xromwell builds predate
+the case-insensitive FATX filename lookup, so that result is ambiguous: they
+may be stuck in the eager FATX table read, or they may not be finding
+`linuxboot.cfg` if the FATX directory entry case differs from the requested
+path.
+
+A third audit package was built from `fe80736` with only the case-insensitive
+lookup and a small `linuxboot.cfg` detection print added. It keeps the old
+16 KiB-cluster FATX behavior and does not include the later lazy table,
+direct-Linux, or coalesced-read changes.
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\audit\xromwell-fe80736-casefold-devuan-daedalus-i386.zip
+SHA256 30178F640FB57AABB2539995C6D4F5C6B20FF92C6D8BEDA2CA72FB86E9CC452E
+Dashboard folder: E:\Apps\XromwellDevuanDaedalusFe80736CF\
+```
+
+Expected distinguishing lines:
+
+```text
+FATX: detect linux /linuxboot.cfg
+FATX: found /linuxboot.cfg size=...
+```
+
+If this still never prints `FATX: detect linux /linuxboot.cfg`, the stall is
+inside `OpenFATXPartition`, most likely the eager chain-table read. If it does
+print `found` and then hangs during `/devkrnl`, the table read is not the only
+issue and the old loader behavior is no longer enough with the current E: file
+layout.
+
 ## Test Plan
 
-1. Test `xromwell-fe80736-devuan-daedalus-i386.zip`.
+1. Test `xromwell-fe80736-casefold-devuan-daedalus-i386.zip`.
 
-   If it boots quickly, the regression is after the original FATX autoboot
-   implementation. The likely boundary is `5eaba1e`, where the loader starts
-   honoring the 1 KiB cluster size reported by the upgraded E: partition.
+   Delete or overwrite the four root files first, then copy this package's
+   `E-root\` contents to `E:\`. If it boots quickly, the regression is after
+   the original FATX autoboot implementation plus case-insensitive lookup.
 
-2. Test `xromwell-16788e0-devuan-daedalus-i386.zip`.
+2. If the casefold package hangs before `FATX: detect linux /linuxboot.cfg`,
+   move to a lazy-table rollback package rather than further kernel/initrd
+   changes.
+
+3. If the casefold package prints `found` but hangs during `/devkrnl`, compare
+   the current E: root file copy order and fragmentation against the original
+   fast package, then instrument the first kernel file read.
+
+4. Test `xromwell-16788e0-devuan-daedalus-i386.zip` only if the casefold
+   package reaches config detection.
 
    If `fe80736` boots but `16788e0` hangs, the bug is in the cluster-size,
    chain-table, or guarded-chain path before lazy caching was added.
 
-3. If both audit packages hang, compare the installed E: root files and copy
-   order against the original fast package. At that point the old-good artifact
-   likely differed from the repo lock, or the FATX file layout/fragmentation on
-   E: changed enough that even the old reader hits a bad path.
-
-4. If both audit packages boot and only `4dcc618` hangs, bisect the later
-   reader changes: lazy chain table, direct Linux autoboot, then coalesced
-   reads.
-
 The next code fix should come after this hardware split. The probable fixes are
-either to bring back the old 16 KiB compatibility behavior for Xromwell file
-loads on upgraded FATX volumes, or to keep the correct 1 KiB header parsing but
-make real-hardware IDE reads strictly sector-sized and visibly timed around the
-first `/devkrnl` run.
+either a lazy-table rollback based closer to the fast Devuan build, or
+real-hardware IDE/FATX instrumentation around `OpenFATXPartition` and the first
+`/devkrnl` run.
