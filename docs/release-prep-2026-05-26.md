@@ -1,0 +1,115 @@
+# Release Prep 2026-05-26
+
+This checkpoint starts shaping the first public test release around three
+profiles, each with an ISO path and a softmod XBE/FATX zip path.
+
+## Release-Candidate Artifacts
+
+Tiny Core lean desktop:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\cromwell-tinycore11-stage6-xfbdev-desktop-6.18.33.iso
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-tinycore-lean.zip
+```
+
+Devuan Daedalus i386 terminal:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\cromwell-devuan-daedalus-i386-terminal.iso
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-terminal.zip
+```
+
+Devuan Daedalus i386 desktop:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\cromwell-devuan-daedalus-i386-desktop.iso
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386.zip
+```
+
+The release set should expose:
+
+- Tiny Core lean desktop
+- Devuan Daedalus i386 terminal
+- Devuan Daedalus i386 desktop
+
+All three start network bring-up automatically during boot. The boot path does
+not wait indefinitely on DHCP, so a missing cable or unavailable DHCP server
+should not block the desktop or terminal.
+
+## Network Helpers
+
+Tiny Core ships a BusyBox/Tiny-Core style helper:
+
+```text
+/usr/local/bin/xbox-network-up
+```
+
+It brings `eth0` up and runs `udhcpc` when available. The log is:
+
+```text
+/tmp/xbox-network-up.txt
+```
+
+Devuan ships the Debian-family helper at the same path. It brings `eth0` up,
+tries `ifup eth0`, then falls back to `dhclient` and `udhcpc` if needed. The
+log is also:
+
+```text
+/tmp/xbox-network-up.txt
+```
+
+Expected real-hardware success marker:
+
+```text
+XBOX_NETWORK_DHCP_OK
+```
+
+The current xemu setup exposes `eth0` but reports `NO-CARRIER`, so xemu proves
+that boot continues and the helper runs; a real Xbox is required for DHCP
+pass/fail.
+
+## xemu Proofs
+
+ISO proofs:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\release-tinycore-iso-network-20260526-231819.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\release-devuan-terminal-iso-network-20260526-231349.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\release-devuan-desktop-iso-network-20260526-231622.png
+```
+
+Softmod/HDD-path proofs:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\release-tinycore-network-20260526-230238.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\release-devuan-terminal-network-20260526-230426.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\release-devuan-desktop-network-20260526-230629.png
+```
+
+All six proofs reach the intended terminal or desktop and show the automatic
+network bring-up path. The emulator reports no carrier for `eth0`, as expected
+for the current xemu network setup.
+
+## Filesystem Checks
+
+```text
+artifacts/hdd/xbox-tinycore-payload.ext2: 42/32768 files (0.0% non-contiguous), 6005/32768 blocks
+artifacts/hdd/xbox-devuan-daedalus-i386.ext2: 9697/98304 files (0.1% non-contiguous), 52065/98304 blocks
+```
+
+Both images passed `e2fsck -fn`.
+
+## Install Caveat
+
+The current Xromwell HDD packages still read the global FATX file:
+
+```text
+E:\linuxboot.cfg
+```
+
+That means the Devuan terminal and Devuan desktop zips are separate install
+profiles, not independent simultaneously-selectable dashboard entries. Copy one
+package's `E-root\` contents to `E:\` at a time.
+
+The ISO profiles do not share this limitation because their `linuxboot.cfg`
+and payload live on the disc image.

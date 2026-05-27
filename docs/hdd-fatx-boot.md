@@ -252,6 +252,7 @@ system:
 ```text
 /usr/local/bin/xbox-aterm
 /usr/local/bin/xbox-diag
+/usr/local/bin/xbox-network-up
 /usr/local/bin/xbox-storage-tune
 ```
 
@@ -259,11 +260,21 @@ At desktop start, it writes:
 
 ```text
 /tmp/xbox-diag.txt
+/tmp/xbox-network-up.txt
 ```
 
 That diagnostic file includes framebuffer, input, mount, block-device,
-memory, read-ahead, ATA mode, and storage-related `dmesg` lines. It is intended
-for the next real-hardware pass if disk access still feels slower than expected.
+memory, network, read-ahead, ATA mode, and storage-related `dmesg` lines. It is
+intended for the next real-hardware pass if disk access still feels slower than
+expected.
+
+`xbox-network-up` starts automatically in the background before the desktop. It
+brings `eth0` up and runs DHCP through Tiny Core/BusyBox tooling when available.
+The expected real-hardware marker in `/tmp/xbox-network-up.txt` is:
+
+```text
+XBOX_NETWORK_DHCP_OK
+```
 
 The proof terminal also prints the key `/proc/meminfo` fields so a photo of the
 desktop is enough for a first RAM comparison.

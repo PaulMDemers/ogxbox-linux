@@ -293,14 +293,27 @@ Artifacts:
 
 ```text
 C:\Users\Paul\Desktop\xbox_linux\artifacts\hdd\xbox-devuan-daedalus-i386.ext2
+C:\Users\Paul\Desktop\xbox_linux\artifacts\cromwell-devuan-daedalus-i386-terminal.iso
+C:\Users\Paul\Desktop\xbox_linux\artifacts\cromwell-devuan-daedalus-i386-desktop.iso
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-terminal.zip
 C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386.zip
 ```
+
+The terminal and desktop packages use the same `devkrnl`, `devinit`, and
+`devuan.ext2` files but different `linuxboot.cfg` append lines. Because
+Xromwell reads global `E:\linuxboot.cfg`, install one package's `E-root\`
+profile at a time.
+
+The Devuan ISOs use `xbox_payload_source=iso`, so stage1 mounts the ISO itself
+and loop-mounts `devuan.ext2` from the disc image instead of from FATX.
 
 xemu proof:
 
 ```text
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-daedalus-i386-xfbdev-20260526-145241.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-dhcp-helper-20260526-225056.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\release-devuan-terminal-iso-network-20260526-231349.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\release-devuan-desktop-iso-network-20260526-231622.png
 ```
 
 The second proof confirms the Devuan desktop still boots after adding

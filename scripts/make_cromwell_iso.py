@@ -20,6 +20,7 @@ def main():
     tc_version = os.environ.get("TINYCORE_VERSION", "16.x")
     kernel_override = os.environ.get("CROMWELL_KERNEL")
     initramfs_override = os.environ.get("CROMWELL_INITRAMFS")
+    payload_override = os.environ.get("CROMWELL_PAYLOAD")
     append_extra = os.environ.get("CROMWELL_APPEND", "").strip()
     tc_root = ROOT / "downloads" / "tinycore" / tc_version / "x86"
     extra_tcz_files = []
@@ -37,6 +38,14 @@ def main():
         if not initramfs_override:
             return default
         path = Path(initramfs_override)
+        if not path.is_absolute():
+            path = ROOT / path
+        return path
+
+    def payload(default):
+        if not payload_override:
+            return default
+        path = Path(payload_override)
         if not path.is_absolute():
             path = ROOT / path
         return path
@@ -161,6 +170,28 @@ def main():
             "kernel vmlinuz\n"
             "initrd initramf\n"
             "append init=/init noswitchroot debug\n"
+        )
+    elif mode == "devuan-daedalus-i386-terminal":
+        files = {
+            "DEVKRNL": kernel(ROOT / "artifacts" / "kernels" / "xbox-linux-6.18.33-fatx-tinycore-bzImage"),
+            "DEVINIT": initramfs(ROOT / "artifacts" / "initramfs" / "xbox-distro-hdd-ext2-stage1.cpio"),
+            "DEVUAN.EXT2": payload(ROOT / "artifacts" / "hdd" / "xbox-devuan-daedalus-i386.ext2"),
+        }
+        cfg_text = (
+            "kernel devkrnl\n"
+            "initrd devinit\n"
+            + append_line("init=/init noswitchroot debug console=tty0 ignore_loglevel loglevel=7 xbox_payload_source=iso xbox_payload_file=/devuan.ext2 xbox_root_init=/xbox-init xbox_x_mouse=0")
+        )
+    elif mode == "devuan-daedalus-i386-desktop":
+        files = {
+            "DEVKRNL": kernel(ROOT / "artifacts" / "kernels" / "xbox-linux-6.18.33-fatx-tinycore-bzImage"),
+            "DEVINIT": initramfs(ROOT / "artifacts" / "initramfs" / "xbox-distro-hdd-ext2-stage1.cpio"),
+            "DEVUAN.EXT2": payload(ROOT / "artifacts" / "hdd" / "xbox-devuan-daedalus-i386.ext2"),
+        }
+        cfg_text = (
+            "kernel devkrnl\n"
+            "initrd devinit\n"
+            + append_line("init=/init noswitchroot debug console=tty0 ignore_loglevel loglevel=7 xbox_payload_source=iso xbox_payload_file=/devuan.ext2 xbox_root_init=/xbox-init xbox_desktop=1 xbox_x_mouse=0")
         )
     elif mode == "busybox-stage2-noxpad":
         files = {

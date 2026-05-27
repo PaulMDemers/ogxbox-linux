@@ -24,11 +24,14 @@ FATX_MODE=ro
 ROOT_MODE=ro
 E_PARTITION_OFFSET=2884108288
 CHROOT_PROOF=0
+PAYLOAD_SOURCE=fatx
 
 for arg in $(cat /proc/cmdline 2>/dev/null); do
     case "$arg" in
         xbox_payload_file=*) PAYLOAD_FILE="${arg#xbox_payload_file=}" ;;
         xbox_payload_disk=*) PAYLOAD_DISK="${arg#xbox_payload_disk=}" ;;
+        xbox_payload_source=iso) PAYLOAD_SOURCE=iso ;;
+        xbox_payload_source=fatx) PAYLOAD_SOURCE=fatx ;;
         xbox_root_init=*) ROOT_INIT="${arg#xbox_root_init=}" ;;
         xbox_root_fstype=*) ROOT_FSTYPE="${arg#xbox_root_fstype=}" ;;
         xbox_fatx_mode=rw) FATX_MODE=rw ;;
@@ -45,20 +48,37 @@ echo "*** Xbox distro stage1 FATX/ext2 loader ***"
 echo "cmdline: $(cat /proc/cmdline 2>/dev/null)"
 echo "payload: $PAYLOAD_FILE"
 echo "root init: $ROOT_INIT"
+echo "payload source: $PAYLOAD_SOURCE"
 echo "fatx mode: $FATX_MODE"
 echo "root mode: $ROOT_MODE"
 echo
 
-if [ -z "$PAYLOAD_DISK" ]; then
-    for dev in /dev/hda /dev/sda /dev/vda /dev/xvda; do
-        if [ -b "$dev" ]; then
-            PAYLOAD_DISK="$dev"
-            break
-        fi
-    done
+if [ "$PAYLOAD_SOURCE" = "iso" ]; then
+    if [ -z "$PAYLOAD_DISK" ]; then
+        for dev in /dev/hdb /dev/hdc /dev/sr0 /dev/cdrom /dev/dvd; do
+            if [ -b "$dev" ] || [ -e "$dev" ]; then
+                PAYLOAD_DISK="$dev"
+                break
+            fi
+        done
+    fi
+else
+    if [ -z "$PAYLOAD_DISK" ]; then
+        for dev in /dev/hda /dev/sda /dev/vda /dev/xvda; do
+            if [ -b "$dev" ]; then
+                PAYLOAD_DISK="$dev"
+                break
+            fi
+        done
+    fi
 fi
+
 if [ -z "$PAYLOAD_DISK" ]; then
-    PAYLOAD_DISK=/dev/hda
+    if [ "$PAYLOAD_SOURCE" = "iso" ]; then
+        PAYLOAD_DISK=/dev/hdb
+    else
+        PAYLOAD_DISK=/dev/hda
+    fi
 fi
 
 for i in 0 1; do
@@ -71,24 +91,40 @@ for i in 1 2 3 4 5; do
     /bin/busybox sleep 1
 done
 
-echo "Mounting Xbox E FATX from $PAYLOAD_DISK at offset $E_PARTITION_OFFSET"
-if ! /bin/busybox losetup -o "$E_PARTITION_OFFSET" /dev/loop0 "$PAYLOAD_DISK" 2>/tmp/fatx-losetup.err; then
-    echo "FATX losetup failed:"
-    cat /tmp/fatx-losetup.err 2>/dev/null || true
-    exec setsid cttyhack sh
+if [ "$PAYLOAD_SOURCE" = "iso" ]; then
+    echo "Mounting ISO payload source from $PAYLOAD_DISK"
+    if ! /bin/busybox mount -t iso9660 -o ro "$PAYLOAD_DISK" /mnt/xboxe 2>/tmp/iso-mount.err; then
+        echo "ISO mount failed:"
+        cat /tmp/iso-mount.err 2>/dev/null || true
+        exec setsid cttyhack sh
+    fi
+else
+    echo "Mounting Xbox E FATX from $PAYLOAD_DISK at offset $E_PARTITION_OFFSET"
+    if ! /bin/busybox losetup -o "$E_PARTITION_OFFSET" /dev/loop0 "$PAYLOAD_DISK" 2>/tmp/fatx-losetup.err; then
+        echo "FATX losetup failed:"
+        cat /tmp/fatx-losetup.err 2>/dev/null || true
+        exec setsid cttyhack sh
+    fi
+
+    if ! /bin/busybox mount -t fatx -o "$FATX_MODE" /dev/loop0 /mnt/xboxe 2>/tmp/fatx-mount.err; then
+        echo "FATX mount failed:"
+        cat /tmp/fatx-mount.err 2>/dev/null || true
+        exec setsid cttyhack sh
+    fi
 fi
 
-if ! /bin/busybox mount -t fatx -o "$FATX_MODE" /dev/loop0 /mnt/xboxe 2>/tmp/fatx-mount.err; then
-    echo "FATX mount failed:"
-    cat /tmp/fatx-mount.err 2>/dev/null || true
-    exec setsid cttyhack sh
-fi
-
-echo "E root:"
+echo "payload source root:"
 ls -la /mnt/xboxe 2>/dev/null || true
 
-if ! /bin/busybox losetup /dev/loop1 "/mnt/xboxe$PAYLOAD_FILE" 2>/tmp/root-losetup.err; then
+ROOT_IMAGE="/mnt/xboxe$PAYLOAD_FILE"
+if [ ! -f "$ROOT_IMAGE" ]; then
+    upper="$(echo "$PAYLOAD_FILE" | tr 'a-z' 'A-Z')"
+    [ -f "/mnt/xboxe$upper" ] && ROOT_IMAGE="/mnt/xboxe$upper"
+fi
+
+if ! /bin/busybox losetup /dev/loop1 "$ROOT_IMAGE" 2>/tmp/root-losetup.err; then
     echo "Root image losetup failed:"
+    echo "tried: $ROOT_IMAGE"
     cat /tmp/root-losetup.err 2>/dev/null || true
     exec setsid cttyhack sh
 fi

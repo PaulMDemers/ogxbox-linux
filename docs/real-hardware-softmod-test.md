@@ -22,6 +22,18 @@ Tiny Core FATX desktop test with the 64 MB tuned kernel:
 C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-tinycore-lean.zip
 ```
 
+Devuan Daedalus i386 terminal test:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-terminal.zip
+```
+
+Devuan Daedalus i386 desktop test:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386.zip
+```
+
 ## Current Hardware Result
 
 Tested on a softmodded Xbox on May 25, 2026:
@@ -79,6 +91,8 @@ C:\Users\Paul\Desktop\xbox_linux\docs\release-sweep-2026-05-26.md
 - Devuan Daedalus desktop package: run `xbox-network-up --wait`, test `ping`,
   `wget`, and `apt`, then run `xbox-perf` and compare memory and disk timing
   against Debian and Tiny Core.
+- Tiny Core lean, Devuan terminal, and Devuan desktop now all start network
+  bring-up automatically during boot. Check `/tmp/xbox-network-up.txt`.
 - Forced-HDTV 480p Debian package: shelved. It went black on the HDMI adapter,
   although drive activity suggested boot continued. Keep the normal
   AV/composite package as the active test route.
@@ -260,6 +274,12 @@ Expected Devuan dashboard folder:
 E:\Apps\XromwellDevuanDaedalus\
 ```
 
+Expected Devuan terminal dashboard folder:
+
+```text
+E:\Apps\XromwellDevuanDaedalusTerminal\
+```
+
 Copy the package `E-root\` files to `E:\`:
 
 ```text
@@ -278,6 +298,10 @@ XBOX_DEVUAN_X_DESKTOP_OK
 
 Current hardware result: boots to the desktop and feels fast/snappy. Use this
 as the lead distro package for the next usability pass.
+
+The terminal and desktop packages are separate install profiles because
+Xromwell reads the global `E:\linuxboot.cfg`. Copy one package's `E-root\`
+contents to `E:\` at a time.
 
 Network test commands:
 

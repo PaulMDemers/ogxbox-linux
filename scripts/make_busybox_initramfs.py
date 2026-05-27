@@ -518,6 +518,15 @@ echo
 echo "== block devices =="
 cat /proc/partitions 2>/dev/null || true
 echo
+echo "== network =="
+ifconfig -a 2>/dev/null || true
+echo
+route -n 2>/dev/null || true
+echo
+[ -r /etc/resolv.conf ] && cat /etc/resolv.conf
+echo
+[ -s /tmp/xbox-network-up.txt ] && cat /tmp/xbox-network-up.txt
+echo
 echo "== read ahead =="
 for q in /sys/block/hd*/queue/read_ahead_kb /sys/block/sd*/queue/read_ahead_kb /sys/block/loop*/queue/read_ahead_kb; do
     [ -r "$q" ] && echo "$q=$(cat "$q")"
@@ -530,6 +539,74 @@ done
 echo
 echo "== storage dmesg =="
 dmesg | grep -Ei 'FATX|loop|ata|pata|ide|dma|udma|pio|hda|sda|xbox' | tail -80
+EOX
+
+cat > /usr/local/bin/xbox-network-up <<'EOX'
+#!/bin/sh
+export PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin
+LOG=/tmp/xbox-network-up.txt
+
+if [ "${1:-}" = "--background" ]; then
+    "$0" --foreground >"$LOG" 2>&1 &
+    exit 0
+fi
+
+echo "== xbox tinycore network up =="
+date 2>/dev/null || true
+echo
+
+if ! ifconfig eth0 >/dev/null 2>&1; then
+    echo "XBOX_NETWORK_NO_ETH0"
+    ifconfig -a 2>/dev/null || true
+    exit 1
+fi
+
+echo "link before:"
+ifconfig eth0 2>/dev/null || true
+echo
+
+ifconfig eth0 up 2>/dev/null || true
+
+if ifconfig eth0 2>/dev/null | grep -q 'inet addr:'; then
+    echo "XBOX_NETWORK_ALREADY_CONFIGURED"
+else
+    if command -v udhcpc >/dev/null 2>&1; then
+        echo "running udhcpc eth0"
+        udhcpc -i eth0 -n -q -T 4 -t 5 2>/tmp/xbox-udhcpc.err || {
+            status=$?
+            echo "udhcpc status=$status"
+            [ -s /tmp/xbox-udhcpc.err ] && sed -n '1,60p' /tmp/xbox-udhcpc.err
+        }
+    elif command -v pump >/dev/null 2>&1; then
+        echo "running pump eth0"
+        pump -i eth0 2>/tmp/xbox-pump.err || {
+            status=$?
+            echo "pump status=$status"
+            [ -s /tmp/xbox-pump.err ] && sed -n '1,60p' /tmp/xbox-pump.err
+        }
+    else
+        echo "XBOX_NETWORK_NO_DHCP_CLIENT"
+    fi
+fi
+
+echo
+echo "link after:"
+ifconfig eth0 2>/dev/null || true
+echo
+echo "routes:"
+route -n 2>/dev/null || true
+echo
+echo "resolver:"
+[ -r /etc/resolv.conf ] && cat /etc/resolv.conf || true
+echo
+
+if ifconfig eth0 2>/dev/null | grep -q 'inet addr:'; then
+    echo "XBOX_NETWORK_DHCP_OK"
+    exit 0
+fi
+
+echo "XBOX_NETWORK_DHCP_FAILED"
+exit 1
 EOX
 
 cat > /usr/local/bin/xbox-aterm <<'EOX'
@@ -548,9 +625,9 @@ cat > /usr/local/bin/xbox-proof-aterm <<'EOX'
 export PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin
 export LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/lib
 xbox-diag >/tmp/xbox-diag.txt 2>&1 || true
-exec aterm -fn fixed -fg white -bg black -geometry 78x26+20+20 -title "Xbox Tiny Core" -e /bin/sh -c "echo XBOX_TINYCORE_NORMAL_DESKTOP_OK; uname -a; echo; echo memory:; grep -E 'MemTotal|MemFree|MemAvailable|Buffers|Cached|SwapTotal|SwapFree' /proc/meminfo 2>/dev/null; echo; echo framebuffer:; cat /sys/class/graphics/fb0/name /sys/class/graphics/fb0/virtual_size /sys/class/graphics/fb0/bits_per_pixel 2>/dev/null; echo; echo input:; grep -E 'Name|Handlers' /proc/bus/input/devices 2>/dev/null; echo; echo diag: /tmp/xbox-diag.txt; sleep 100000"
+exec aterm -fn fixed -fg white -bg black -geometry 78x26+20+20 -title "Xbox Tiny Core" -e /bin/sh -c "echo XBOX_TINYCORE_NORMAL_DESKTOP_OK; uname -a; echo; echo memory:; grep -E 'MemTotal|MemFree|MemAvailable|Buffers|Cached|SwapTotal|SwapFree' /proc/meminfo 2>/dev/null; echo; echo network:; ifconfig eth0 2>/dev/null || true; grep -E 'XBOX_NETWORK_(DHCP_OK|DHCP_FAILED|NO_ETH0|NO_DHCP_CLIENT)' /tmp/xbox-network-up.txt 2>/dev/null || true; echo; echo framebuffer:; cat /sys/class/graphics/fb0/name /sys/class/graphics/fb0/virtual_size /sys/class/graphics/fb0/bits_per_pixel 2>/dev/null; echo; echo input:; grep -E 'Name|Handlers' /proc/bus/input/devices 2>/dev/null; echo; echo diag: /tmp/xbox-diag.txt; echo network log: /tmp/xbox-network-up.txt; sleep 100000"
 EOX
-chmod 755 /usr/local/bin/xbox-storage-tune /usr/local/bin/xbox-diag /usr/local/bin/xbox-aterm /usr/local/bin/xbox-proof-aterm
+chmod 755 /usr/local/bin/xbox-storage-tune /usr/local/bin/xbox-diag /usr/local/bin/xbox-network-up /usr/local/bin/xbox-aterm /usr/local/bin/xbox-proof-aterm
 
 if ! grep -q '^tc:' /etc/passwd 2>/dev/null; then
     adduser -s /bin/sh -G staff -D tc 2>/tmp/adduser.log || cat /tmp/adduser.log
@@ -597,6 +674,7 @@ if [ -e /home/tc/.wbar ]; then
     sed -i 's#^c: .*aterm.*#c: exec xbox-aterm#' /home/tc/.wbar 2>/dev/null || true
 fi
 xbox-storage-tune >/tmp/xbox-storage-tune.log 2>&1 || true
+xbox-network-up --background >/tmp/xbox-network-up-launch.log 2>&1 || true
 
 echo "Starting Tiny Core startx with tc home"
 startx >/tmp/startx.log 2>&1 || {
