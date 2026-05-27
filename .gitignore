@@ -4,6 +4,7 @@
 /downloads/
 /initramfs-smoke/
 /upstream/
+/worktrees/
 
 # External source checkouts live in their own repos.
 /sources/
