@@ -58,6 +58,12 @@ The May 25 refresh adds:
 
 Verify these on real hardware when the Xbox is available:
 
+- Release sweep package set from May 26, 2026. See:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\docs\release-sweep-2026-05-26.md
+```
+
 - RW shell smoke package on AV/composite: first boot writes both marker files,
   reports `XBOX_ROOT_REMOUNT_RO_OK`, and second boot reports both files present.
 - Forced-HDTV 480p Debian package on the HDMI adapter: Xromwell banner is
