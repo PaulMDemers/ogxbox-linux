@@ -351,6 +351,7 @@ C:\Users\Paul\Desktop\xbox_linux\run\screenshots\release-devuan-desktop-iso-netw
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\release-devuan-complete-network-printwindow-20260526-234850.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-nested-fatx-20260527-011856.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-root-kernel-nested-payload-20260527-013706.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-fatx-ci-xromwell-20260527-015756.png
 ```
 
 The second proof confirms the Devuan desktop still boots after adding

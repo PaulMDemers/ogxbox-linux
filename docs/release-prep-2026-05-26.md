@@ -103,6 +103,7 @@ Complete desktop proof:
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\release-devuan-complete-network-printwindow-20260526-234850.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-nested-fatx-20260527-011856.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-root-kernel-nested-payload-20260527-013706.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-fatx-ci-xromwell-20260527-015756.png
 ```
 
 Softmod/HDD-path proofs:
@@ -177,7 +178,13 @@ Xromwell's first `AUTOBOOT: FatX (E:)` lookup, while also avoiding nested
 kernel/initrd loads in Xromwell. Xromwell loads the small root-level `devkrnl`
 and `devinit`; Linux then opens `/LINUX/DEVUAN.EXT2` from the mounted FATX
 partition. The current layout is xemu-proven by the
-`devuan-complete-root-kernel-nested-payload` screenshot above.
+`devuan-complete-fatx-ci-xromwell` screenshot above.
+
+The current complete zip includes Xromwell `4b865c7`, which makes FATX path
+component matching case-insensitive and prints progress around the FATX
+partition open, chain table read, and `linuxboot.cfg` lookup. If real hardware
+still stops at `AUTOBOOT: FatX (E:)`, the next photo should show the last
+`FATX:` progress line.
 
 The ISO profiles do not share this limitation because their `linuxboot.cfg`
 and payload live on the disc image.

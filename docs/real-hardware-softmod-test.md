@@ -311,6 +311,11 @@ contents of `E-root\` to `E:\`. This keeps the huge ext2 image out of the
 FATX root directory while keeping Xromwell's kernel/initrd loads at root,
 which is the hardware-proven path.
 
+The current complete package uses Xromwell `4b865c7`. Its FATX lookup is
+case-insensitive and the banner prints `FATX:` progress lines while opening the
+partition, reading the chain table, and finding `linuxboot.cfg`. If it stops
+before Linux, photograph the final `FATX:` line.
+
 Expected Devuan proof markers:
 
 ```text
