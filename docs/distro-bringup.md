@@ -104,6 +104,11 @@ checks. It also updates the Xfbdev boot text: `xbox_x_mouse=0` disables only the
 explicit `-mouse /dev/input/mice,5` argument, and the default pointer path may
 still work on real hardware.
 
+May 26 hardware comparison: Debian can reach the desktop, but Devuan Daedalus
+feels much faster on the same real Xbox. Keep Debian as the known Debian-family
+baseline and use Devuan as the primary usability target unless a later test
+shows a regression.
+
 Working checkpoint:
 
 ```text
@@ -262,6 +267,10 @@ FATX/ext2 path to the minimal Xfbdev/flwm/aterm desktop. The first build uses
 the Debian Bookworm image composer as a base, but bootstraps `daedalus` from
 Devuan's merged repository and rewrites the root identity and apt sources.
 
+Real hardware result from May 26, 2026: Devuan Daedalus i386 boots to the
+desktop on the softmodded Xbox and feels very fast. This is the current
+front-runner for the minimal Debian-family desktop.
+
 Build:
 
 ```powershell
@@ -288,6 +297,15 @@ Expected proof banner:
 XBOX_DEVUAN_DAEDALUS_I386_ROOT_OK
 XBOX_DEVUAN_X_DESKTOP_OK
 ```
+
+Next Devuan tasks:
+
+- Run `xbox-perf` on real hardware and compare against Debian and Tiny Core.
+- Confirm `ping`, `wget`, `apt`, and CA certificates in the live desktop.
+- Build a Devuan rw shell smoke or persistence package using the same safe
+  `xbox-sync-ro` flow that passed under Debian.
+- Consider moving the next memory and disk optimization pass to Devuan first,
+  then backport only the useful parts to Debian.
 
 The generated ext2 image passed `e2fsck -fn`:
 

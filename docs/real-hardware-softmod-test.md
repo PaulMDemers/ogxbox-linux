@@ -43,6 +43,16 @@ Tested on a softmodded Xbox on May 25, 2026:
   hardware with Xromwell `16788e0`. The proof terminal opens, and `xterm`
   launches a terminal through the `aterm` compatibility wrapper.
 
+Additional hardware results from May 26, 2026:
+
+- Devuan Daedalus i386 boots to the desktop on real softmodded Xbox hardware
+  and feels fast. This is now the preferred distro path for the next round of
+  usability and persistence work.
+- The forced-HDTV 480p Debian package did not produce video through the HDMI
+  adapter. The screen went black, while drive activity suggested the system may
+  have continued booting. Shelve the HDTV path for now and keep AV/composite as
+  the reliable hardware test path.
+
 The May 25 refresh adds:
 
 - a FATX contiguous-file read fast path in the 6.18 kernel for the `linuxroot.ext2` loop image
@@ -66,12 +76,11 @@ C:\Users\Paul\Desktop\xbox_linux\docs\release-sweep-2026-05-26.md
 
 - RW shell smoke package on AV/composite: first boot writes both marker files,
   reports `XBOX_ROOT_REMOUNT_RO_OK`, and second boot reports both files present.
-- Forced-HDTV 480p Debian package on the HDMI adapter: Xromwell banner is
-  visible, reports Cromwell `e719de4`, and shows cable `HDTV`.
-- Forced-HDTV 480p package fallback behavior: keep the normal AV/composite
-  package available because the forced-HDTV build may be blank on composite.
-- Debian desktop usability after the video test: confirm whether the same
-  terminal, mouse, and slow disk behavior appear under HDMI/HDTV 480p.
+- Devuan Daedalus desktop package: run `xbox-perf`, test `ping`, `wget`, and
+  `apt`, then compare memory and disk timing against Debian and Tiny Core.
+- Forced-HDTV 480p Debian package: shelved. It went black on the HDMI adapter,
+  although drive activity suggested boot continued. Keep the normal
+  AV/composite package as the active test route.
 
 ## Backup First
 
@@ -229,8 +238,10 @@ Devuan Daedalus i386 desktop test:
 C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386.zip
 ```
 
-Use the HDTV 480p package only as a separate dashboard app. It may be blank on
-composite/AV cables because it forces Cromwell into the HDTV output path.
+Use the HDTV 480p package only as a separate dashboard app. It went black on
+the tested HDMI adapter, although drive activity suggested boot continued. It
+may also be blank on composite/AV cables because it forces Cromwell into the
+HDTV output path.
 Expected dashboard folder:
 
 ```text
@@ -238,6 +249,9 @@ E:\Apps\XromwellDebianBookwormHdtv480p\
 ```
 
 The Xromwell banner should show Cromwell `e719de4` and cable `HDTV`.
+
+Current hardware result: black screen through the HDMI adapter. Shelved until
+we can revisit Cromwell encoder/timing diagnostics.
 
 Expected Devuan dashboard folder:
 
@@ -260,6 +274,9 @@ Expected Devuan proof markers:
 XBOX_DEVUAN_DAEDALUS_I386_ROOT_OK
 XBOX_DEVUAN_X_DESKTOP_OK
 ```
+
+Current hardware result: boots to the desktop and feels fast/snappy. Use this
+as the lead distro package for the next usability pass.
 
 Use the shell-only package first for real-hardware rw validation. It writes the
 persistence marker and normal-use file, runs `xbox-sync-ro`, and should report

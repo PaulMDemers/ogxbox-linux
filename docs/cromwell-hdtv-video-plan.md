@@ -110,6 +110,22 @@ C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-hdtv480p-xemu-20260526-1
 Real hardware test expectation: the Xromwell banner should report Cromwell
 revision `e719de4` and the cable should display as `HDTV`.
 
+## Hardware Result / Shelved
+
+May 26, 2026 hardware result: the forced-HDTV 480p Debian package went black
+through the HDMI adapter. Drive activity suggested the system may have
+continued booting, so the failure appears to be in early video output or video
+handoff rather than necessarily in Linux boot.
+
+Forcing `AV_HDTV` with the existing 480p path was not enough for this adapter
+and TV path. Future work should start with better diagnostics before moving to
+720p or 1080i: capture the real encoder type/revision, confirm behavior with a
+known component cable if available, and log the selected encoder mode and
+timing values in Cromwell.
+
+Shelve this path for now. AV/composite remains the reliable real-hardware test
+route.
+
 ## Later 720p / 1080i Work
 
 Real 720p or 1080i support needs more than changing the enum. We need:
@@ -132,13 +148,17 @@ default-hdtv1080i.xbe    later, after GPU timing work
 
 ## Proposed Order
 
-1. Add a compile-time Cromwell flag that overrides AV-pack detection to
-   `AV_HDTV`.
-2. Build and package an `hdtv480p` XBE using the same FATX autoboot patches.
-3. Test the `hdtv480p` XBE on xemu to make sure it still loads Linux.
-4. Test on real hardware with the HDMI adapter.
-5. If 480p works, keep it as the broad TV compatibility path.
-6. Only then add 720p/1080i timing work, starting with Conexant/Focus and
+1. Completed: add a compile-time Cromwell flag that overrides AV-pack
+   detection to `AV_HDTV`.
+2. Completed: build and package an `hdtv480p` XBE using the same FATX autoboot
+   patches.
+3. Completed: test the `hdtv480p` XBE on xemu to make sure it still loads
+   Linux.
+4. Completed: test on real hardware with the HDMI adapter. Result: black
+   screen, likely continuing boot activity.
+5. Deferred: add better Cromwell video diagnostics before attempting another
+   HDMI/component-focused build.
+6. Deferred: add 720p/1080i timing work, starting with Conexant/Focus and
    treating Xcalibur separately.
 
 ## Risk
