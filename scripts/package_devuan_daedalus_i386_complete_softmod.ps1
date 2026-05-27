@@ -87,10 +87,12 @@ Notes:
 
   - Xromwell still reads the global E:\linuxboot.cfg, so install one Xromwell
     Linux profile at a time.
-  - The expected Xromwell banner revision for this package is 62835f4 or newer.
+  - The expected Xromwell banner revision for this package is 3fa5e65 or newer.
     On the known 1 KiB-cluster hardware E: partition it should print
     "FATX: cached lazy table 1253376 page=4096 ..." rather than
     "FATX: table read 1253376/1253376 ...".
+    It should then print "FATX: parsed linuxboot.cfg",
+    "AUTOBOOT: selected Linux", and "FATX: loading kernel /devkrnl".
   - This is still experimental and should be tested from a backed-up softmod.
 "@ | Set-Content -LiteralPath (Join-Path $outFull 'README.txt') -Encoding ASCII
 

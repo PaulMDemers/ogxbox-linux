@@ -361,21 +361,28 @@ C:\Users\Paul\Desktop\xbox_linux\run\screenshots\xromwell-62835f4-cached-table-1
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-minimal-xromwell-62835f4-20260527-134816.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\xromwell-complete-62835f4-cached-table-12s-20260527-134907.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-xromwell-62835f4-20260527-135137.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\xromwell-linux-only-autoboot-dirty-15s-20260527-141740.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-minimal-linux-only-autoboot-dirty-20260527-141926.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\xromwell-3fa5e65-linux-only-autoboot-15s-20260527-142310.png
 ```
 
 The second proof confirms the Devuan desktop still boots after adding
 `xbox-network-up`. In xemu, `eth0` shows `NO-CARRIER`, so real hardware is the
 meaningful DHCP test.
 
-The May 27 Xromwell refresh now uses `62835f4`, which keeps the
+The May 27 Xromwell refresh now uses `3fa5e65`, which keeps the
 case-insensitive FATX path lookup and caches lazy FATX chain-map reads in
 4 KiB pages. This targets the real-hardware slowdown after
 `FATX: spc=2 csize=1024 table=1253376` without repeating the failed
 `1045ad9` whole-table read. The expected next progress line is
-`FATX: cached lazy table 1253376 page=4096 ...`.
+`FATX: cached lazy table 1253376 page=4096 ...`. After
+`linuxboot.cfg` is found, this Xromwell build now returns the Linux config
+immediately instead of probing ReactOS first; the expected follow-up markers
+are `FATX: parsed linuxboot.cfg`, `AUTOBOOT: selected Linux`,
+`FATX: boot open E`, and `FATX: loading kernel /devkrnl`.
 
 The rebuilt minimal Devuan desktop is the performance baseline again. It uses
-the same Xromwell `62835f4`, the same stage1 initramfs, and the same 6.18.33
+the same Xromwell `3fa5e65`, the same stage1 initramfs, and the same 6.18.33
 FATX kernel, but the smaller 384 MiB root image and flwm desktop. The complete
 desktop remains a heavier experiment until real hardware confirms it boots and
 responds acceptably.

@@ -120,17 +120,23 @@ C:\Users\Paul\Desktop\xbox_linux\run\screenshots\release-devuan-desktop-network-
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-minimal-rebuilt-xromwell-1045ad9-20260527-131602.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\xromwell-62835f4-cached-table-12s-20260527-134628.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-minimal-xromwell-62835f4-20260527-134816.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\xromwell-linux-only-autoboot-dirty-15s-20260527-141740.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-minimal-linux-only-autoboot-dirty-20260527-141926.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\xromwell-3fa5e65-linux-only-autoboot-15s-20260527-142310.png
 ```
 
 These proofs reach the intended terminal or desktop and show the automatic
 network bring-up path. The emulator reports no carrier for `eth0`, as expected
 for the current xemu network setup.
 
-The `62835f4` minimal Devuan proof reaches the desktop. The `62835f4`
-complete run proves Xromwell gets past the FATX loader, but the complete root
-currently falls back to the console after a userspace `cat` segfault instead
-of reaching X; keep complete behind minimal for real-hardware testing until
-that root-init path is checked again.
+The `3fa5e65` Linux-only autoboot proof reaches the desktop and shows the new
+checkpoint sequence after `linuxboot.cfg`: `FATX: parsed linuxboot.cfg`,
+`AUTOBOOT: selected Linux`, `FATX: boot open E`, and
+`FATX: loading kernel /devkrnl`. The `62835f4` complete run proves Xromwell
+gets past the FATX loader, but the complete root currently falls back to the
+console after a userspace `cat` segfault instead of reaching X; keep complete
+behind minimal for real-hardware testing until that root-init path is checked
+again.
 
 ## Filesystem Checks
 
@@ -194,14 +200,16 @@ and `devinit`; Linux then opens `/LINUX/DEVUAN.EXT2` from the mounted FATX
 partition. The current layout is xemu-proven by the
 `devuan-complete-fatx-ci-xromwell` screenshot above.
 
-The current softmod zips include Xromwell `62835f4`. It keeps
+The current softmod zips include Xromwell `3fa5e65`. It keeps
 case-insensitive FATX path matching and replaces the failed eager 1.25 MiB
 table read with a 4 KiB lazy chain-map page cache. This specifically targets
 real Xbox E: partitions like the May 27 hardware photos that reported
 `spc=2 csize=1024 table=1253376`: `5518ffc` walked the table one entry at a
 time and was slow, while `1045ad9` tried to read the whole table up front and
 stalled before printing `table read`. The expected line on that disk is now
-`FATX: cached lazy table 1253376 page=4096 ...`.
+`FATX: cached lazy table 1253376 page=4096 ...`. After `linuxboot.cfg` is
+found, `3fa5e65` also skips the ReactOS FATX probe and goes straight to the
+Linux loader.
 
 If real hardware still stops before Linux, photograph the final `FATX:` line.
 The matching xemu Xromwell proofs for the prior `1045ad9` build reached both
