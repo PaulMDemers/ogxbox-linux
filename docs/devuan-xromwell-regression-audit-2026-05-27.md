@@ -171,13 +171,37 @@ the call may be hanging before or during the first FATX header sector read and
 the next target is `BootFromDevice`/IDE instrumentation before
 `OpenFATXPartition`.
 
+Hardware result: this lazy-table package reached
+`FATX: detect linux /linuxboot.cfg`, then printed `[0]` and corrupted the video
+into vertical bars. That points to the old `FATXRawRead` unaligned-read path.
+The old code read a full 512-byte sector into the caller's small buffer instead
+of a local 512-byte bounce buffer; the lazy single-entry FAT reads pass a
+4-byte stack buffer, so this can overwrite nearby state. It also copied from
+the wrong buffer afterward.
+
+A raw-read fix package was built with the lazy table change plus:
+
+- fixed unaligned `FATXRawRead` to read into the local sector bounce buffer;
+- advanced sectors by the actual number read;
+- capped aligned reads to 16 KiB like later known-working code;
+- stopped file loads once the requested file size is satisfied, so a tiny
+  `linuxboot.cfg` does not request another cluster after completion;
+- moved progress prints after successful reads, so `[0]` should no longer be
+  the last marker.
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\audit\xromwell-fe80736-lazytable-rawfix-devuan-daedalus-i386.zip
+SHA256 6C8AE561439FD209312DE44B23E339B6B55966A1F5021D8BDDB993179C7E937E
+Dashboard folder: E:\Apps\XromwellDevuanDaedalusFe80736Rawfix\
+```
+
 ## Test Plan
 
-1. Test `xromwell-fe80736-casefold-lazytable-devuan-daedalus-i386.zip`.
+1. Test `xromwell-fe80736-lazytable-rawfix-devuan-daedalus-i386.zip`.
 
    Delete or overwrite the four root files first, then copy this package's
-   `E-root\` contents to `E:\`. If it boots quickly, the old eager table read
-   is confirmed as the regression for the old-loader line.
+   `E-root\` contents to `E:\`. If it gets past config detection, the vertical
+   bars were the old unaligned raw-read stack overwrite.
 
 2. If it hangs before `FATX: open part`, instrument `BootFromDevice` and
    `BootIdeReadSector` around the first E: header read.
