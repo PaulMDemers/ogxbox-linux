@@ -9,6 +9,7 @@ MIRROR="${5:-https://pkgmaster.devuan.org/merged}"
 SIZE_MIB="${6:-384}"
 FORCE="${7:-0}"
 DESKTOP="${8:-0}"
+COMPLETE="${9:-0}"
 
 THIS_DIR="$(cd "$(dirname "$0")" && pwd)"
 BASE_BUILDER="$THIS_DIR/build_debian_bookworm_i386_payload.sh"
@@ -33,7 +34,7 @@ exec /usr/sbin/debootstrap --no-check-gpg "$@"
 EOF
 chmod 755 "$WRAP_DIR/debootstrap"
 
-PATH="$WRAP_DIR:$PATH" "$BASE_BUILDER" "$ROOT" "$IMAGE" "$SUITE" "$ARCH" "$MIRROR" "$SIZE_MIB" "$FORCE" "$DESKTOP"
+PATH="$WRAP_DIR:$PATH" "$BASE_BUILDER" "$ROOT" "$IMAGE" "$SUITE" "$ARCH" "$MIRROR" "$SIZE_MIB" "$FORCE" "$DESKTOP" "$COMPLETE"
 
 cat > "$ROOT/etc/hostname" <<'EOF'
 xbox-devuan
@@ -80,4 +81,3 @@ rm -f "$IMAGE"
 /usr/sbin/mke2fs -q -t ext2 -F -d "$ROOT" "$IMAGE" "${SIZE_MIB}M"
 du -sh "$ROOT"
 ls -lh "$IMAGE"
-

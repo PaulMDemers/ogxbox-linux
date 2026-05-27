@@ -280,6 +280,12 @@ Expected Devuan terminal dashboard folder:
 E:\Apps\XromwellDevuanDaedalusTerminal\
 ```
 
+Expected Devuan complete desktop dashboard folder:
+
+```text
+E:\Apps\XromwellDevuanDaedalusComplete\
+```
+
 Copy the package `E-root\` files to `E:\`:
 
 ```text
@@ -294,14 +300,20 @@ Expected Devuan proof markers:
 ```text
 XBOX_DEVUAN_DAEDALUS_I386_ROOT_OK
 XBOX_DEVUAN_X_DESKTOP_OK
+XBOX_DEVUAN_COMPLETE_DESKTOP_OK
 ```
 
 Current hardware result: boots to the desktop and feels fast/snappy. Use this
 as the lead distro package for the next usability pass.
 
-The terminal and desktop packages are separate install profiles because
-Xromwell reads the global `E:\linuxboot.cfg`. Copy one package's `E-root\`
-contents to `E:\` at a time.
+The terminal, desktop, and complete desktop packages are separate install
+profiles because Xromwell reads the global `E:\linuxboot.cfg`. Copy one
+package's `E-root\` contents to `E:\` at a time.
+
+For the complete desktop profile, right-click the desktop for the `jwm` app
+menu. The intended first-pass checks are that `dillo`, `links2`, `xfe`, `mc`,
+`mtpaint`, `gpicview`, `xpdf`, `wordgrinder`, and `sc` launch without taking
+the machine into swap-like behavior.
 
 Network test commands:
 

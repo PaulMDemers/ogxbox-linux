@@ -9,7 +9,12 @@ MIRROR="${5:-http://deb.debian.org/debian}"
 SIZE_MIB="${6:-384}"
 FORCE="${7:-0}"
 DESKTOP="${8:-0}"
+COMPLETE="${9:-0}"
 BASE_PACKAGES="busybox,sysvinit-core,ifupdown,isc-dhcp-client,iproute2,netbase,procps,psmisc,less,nano,kmod,iputils-ping,wget,ca-certificates"
+COMPLETE_PACKAGES="dillo links2 mc rsync curl openssh-client netcat-openbsd ftp xfe mtpaint gpicview jwm xpdf sc wordgrinder"
+case "$MIRROR $SUITE" in
+    *devuan*|*daedalus*|*excalibur*|*ceres*) COMPLETE_PACKAGES="devuan-keyring $COMPLETE_PACKAGES" ;;
+esac
 
 if ! command -v debootstrap >/dev/null 2>&1; then
     apt-get update
@@ -60,6 +65,29 @@ if [ "$DESKTOP" = "1" ] && [ ! -e "$ROOT/.xbox-tinycore-xfbdev-installed" ]; the
     else
         echo "warning: Tiny Core Xfbdev extension set not found at $TC_TCZ_DIR"
     fi
+fi
+
+if [ "$COMPLETE" = "1" ] && [ ! -e "$ROOT/.xbox-complete-packages-installed" ]; then
+    cat > "$ROOT/usr/sbin/policy-rc.d" <<'EOF'
+#!/bin/sh
+exit 101
+EOF
+    chmod 755 "$ROOT/usr/sbin/policy-rc.d"
+    chroot "$ROOT" env DEBIAN_FRONTEND=noninteractive apt-get \
+        -o Acquire::AllowInsecureRepositories=true \
+        -o APT::Get::AllowUnauthenticated=true \
+        update
+    chroot "$ROOT" env DEBIAN_FRONTEND=noninteractive apt-get \
+        -o APT::Get::AllowUnauthenticated=true \
+        install -y --no-install-recommends $COMPLETE_PACKAGES
+    rm -f "$ROOT/usr/sbin/policy-rc.d"
+    touch "$ROOT/.xbox-complete-packages-installed"
+fi
+
+if [ "$COMPLETE" = "1" ]; then
+    touch "$ROOT/etc/xbox-complete-profile"
+else
+    rm -f "$ROOT/etc/xbox-complete-profile"
 fi
 
 cat > "$ROOT/etc/hostname" <<'EOF'
@@ -523,6 +551,16 @@ cat > "$HOME/.jwmrc" <<'EORC'
 <JWM>
   <RootMenu onroot="12">
     <Program label="Terminal">xterm</Program>
+    <Program label="Dillo Browser">dillo</Program>
+    <Program label="Links2 Browser">xterm -e links2</Program>
+    <Program label="Xfe File Manager">xfe</Program>
+    <Program label="Midnight Commander">xterm -e mc</Program>
+    <Program label="mtPaint">mtpaint</Program>
+    <Program label="Image Viewer">gpicview</Program>
+    <Program label="PDF Viewer">xpdf</Program>
+    <Program label="WordGrinder">xterm -e wordgrinder</Program>
+    <Program label="SC Spreadsheet">xterm -e sc</Program>
+    <Program label="Network Status">xterm -e sh -lc 'cat /tmp/xbox-network-up.txt; exec sh -i'</Program>
     <Restart label="Restart JWM"/>
     <Exit label="Exit X"/>
   </RootMenu>
@@ -544,6 +582,10 @@ cat > "$HOME/.jwmrc" <<'EORC'
 EORC
 
 xsetroot -solid '#1f3f4f' 2>/dev/null || true
+if [ -f /etc/xbox-complete-profile ] && command -v jwm >/dev/null 2>&1 && command -v aterm >/dev/null 2>&1; then
+    aterm -fn fixed -fg white -bg black -geometry 78x24+20+32 -title "Xbox Devuan Complete" -e /bin/sh -lc 'echo XBOX_DEVUAN_COMPLETE_DESKTOP_OK; uname -a; echo; cat /etc/os-release 2>/dev/null | sed -n "1,4p"; echo; echo apps: dillo links2 xfe mc mtpaint gpicview xpdf wordgrinder sc; echo tools: ping wget curl rsync ssh ftp nc apt xbox-perf xbox-sync-ro xbox-network-up; echo; echo network:; ip addr show dev eth0 2>/dev/null || true; grep -E "XBOX_NETWORK_(DHCP_OK|DHCP_FAILED|NO_ETH0)" /tmp/xbox-network-up.txt 2>/dev/null || true; echo; echo right-click desktop for app menu; echo diag: /tmp/xbox-diag.txt; echo network log: /tmp/xbox-network-up.txt; exec /bin/sh -i' >/tmp/aterm.log 2>&1 &
+    exec jwm
+fi
 if command -v flwm_topside >/dev/null 2>&1 && command -v aterm >/dev/null 2>&1; then
     aterm -fn fixed -fg white -bg black -geometry 78x24+20+32 -title "Xbox Debian" -e /bin/sh -lc 'echo XBOX_DEBIAN_X_DESKTOP_OK; uname -a; echo; echo memory:; grep -E "MemTotal|MemFree|MemAvailable|Buffers|Cached|SwapTotal|SwapFree" /proc/meminfo 2>/dev/null; echo; echo tools: ping wget apt xbox-perf xbox-sync-ro xbox-network-up; echo; echo network:; ip addr show dev eth0 2>/dev/null || true; grep -E "XBOX_NETWORK_(DHCP_OK|DHCP_FAILED|NO_ETH0)" /tmp/xbox-network-up.txt 2>/dev/null || true; echo; echo read-ahead:; grep read_ahead_kb /tmp/xbox-diag.txt 2>/dev/null || true; echo; if [ -s /tmp/xbox-persist-smoke.txt ]; then echo persistence:; grep -E "XBOX_(PERSIST_MARKER|NORMAL_USE_FILE)_(WRITTEN|PRESENT|WRITE_FAILED|RENAME_FAILED|20260526)" /tmp/xbox-persist-smoke.txt 2>/dev/null || tail -10 /tmp/xbox-persist-smoke.txt; echo; fi; if [ -s /tmp/xbox-sync-ro.txt ]; then echo sync-ro:; grep -E "XBOX_ROOT_REMOUNT_RO_(OK|FAILED)" /tmp/xbox-sync-ro.txt 2>/dev/null || cat /tmp/xbox-sync-ro.txt; echo; fi; echo diag: /tmp/xbox-diag.txt; echo network log: /tmp/xbox-network-up.txt; exec /bin/sh -i' >/tmp/aterm.log 2>&1 &
     exec flwm_topside

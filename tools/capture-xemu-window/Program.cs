@@ -48,12 +48,9 @@ internal static class Program
             var pngPath = Path.Combine(options.OutputDir, $"{stem}.png");
             var jsonPath = Path.Combine(options.OutputDir, $"{stem}.json");
 
-            using (var bitmap = new Bitmap(captureRect.Width, captureRect.Height, PixelFormat.Format32bppRgb))
-            using (var graphics = Graphics.FromImage(bitmap))
-            {
-                graphics.CopyFromScreen(captureRect.Left, captureRect.Top, 0, 0, captureRect.Size, CopyPixelOperation.SourceCopy);
-                bitmap.Save(pngPath, ImageFormat.Png);
-            }
+            var captureMethod = TryCaptureWindow(hwnd, windowRect, captureRect, pngPath)
+                ? "printwindow"
+                : CaptureScreen(captureRect, pngPath);
 
             var metadata = new CaptureMetadata
             {
@@ -66,6 +63,7 @@ internal static class Program
                 WindowRect = RectMetadata.From(windowRect),
                 ExtendedFrameBounds = RectMetadata.From(frameRect),
                 CaptureRect = RectMetadata.From(captureRect),
+                CaptureMethod = captureMethod,
                 CapturedAt = DateTimeOffset.Now,
             };
 
@@ -79,6 +77,7 @@ internal static class Program
             Console.WriteLine($"window={windowRect}");
             Console.WriteLine($"frame={frameRect}");
             Console.WriteLine($"captured={captureRect}");
+            Console.WriteLine($"method={captureMethod}");
             return 0;
         }
         catch (Exception ex)
@@ -126,6 +125,63 @@ internal static class Program
     {
         var hr = Native.DwmGetWindowAttribute(hwnd, DwmwaExtendedFrameBounds, out rect, Marshal.SizeOf<Rect>());
         return hr == 0 && rect.Width > 0 && rect.Height > 0;
+    }
+
+    private static bool TryCaptureWindow(IntPtr hwnd, Rect windowRect, Rect captureRect, string pngPath)
+    {
+        if (windowRect.Width <= 0 || windowRect.Height <= 0)
+        {
+            return false;
+        }
+
+        using var windowBitmap = new Bitmap(windowRect.Width, windowRect.Height, PixelFormat.Format32bppRgb);
+        using (var graphics = Graphics.FromImage(windowBitmap))
+        {
+            var hdc = graphics.GetHdc();
+            try
+            {
+                if (!Native.PrintWindow(hwnd, hdc, Native.PwRenderFullContent))
+                {
+                    return false;
+                }
+            }
+            finally
+            {
+                graphics.ReleaseHdc(hdc);
+            }
+        }
+
+        var src = new Rectangle(
+            captureRect.Left - windowRect.Left,
+            captureRect.Top - windowRect.Top,
+            captureRect.Width,
+            captureRect.Height);
+
+        if (src.Left < 0 || src.Top < 0 || src.Right > windowBitmap.Width || src.Bottom > windowBitmap.Height)
+        {
+            return false;
+        }
+
+        using var output = new Bitmap(captureRect.Width, captureRect.Height, PixelFormat.Format32bppRgb);
+        using (var outputGraphics = Graphics.FromImage(output))
+        {
+            outputGraphics.DrawImage(windowBitmap, new Rectangle(0, 0, output.Width, output.Height), src, GraphicsUnit.Pixel);
+        }
+
+        output.Save(pngPath, ImageFormat.Png);
+        return true;
+    }
+
+    private static string CaptureScreen(Rect captureRect, string pngPath)
+    {
+        using var bitmap = new Bitmap(captureRect.Width, captureRect.Height, PixelFormat.Format32bppRgb);
+        using (var graphics = Graphics.FromImage(bitmap))
+        {
+            graphics.CopyFromScreen(captureRect.Left, captureRect.Top, 0, 0, captureRect.Size, CopyPixelOperation.SourceCopy);
+            bitmap.Save(pngPath, ImageFormat.Png);
+        }
+
+        return "screen";
     }
 
     private enum RectKind
@@ -254,6 +310,7 @@ internal static class Program
         public required RectMetadata WindowRect { get; init; }
         public required RectMetadata ExtendedFrameBounds { get; init; }
         public required RectMetadata CaptureRect { get; init; }
+        public required string CaptureMethod { get; init; }
         public DateTimeOffset CapturedAt { get; init; }
     }
 
@@ -322,6 +379,11 @@ internal static class Program
 
         [DllImport("user32.dll")]
         public static extern bool SetForegroundWindow(IntPtr hwnd);
+
+        public const uint PwRenderFullContent = 0x00000002;
+
+        [DllImport("user32.dll")]
+        public static extern bool PrintWindow(IntPtr hwnd, IntPtr hdc, uint flags);
 
         [DllImport("dwmapi.dll")]
         public static extern int DwmGetWindowAttribute(IntPtr hwnd, int attribute, out Rect rect, int attributeSize);

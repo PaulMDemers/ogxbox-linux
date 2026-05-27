@@ -193,6 +193,17 @@ def main():
             "initrd devinit\n"
             + append_line("init=/init noswitchroot debug console=tty0 ignore_loglevel loglevel=7 xbox_payload_source=iso xbox_payload_file=/devuan.ext2 xbox_root_init=/xbox-init xbox_desktop=1 xbox_x_mouse=0")
         )
+    elif mode == "devuan-daedalus-i386-complete":
+        files = {
+            "DEVKRNL": kernel(ROOT / "artifacts" / "kernels" / "xbox-linux-6.18.33-fatx-tinycore-bzImage"),
+            "DEVINIT": initramfs(ROOT / "artifacts" / "initramfs" / "xbox-distro-hdd-ext2-stage1.cpio"),
+            "DEVUAN.EXT2": payload(ROOT / "artifacts" / "hdd" / "xbox-devuan-daedalus-i386-complete.ext2"),
+        }
+        cfg_text = (
+            "kernel devkrnl\n"
+            "initrd devinit\n"
+            + append_line("init=/init noswitchroot debug console=tty0 ignore_loglevel loglevel=7 xbox_payload_source=iso xbox_payload_file=/devuan.ext2 xbox_root_init=/xbox-init xbox_desktop=1 xbox_x_mouse=0")
+        )
     elif mode == "busybox-stage2-noxpad":
         files = {
             "VMLINUZ": kernel(ROOT / "artifacts" / "kernels" / "xbox-linux-5.8.1-noxpad-bzImage"),

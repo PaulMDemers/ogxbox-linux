@@ -287,16 +287,22 @@ Build:
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\build_devuan_daedalus_i386_payload.ps1 -Desktop
 powershell -ExecutionPolicy Bypass -File .\scripts\package_devuan_daedalus_i386_softmod.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\build_devuan_daedalus_i386_complete_payload.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\package_devuan_daedalus_i386_complete_softmod.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\build_devuan_daedalus_i386_complete_iso.ps1
 ```
 
 Artifacts:
 
 ```text
 C:\Users\Paul\Desktop\xbox_linux\artifacts\hdd\xbox-devuan-daedalus-i386.ext2
+C:\Users\Paul\Desktop\xbox_linux\artifacts\hdd\xbox-devuan-daedalus-i386-complete.ext2
 C:\Users\Paul\Desktop\xbox_linux\artifacts\cromwell-devuan-daedalus-i386-terminal.iso
 C:\Users\Paul\Desktop\xbox_linux\artifacts\cromwell-devuan-daedalus-i386-desktop.iso
+C:\Users\Paul\Desktop\xbox_linux\artifacts\cromwell-devuan-daedalus-i386-complete.iso
 C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-terminal.zip
 C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386.zip
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-complete.zip
 ```
 
 The terminal and desktop packages use the same `devkrnl`, `devinit`, and
@@ -307,6 +313,18 @@ profile at a time.
 The Devuan ISOs use `xbox_payload_source=iso`, so stage1 mounts the ISO itself
 and loop-mounts `devuan.ext2` from the disc image instead of from FATX.
 
+The complete desktop profile adds a lightweight application set while staying
+inside the same Xbox-specific boot path:
+
+```text
+dillo links2 xfe mc mtpaint gpicview xpdf wordgrinder sc
+curl rsync openssh-client ftp netcat-openbsd jwm
+```
+
+It still uses the Tiny Core `Xfbdev` server, but swaps the session manager to
+`jwm` and writes an app menu for browser, file manager, terminal, editor,
+paint, image viewer, PDF, spreadsheet, and word processor smoke testing.
+
 xemu proof:
 
 ```text
@@ -314,6 +332,7 @@ C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-daedalus-i386-xfbdev-202
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-dhcp-helper-20260526-225056.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\release-devuan-terminal-iso-network-20260526-231349.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\release-devuan-desktop-iso-network-20260526-231622.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\release-devuan-complete-network-printwindow-20260526-234850.png
 ```
 
 The second proof confirms the Devuan desktop still boots after adding
@@ -325,6 +344,7 @@ Expected proof banner:
 ```text
 XBOX_DEVUAN_DAEDALUS_I386_ROOT_OK
 XBOX_DEVUAN_X_DESKTOP_OK
+XBOX_DEVUAN_COMPLETE_DESKTOP_OK
 ```
 
 Next Devuan tasks:
@@ -341,4 +361,5 @@ The generated ext2 image passed `e2fsck -fn`:
 
 ```text
 artifacts/hdd/xbox-devuan-daedalus-i386.ext2: 9696/98304 files (0.1% non-contiguous), 52064/98304 blocks
+artifacts/hdd/xbox-devuan-daedalus-i386-complete.ext2: 24053/49152 files (0.2% non-contiguous), 182436/196608 blocks
 ```
