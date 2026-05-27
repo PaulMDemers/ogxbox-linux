@@ -106,6 +106,7 @@ C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-root-kernel-nes
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-fatx-ci-xromwell-20260527-015756.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-fatx-lazy-chain-xromwell-20260527-021847.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-root-init-progress-final-20260527-124834.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-xromwell-1045ad9-final-20260527-130924.png
 ```
 
 Softmod/HDD-path proofs:
@@ -114,6 +115,7 @@ Softmod/HDD-path proofs:
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\release-tinycore-network-20260526-230238.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\release-devuan-terminal-network-20260526-230426.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\release-devuan-desktop-network-20260526-230629.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-minimal-rebuilt-xromwell-1045ad9-20260527-131602.png
 ```
 
 These proofs reach the intended terminal or desktop and show the automatic
@@ -124,8 +126,8 @@ for the current xemu network setup.
 
 ```text
 artifacts/hdd/xbox-tinycore-payload.ext2: 42/32768 files (0.0% non-contiguous), 6005/32768 blocks
-artifacts/hdd/xbox-devuan-daedalus-i386.ext2: 9697/98304 files (0.1% non-contiguous), 52065/98304 blocks
-artifacts/hdd/xbox-devuan-daedalus-i386-complete.ext2: 24053/49152 files (0.2% non-contiguous), 182436/196608 blocks
+artifacts/hdd/xbox-devuan-daedalus-i386.ext2: 9701/98304 files (0.1% non-contiguous), 71164/98304 blocks
+artifacts/hdd/xbox-devuan-daedalus-i386-complete.ext2: 24054/49152 files (0.1% non-contiguous), 166290/196608 blocks
 ```
 
 All listed images passed `e2fsck -fn`.
@@ -182,14 +184,21 @@ and `devinit`; Linux then opens `/LINUX/DEVUAN.EXT2` from the mounted FATX
 partition. The current layout is xemu-proven by the
 `devuan-complete-fatx-ci-xromwell` screenshot above.
 
-The current complete zip includes Xromwell `5518ffc`. It makes FATX path
-component matching case-insensitive, prints progress around the FATX partition
-open and `linuxboot.cfg` lookup, and lazily reads large FATX chain maps instead
-of allocating the whole table up front. This specifically targets real Xbox E:
-partitions like the May 27 hardware photo that reported `spc=2 csize=1024` and
-then stopped before the table-read message. With this build, that case should
-print a `FATX: lazy table ...` progress line and continue. If real hardware
-still stops before Linux, photograph the final `FATX:` line.
+The current softmod zips include Xromwell `1045ad9`. It keeps
+case-insensitive FATX path matching and raises the eager FATX chain-map cache
+window to 4 MiB. This specifically targets real Xbox E: partitions like the
+May 27 hardware photos that reported `spc=2 csize=1024 table=1253376`; that
+table should now be read once up front as `FATX: table read 1253376/1253376`,
+not walked lazily one cluster at a time during `/devkrnl` and `/devinit`
+loads. Lazy chain-map reads remain a fallback for much larger tables or failed
+table allocations/reads. If real hardware still stops before Linux, photograph
+the final `FATX:` line.
+
+The matching xemu Xromwell proof shows banner revision `1045ad9` and reaches
+both the rebuilt minimal Devuan desktop and the complete Devuan desktop. The
+xemu FATX partition also has a 1.25 MiB chain table, but xemu is still not a
+complete substitute for the real 1 KiB-cluster upgraded Xbox disk because host
+storage hides much of the per-read cost.
 
 The May 27 root-init refresh also prints the target root init before
 `switch_root` and prints `XBOX_ROOT_INIT_STARTED` as the first visible line

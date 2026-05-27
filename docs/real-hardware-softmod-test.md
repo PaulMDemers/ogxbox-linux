@@ -315,13 +315,17 @@ contents of `E-root\` to `E:\`. This keeps the huge ext2 image out of the
 FATX root directory while keeping Xromwell's kernel/initrd loads at root,
 which is the hardware-proven path.
 
-The current complete package uses Xromwell `5518ffc`. Its FATX lookup is
-case-insensitive, and it lazily reads large FATX chain maps so upgraded disks
-with small E: clusters do not need a huge early allocation before loading
-`linuxboot.cfg`. If the earlier hardware stall was the `FATX: spc=2 csize=1024`
-case, the next build should show `FATX: lazy table ...` after that line and
-continue into the kernel/initrd load. If it stops before Linux, photograph the
-final `FATX:` line.
+The current Devuan softmod packages use Xromwell `1045ad9`. Its FATX lookup is
+case-insensitive, and it eagerly reads medium FATX chain maps so the known
+hardware `FATX: spc=2 csize=1024 table=1253376` case is cached once before
+loading `/devkrnl` and `/devinit`. The expected line on that disk is:
+
+```text
+FATX: table read 1253376/1253376 ...
+```
+
+If it prints `FATX: lazy table ...` for that same 1.25 MiB table, the wrong XBE
+is being tested. If it stops before Linux, photograph the final `FATX:` line.
 
 The current stage1 also prints:
 

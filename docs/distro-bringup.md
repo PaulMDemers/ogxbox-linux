@@ -354,17 +354,26 @@ C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-root-kernel-nes
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-fatx-ci-xromwell-20260527-015756.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-fatx-lazy-chain-xromwell-20260527-021847.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-root-init-progress-final-20260527-124834.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\xromwell-1045ad9-eager-table-12s-20260527-130735.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-xromwell-1045ad9-final-20260527-130924.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-minimal-rebuilt-xromwell-1045ad9-20260527-131602.png
 ```
 
 The second proof confirms the Devuan desktop still boots after adding
 `xbox-network-up`. In xemu, `eth0` shows `NO-CARRIER`, so real hardware is the
 meaningful DHCP test.
 
-The May 27 complete-package refresh includes Xromwell `5518ffc`, which keeps
-the case-insensitive FATX path lookup and adds lazy FATX chain-map reads for
-large/small-cluster E: partitions. This targets the real-hardware stall after
-`FATX: spc=2 csize=1024`; the expected next progress line is
-`FATX: lazy table ...`.
+The May 27 Xromwell refresh now uses `1045ad9`, which keeps the
+case-insensitive FATX path lookup and eagerly caches medium chain maps up to
+4 MiB. This targets the real-hardware slowdown after
+`FATX: spc=2 csize=1024 table=1253376`; the expected next progress line is
+`FATX: table read 1253376/1253376 ...`, not `FATX: lazy table ...`.
+
+The rebuilt minimal Devuan desktop is the performance baseline again. It uses
+the same Xromwell `1045ad9`, the same stage1 initramfs, and the same 6.18.33
+FATX kernel, but the smaller 384 MiB root image and flwm desktop. The complete
+desktop remains a heavier experiment until real hardware confirms it boots and
+responds acceptably.
 
 The follow-up root-init refresh keeps normal `switch_root`, prints the root
 init target before the handoff, prints `XBOX_ROOT_INIT_STARTED` immediately
@@ -392,6 +401,6 @@ Next Devuan tasks:
 The generated ext2 image passed `e2fsck -fn`:
 
 ```text
-artifacts/hdd/xbox-devuan-daedalus-i386.ext2: 9696/98304 files (0.1% non-contiguous), 52064/98304 blocks
-artifacts/hdd/xbox-devuan-daedalus-i386-complete.ext2: 24053/49152 files (0.2% non-contiguous), 182436/196608 blocks
+artifacts/hdd/xbox-devuan-daedalus-i386.ext2: 9701/98304 files (0.1% non-contiguous), 71164/98304 blocks
+artifacts/hdd/xbox-devuan-daedalus-i386-complete.ext2: 24054/49152 files (0.1% non-contiguous), 166290/196608 blocks
 ```
