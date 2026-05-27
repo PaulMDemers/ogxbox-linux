@@ -111,10 +111,51 @@ iputils-ping
 wget
 ca-certificates
 apt
+isc-dhcp-client
+ifupdown
+iproute2
 ```
 
 `apt` is part of the Debian minbase root; `ca-certificates` is included so
 HTTPS downloads with `wget` do not fail immediately on certificate validation.
+
+## Networking
+
+The Xbox Ethernet driver can be present while the interface is still unusable
+because our custom `/xbox-init` path bypasses the normal SysV networking boot
+sequence. The rootfs now starts DHCP explicitly with:
+
+```text
+/usr/local/bin/xbox-network-up
+```
+
+Boot starts it in the background so a missing cable, slow link, or missing DHCP
+server does not stall the desktop. For hardware testing, run:
+
+```sh
+xbox-network-up --wait
+ip addr show dev eth0
+ip route
+cat /etc/resolv.conf
+ping -c 3 8.8.8.8
+ping -c 3 deb.debian.org
+wget -O- http://deb.debian.org/robots.txt
+cat /tmp/xbox-network-up.txt
+```
+
+Expected success marker:
+
+```text
+XBOX_NETWORK_DHCP_OK
+```
+
+If `ping 8.8.8.8` fails but `eth0` has no IPv4 address, the issue is DHCP or
+link setup rather than name resolution. If `ping 8.8.8.8` works but
+`ping deb.debian.org` fails, the issue is resolver setup.
+
+The current xemu proof reaches the Devuan desktop with the helper installed,
+but reports `NO-CARRIER` for `eth0`; use real hardware for the actual DHCP
+pass/fail result.
 
 ## Mouse Note
 

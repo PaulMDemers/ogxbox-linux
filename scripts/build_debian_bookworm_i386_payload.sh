@@ -125,6 +125,7 @@ for arg in $(cat /proc/cmdline 2>/dev/null); do
     esac
 done
 xbox-storage-tune >/tmp/xbox-storage-tune.log 2>&1 || true
+xbox-network-up --background >/tmp/xbox-network-up-launch.log 2>&1 || true
 xbox-diag >/tmp/xbox-diag.txt 2>&1 || true
 if [ "$PERSIST_SMOKE" = "1" ] && [ -x /usr/local/bin/xbox-persist-smoke ]; then
     /usr/local/bin/xbox-persist-smoke >/tmp/xbox-persist-smoke.txt 2>&1 || true
@@ -150,8 +151,15 @@ mount
 echo
 echo "network devices:"
 ip link 2>/dev/null || true
+ip addr show dev eth0 2>/dev/null || true
+ip route 2>/dev/null || true
+if [ -s /tmp/xbox-network-up.txt ]; then
+    echo
+    echo "network startup:"
+    tail -40 /tmp/xbox-network-up.txt
+fi
 echo
-echo "tools: ping wget apt xbox-perf"
+echo "tools: ping wget apt xbox-perf xbox-network-up"
 echo
 if [ -s /tmp/xbox-persist-smoke.txt ]; then
     echo "persistence smoke:"
@@ -211,6 +219,17 @@ echo
 echo "== block devices =="
 cat /proc/partitions 2>/dev/null || true
 echo
+echo "== network =="
+ip link 2>/dev/null || true
+echo
+ip addr show dev eth0 2>/dev/null || true
+echo
+ip route 2>/dev/null || true
+echo
+[ -r /etc/resolv.conf ] && cat /etc/resolv.conf
+echo
+[ -s /tmp/xbox-network-up.txt ] && cat /tmp/xbox-network-up.txt
+echo
 echo "== read ahead =="
 for q in /sys/block/hd*/queue/read_ahead_kb /sys/block/sd*/queue/read_ahead_kb /sys/block/loop*/queue/read_ahead_kb; do
     [ -r "$q" ] && echo "$q=$(cat "$q")"
@@ -223,6 +242,90 @@ done
 echo
 echo "== storage dmesg =="
 dmesg | grep -Ei 'FATX|loop|ata|pata|ide|dma|udma|pio|hda|sda|xbox' | tail -80
+EOF
+
+cat > "$ROOT/usr/local/bin/xbox-network-up" <<'EOF'
+#!/bin/sh
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/sbin:/usr/local/bin
+LOG=/tmp/xbox-network-up.txt
+
+if [ "${1:-}" = "--background" ]; then
+    "$0" --foreground >"$LOG" 2>&1 &
+    exit 0
+fi
+
+echo "== xbox network up =="
+date 2>/dev/null || true
+echo
+
+if ! ip link show dev eth0 >/dev/null 2>&1; then
+    echo "XBOX_NETWORK_NO_ETH0"
+    ip link 2>/dev/null || true
+    exit 1
+fi
+
+echo "link before:"
+ip link show dev eth0 2>/dev/null || true
+echo
+
+ip link set dev eth0 up 2>/dev/null || true
+
+if ip addr show dev eth0 2>/dev/null | grep -q ' inet '; then
+    echo "XBOX_NETWORK_ALREADY_CONFIGURED"
+else
+    if command -v ifup >/dev/null 2>&1; then
+        echo "running ifup eth0"
+        timeout 20 ifup eth0 2>/tmp/xbox-ifup.err || {
+            status=$?
+            echo "ifup status=$status"
+            [ -s /tmp/xbox-ifup.err ] && sed -n '1,40p' /tmp/xbox-ifup.err
+        }
+    fi
+
+    if ! ip addr show dev eth0 2>/dev/null | grep -q ' inet ' && command -v dhclient >/dev/null 2>&1; then
+        echo
+        echo "running dhclient eth0"
+        mkdir -p /run
+        rm -f /run/dhclient.eth0.pid
+        timeout 20 dhclient -1 -v -pf /run/dhclient.eth0.pid -lf /run/dhclient.eth0.leases eth0 2>/tmp/xbox-dhclient.err || {
+            status=$?
+            echo "dhclient status=$status"
+            [ -s /tmp/xbox-dhclient.err ] && sed -n '1,60p' /tmp/xbox-dhclient.err
+        }
+    fi
+
+    if ! ip addr show dev eth0 2>/dev/null | grep -q ' inet ' && command -v udhcpc >/dev/null 2>&1; then
+        echo
+        echo "running udhcpc eth0"
+        timeout 20 udhcpc -i eth0 -n -q 2>/tmp/xbox-udhcpc.err || {
+            status=$?
+            echo "udhcpc status=$status"
+            [ -s /tmp/xbox-udhcpc.err ] && sed -n '1,60p' /tmp/xbox-udhcpc.err
+        }
+    fi
+fi
+
+echo
+echo "link after:"
+ip link show dev eth0 2>/dev/null || true
+echo
+echo "addresses:"
+ip addr show dev eth0 2>/dev/null || true
+echo
+echo "routes:"
+ip route 2>/dev/null || true
+echo
+echo "resolver:"
+[ -r /etc/resolv.conf ] && cat /etc/resolv.conf || true
+echo
+
+if ip addr show dev eth0 2>/dev/null | grep -q ' inet '; then
+    echo "XBOX_NETWORK_DHCP_OK"
+    exit 0
+fi
+
+echo "XBOX_NETWORK_DHCP_FAILED"
+exit 1
 EOF
 
 cat > "$ROOT/usr/local/bin/xbox-perf" <<'EOF'
@@ -363,7 +466,7 @@ echo "XBOX_ROOT_REMOUNT_RO_FAILED"
 echo "Some process may still have writable files open. Run sync again before power-off."
 exit 1
 EOF
-chmod 755 "$ROOT/usr/local/bin/xbox-storage-tune" "$ROOT/usr/local/bin/xbox-diag" "$ROOT/usr/local/bin/xbox-perf" "$ROOT/usr/local/bin/xbox-persist-smoke" "$ROOT/usr/local/bin/xbox-sync-ro"
+chmod 755 "$ROOT/usr/local/bin/xbox-storage-tune" "$ROOT/usr/local/bin/xbox-network-up" "$ROOT/usr/local/bin/xbox-diag" "$ROOT/usr/local/bin/xbox-perf" "$ROOT/usr/local/bin/xbox-persist-smoke" "$ROOT/usr/local/bin/xbox-sync-ro"
 
 cat > "$ROOT/usr/local/bin/xbox-terminal" <<'EOF'
 #!/bin/sh
@@ -442,7 +545,7 @@ EORC
 
 xsetroot -solid '#1f3f4f' 2>/dev/null || true
 if command -v flwm_topside >/dev/null 2>&1 && command -v aterm >/dev/null 2>&1; then
-    aterm -fn fixed -fg white -bg black -geometry 78x24+20+32 -title "Xbox Debian" -e /bin/sh -lc 'echo XBOX_DEBIAN_X_DESKTOP_OK; uname -a; echo; echo memory:; grep -E "MemTotal|MemFree|MemAvailable|Buffers|Cached|SwapTotal|SwapFree" /proc/meminfo 2>/dev/null; echo; echo tools: ping wget apt xbox-perf xbox-sync-ro; echo; echo read-ahead:; grep read_ahead_kb /tmp/xbox-diag.txt 2>/dev/null || true; echo; if [ -s /tmp/xbox-persist-smoke.txt ]; then echo persistence:; grep -E "XBOX_(PERSIST_MARKER|NORMAL_USE_FILE)_(WRITTEN|PRESENT|WRITE_FAILED|RENAME_FAILED|20260526)" /tmp/xbox-persist-smoke.txt 2>/dev/null || tail -10 /tmp/xbox-persist-smoke.txt; echo; fi; if [ -s /tmp/xbox-sync-ro.txt ]; then echo sync-ro:; grep -E "XBOX_ROOT_REMOUNT_RO_(OK|FAILED)" /tmp/xbox-sync-ro.txt 2>/dev/null || cat /tmp/xbox-sync-ro.txt; echo; fi; echo diag: /tmp/xbox-diag.txt; exec /bin/sh -i' >/tmp/aterm.log 2>&1 &
+    aterm -fn fixed -fg white -bg black -geometry 78x24+20+32 -title "Xbox Debian" -e /bin/sh -lc 'echo XBOX_DEBIAN_X_DESKTOP_OK; uname -a; echo; echo memory:; grep -E "MemTotal|MemFree|MemAvailable|Buffers|Cached|SwapTotal|SwapFree" /proc/meminfo 2>/dev/null; echo; echo tools: ping wget apt xbox-perf xbox-sync-ro xbox-network-up; echo; echo network:; ip addr show dev eth0 2>/dev/null || true; grep -E "XBOX_NETWORK_(DHCP_OK|DHCP_FAILED|NO_ETH0)" /tmp/xbox-network-up.txt 2>/dev/null || true; echo; echo read-ahead:; grep read_ahead_kb /tmp/xbox-diag.txt 2>/dev/null || true; echo; if [ -s /tmp/xbox-persist-smoke.txt ]; then echo persistence:; grep -E "XBOX_(PERSIST_MARKER|NORMAL_USE_FILE)_(WRITTEN|PRESENT|WRITE_FAILED|RENAME_FAILED|20260526)" /tmp/xbox-persist-smoke.txt 2>/dev/null || tail -10 /tmp/xbox-persist-smoke.txt; echo; fi; if [ -s /tmp/xbox-sync-ro.txt ]; then echo sync-ro:; grep -E "XBOX_ROOT_REMOUNT_RO_(OK|FAILED)" /tmp/xbox-sync-ro.txt 2>/dev/null || cat /tmp/xbox-sync-ro.txt; echo; fi; echo diag: /tmp/xbox-diag.txt; echo network log: /tmp/xbox-network-up.txt; exec /bin/sh -i' >/tmp/aterm.log 2>&1 &
     exec flwm_topside
 fi
 xterm -geometry 78x24+20+32 -title "Xbox Debian" -e /bin/sh -lc 'echo XBOX_DEBIAN_X_DESKTOP_OK; uname -a; exec /bin/sh -i' &

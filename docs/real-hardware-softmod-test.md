@@ -76,8 +76,9 @@ C:\Users\Paul\Desktop\xbox_linux\docs\release-sweep-2026-05-26.md
 
 - RW shell smoke package on AV/composite: first boot writes both marker files,
   reports `XBOX_ROOT_REMOUNT_RO_OK`, and second boot reports both files present.
-- Devuan Daedalus desktop package: run `xbox-perf`, test `ping`, `wget`, and
-  `apt`, then compare memory and disk timing against Debian and Tiny Core.
+- Devuan Daedalus desktop package: run `xbox-network-up --wait`, test `ping`,
+  `wget`, and `apt`, then run `xbox-perf` and compare memory and disk timing
+  against Debian and Tiny Core.
 - Forced-HDTV 480p Debian package: shelved. It went black on the HDMI adapter,
   although drive activity suggested boot continued. Keep the normal
   AV/composite package as the active test route.
@@ -277,6 +278,27 @@ XBOX_DEVUAN_X_DESKTOP_OK
 
 Current hardware result: boots to the desktop and feels fast/snappy. Use this
 as the lead distro package for the next usability pass.
+
+Network test commands:
+
+```sh
+xbox-network-up --wait
+ip addr show dev eth0
+ip route
+ping -c 3 8.8.8.8
+ping -c 3 deb.debian.org
+wget -O- http://deb.debian.org/robots.txt
+cat /tmp/xbox-network-up.txt
+```
+
+Expected network marker:
+
+```text
+XBOX_NETWORK_DHCP_OK
+```
+
+If xemu shows `eth0` as `NO-CARRIER`, that is expected for the current emulator
+test setup and does not disprove the real hardware driver path.
 
 Use the shell-only package first for real-hardware rw validation. It writes the
 persistence marker and normal-use file, runs `xbox-sync-ro`, and should report

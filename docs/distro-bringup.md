@@ -98,11 +98,13 @@ terminal. The lean root now includes `/usr/local/bin/xterm` as an `aterm`
 compatibility wrapper so menu items or shell commands that still launch `xterm`
 can open a terminal even though Debian's full `xterm` package is not installed.
 
-The next usability package adds `ping`, `wget`, and `ca-certificates` to the
-base Debian root, plus `/usr/local/bin/xbox-perf` for quick hardware timing
-checks. It also updates the Xfbdev boot text: `xbox_x_mouse=0` disables only the
-explicit `-mouse /dev/input/mice,5` argument, and the default pointer path may
-still work on real hardware.
+The next usability package adds `ping`, `wget`, `ca-certificates`,
+`isc-dhcp-client`, `ifupdown`, and `iproute2` to the base Debian root, plus
+`/usr/local/bin/xbox-perf` for quick hardware timing checks and
+`/usr/local/bin/xbox-network-up` for explicit DHCP bring-up. It also updates the
+Xfbdev boot text: `xbox_x_mouse=0` disables only the explicit
+`-mouse /dev/input/mice,5` argument, and the default pointer path may still work
+on real hardware.
 
 May 26 hardware comparison: Debian can reach the desktop, but Devuan Daedalus
 feels much faster on the same real Xbox. Keep Debian as the known Debian-family
@@ -121,10 +123,19 @@ xemu ISO:     C:\Users\Paul\Desktop\xbox_linux\artifacts\xromwell-hddfatx-autobo
 Current usability rebuild:
 
 ```text
-root tools:   ping, wget, ca-certificates, apt, xbox-perf
+root tools:   ping, wget, ca-certificates, apt, xbox-perf, xbox-network-up
 root image:   C:\Users\Paul\Desktop\xbox_linux\artifacts\hdd\xbox-debian-bookworm-i386.ext2
 softmod zip:  C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-debian-bookworm-i386.zip
 xemu proof:   C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-base-tools-perf-20260525-231713.png
+```
+
+The DHCP helper rebuild adds `/usr/local/bin/xbox-network-up`; boot starts it
+in the background so the desktop does not wait on DHCP. Manual hardware test:
+
+```sh
+xbox-network-up --wait
+ping -c 3 8.8.8.8
+ping -c 3 deb.debian.org
 ```
 
 Build:
@@ -289,7 +300,12 @@ xemu proof:
 
 ```text
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-daedalus-i386-xfbdev-20260526-145241.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-dhcp-helper-20260526-225056.png
 ```
+
+The second proof confirms the Devuan desktop still boots after adding
+`xbox-network-up`. In xemu, `eth0` shows `NO-CARRIER`, so real hardware is the
+meaningful DHCP test.
 
 Expected proof banner:
 
@@ -301,7 +317,8 @@ XBOX_DEVUAN_X_DESKTOP_OK
 Next Devuan tasks:
 
 - Run `xbox-perf` on real hardware and compare against Debian and Tiny Core.
-- Confirm `ping`, `wget`, `apt`, and CA certificates in the live desktop.
+- Confirm DHCP with `xbox-network-up --wait`, then test `ping`, `wget`, `apt`,
+  and CA certificates in the live desktop.
 - Build a Devuan rw shell smoke or persistence package using the same safe
   `xbox-sync-ro` flow that passed under Debian.
 - Consider moving the next memory and disk optimization pass to Devuan first,
