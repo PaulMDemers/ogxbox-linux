@@ -12,6 +12,7 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $outFull = Join-Path $repoRoot (Join-Path $OutRoot 'xromwell-hddfatx-devuan-daedalus-i386-complete')
 $eRoot = Join-Path $outFull 'E-root'
+$payloadRoot = Join-Path $eRoot 'LINUX'
 $appRoot = Join-Path $outFull (Join-Path 'Apps' $DashboardFolder)
 $zip = "$outFull.zip"
 
@@ -28,20 +29,20 @@ foreach ($path in @($xbeFull, $kernelFull, $initrdFull, $payloadFull)) {
 
 Remove-Item -Recurse -Force -LiteralPath $outFull -ErrorAction SilentlyContinue
 Remove-Item -Force -LiteralPath $zip -ErrorAction SilentlyContinue
-New-Item -ItemType Directory -Force -Path $eRoot, $appRoot | Out-Null
+New-Item -ItemType Directory -Force -Path $eRoot, $payloadRoot, $appRoot | Out-Null
 
 Copy-Item -Force -LiteralPath $xbeFull -Destination (Join-Path $appRoot 'default.xbe')
-Copy-Item -Force -LiteralPath $kernelFull -Destination (Join-Path $appRoot 'devkrnl')
-Copy-Item -Force -LiteralPath $initrdFull -Destination (Join-Path $appRoot 'devinit')
-Copy-Item -Force -LiteralPath $payloadFull -Destination (Join-Path $appRoot 'devuan.ext2')
+Copy-Item -Force -LiteralPath $kernelFull -Destination (Join-Path $eRoot 'devkrnl')
+Copy-Item -Force -LiteralPath $initrdFull -Destination (Join-Path $eRoot 'devinit')
+Copy-Item -Force -LiteralPath $payloadFull -Destination (Join-Path $payloadRoot 'DEVUAN.EXT2')
 
-$linuxPath = "/Apps/$DashboardFolder"
-$append = "init=/init noswitchroot debug console=tty0 ignore_loglevel loglevel=7 xbox_payload_file=$linuxPath/devuan.ext2 xbox_root_init=/xbox-init xbox_desktop=1 xbox_x_mouse=0"
+$payloadPath = "/LINUX/DEVUAN.EXT2"
+$append = "init=/init noswitchroot debug console=tty0 ignore_loglevel loglevel=7 xbox_payload_file=$payloadPath xbox_root_init=/xbox-init xbox_desktop=1 xbox_x_mouse=0"
 
 @"
 title Xbox HDD
-kernel $linuxPath/devkrnl
-initrd $linuxPath/devinit
+kernel devkrnl
+initrd devinit
 append $append
 "@ | Set-Content -LiteralPath (Join-Path $eRoot 'linuxboot.cfg') -Encoding ASCII
 
@@ -49,18 +50,22 @@ append $append
 Xromwell FATX Devuan Daedalus i386 Complete Desktop Test
 ========================================================
 
-This package keeps the large complete desktop payload inside the dashboard app
-folder instead of at E:\ root. The only file copied to E:\ root is the tiny
-linuxboot.cfg pointer file. This avoids stressing Xromwell's first FATX root
-directory lookup with an 805 MB root-level devuan.ext2 entry.
+This package keeps the large complete desktop payload inside E:\LINUX instead
+of at E:\ root. Xromwell still loads only the small root-level kernel and
+initrd files. Linux then mounts E: and loop-mounts E:\LINUX\DEVUAN.EXT2.
+This avoids stressing Xromwell's first FATX root directory lookup with an
+805 MB root-level devuan.ext2 entry.
 
 Copy to the Xbox:
 
   1. Copy Apps\$DashboardFolder\ to:
        E:\Apps\$DashboardFolder\
 
-  2. Copy E-root\linuxboot.cfg to:
+  2. Copy the contents of E-root\ to E:\:
        E:\linuxboot.cfg
+       E:\devkrnl
+       E:\devinit
+       E:\LINUX\DEVUAN.EXT2
 
 Dashboard app entry point:
 
@@ -68,9 +73,9 @@ Dashboard app entry point:
 
 Expected Linux files:
 
-  E:\Apps\$DashboardFolder\devkrnl
-  E:\Apps\$DashboardFolder\devinit
-  E:\Apps\$DashboardFolder\devuan.ext2
+  E:\devkrnl
+  E:\devinit
+  E:\LINUX\DEVUAN.EXT2
 
 Expected proof marker:
 

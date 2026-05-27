@@ -102,6 +102,7 @@ Complete desktop proof:
 ```text
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\release-devuan-complete-network-printwindow-20260526-234850.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-nested-fatx-20260527-011856.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-root-kernel-nested-payload-20260527-013706.png
 ```
 
 Softmod/HDD-path proofs:
@@ -156,24 +157,27 @@ Tiny Core lean, Devuan terminal, and Devuan desktop copy their `E-root\`
 contents to `E:\`.
 
 The complete desktop zip is different because its ext2 image is much larger.
-It keeps the big files under the dashboard app folder:
+It keeps only the dashboard launcher under the app folder:
 
 ```text
 E:\Apps\XromwellDevuanDaedalusComplete\default.xbe
-E:\Apps\XromwellDevuanDaedalusComplete\devkrnl
-E:\Apps\XromwellDevuanDaedalusComplete\devinit
-E:\Apps\XromwellDevuanDaedalusComplete\devuan.ext2
 ```
 
-Only its pointer config is copied to the root:
+Its `E-root\` contents are copied to `E:\`:
 
 ```text
 E:\linuxboot.cfg
+E:\devkrnl
+E:\devinit
+E:\LINUX\DEVUAN.EXT2
 ```
 
-This avoids putting the 805 MB `devuan.ext2` as a root-level FATX file during
-Xromwell's first `AUTOBOOT: FatX (E:)` lookup. The nested layout is xemu-proven
-by the `devuan-complete-nested-fatx` screenshot above.
+This avoids putting the 805 MB ext2 image as a root-level FATX file during
+Xromwell's first `AUTOBOOT: FatX (E:)` lookup, while also avoiding nested
+kernel/initrd loads in Xromwell. Xromwell loads the small root-level `devkrnl`
+and `devinit`; Linux then opens `/LINUX/DEVUAN.EXT2` from the mounted FATX
+partition. The current layout is xemu-proven by the
+`devuan-complete-root-kernel-nested-payload` screenshot above.
 
 The ISO profiles do not share this limitation because their `linuxboot.cfg`
 and payload live on the disc image.

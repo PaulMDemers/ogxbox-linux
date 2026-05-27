@@ -310,20 +310,21 @@ and `devuan.ext2` root files but different `linuxboot.cfg` append lines.
 Because Xromwell reads global `E:\linuxboot.cfg`, install one package's
 `E-root\` profile at a time.
 
-The complete desktop softmod package uses a nested dashboard-app layout instead
-of root-level payload files:
+The complete desktop softmod package keeps the launcher in the dashboard app
+folder, but keeps Xromwell's kernel and initrd loads at `E:\` root:
 
 ```text
 E:\Apps\XromwellDevuanDaedalusComplete\default.xbe
-E:\Apps\XromwellDevuanDaedalusComplete\devkrnl
-E:\Apps\XromwellDevuanDaedalusComplete\devinit
-E:\Apps\XromwellDevuanDaedalusComplete\devuan.ext2
 E:\linuxboot.cfg
+E:\devkrnl
+E:\devinit
+E:\LINUX\DEVUAN.EXT2
 ```
 
-The root `linuxboot.cfg` points Xromwell at the nested kernel/initrd and tells
-stage1 to loop-mount the nested `devuan.ext2`. This avoids placing the 805 MB
-complete image in the FATX root directory.
+The root `linuxboot.cfg` points Xromwell at root-level `devkrnl`/`devinit` and
+tells stage1 to loop-mount `/LINUX/DEVUAN.EXT2`. This avoids placing the
+805 MB complete image in the FATX root directory and avoids nested
+kernel/initrd lookup in Xromwell.
 
 The Devuan ISOs use `xbox_payload_source=iso`, so stage1 mounts the ISO itself
 and loop-mounts `devuan.ext2` from the disc image instead of from FATX.
@@ -349,6 +350,7 @@ C:\Users\Paul\Desktop\xbox_linux\run\screenshots\release-devuan-terminal-iso-net
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\release-devuan-desktop-iso-network-20260526-231622.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\release-devuan-complete-network-printwindow-20260526-234850.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-nested-fatx-20260527-011856.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-root-kernel-nested-payload-20260527-013706.png
 ```
 
 The second proof confirms the Devuan desktop still boots after adding

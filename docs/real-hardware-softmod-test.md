@@ -296,18 +296,20 @@ E:\devinit
 E:\devuan.ext2
 ```
 
-For Devuan complete desktop, use the nested package layout instead:
+For Devuan complete desktop, use the split package layout instead:
 
 ```text
 E:\Apps\XromwellDevuanDaedalusComplete\default.xbe
-E:\Apps\XromwellDevuanDaedalusComplete\devkrnl
-E:\Apps\XromwellDevuanDaedalusComplete\devinit
-E:\Apps\XromwellDevuanDaedalusComplete\devuan.ext2
 E:\linuxboot.cfg
+E:\devkrnl
+E:\devinit
+E:\LINUX\DEVUAN.EXT2
 ```
 
-Copy `Apps\XromwellDevuanDaedalusComplete\` to `E:\Apps\`, then copy only
-`E-root\linuxboot.cfg` to `E:\`.
+Copy `Apps\XromwellDevuanDaedalusComplete\` to `E:\Apps\`, then copy the
+contents of `E-root\` to `E:\`. This keeps the huge ext2 image out of the
+FATX root directory while keeping Xromwell's kernel/initrd loads at root,
+which is the hardware-proven path.
 
 Expected Devuan proof markers:
 
