@@ -364,13 +364,14 @@ C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-complete-xromwell-62835f
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\xromwell-linux-only-autoboot-dirty-15s-20260527-141740.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-minimal-linux-only-autoboot-dirty-20260527-141926.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\xromwell-3fa5e65-linux-only-autoboot-15s-20260527-142310.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\xromwell-4dcc618-coalesced-fatxload-12s-20260527-144050.png
 ```
 
 The second proof confirms the Devuan desktop still boots after adding
 `xbox-network-up`. In xemu, `eth0` shows `NO-CARRIER`, so real hardware is the
 meaningful DHCP test.
 
-The May 27 Xromwell refresh now uses `3fa5e65`, which keeps the
+The May 27 Xromwell refresh now uses `4dcc618`, which keeps the
 case-insensitive FATX path lookup and caches lazy FATX chain-map reads in
 4 KiB pages. This targets the real-hardware slowdown after
 `FATX: spc=2 csize=1024 table=1253376` without repeating the failed
@@ -379,10 +380,12 @@ case-insensitive FATX path lookup and caches lazy FATX chain-map reads in
 `linuxboot.cfg` is found, this Xromwell build now returns the Linux config
 immediately instead of probing ReactOS first; the expected follow-up markers
 are `FATX: parsed linuxboot.cfg`, `AUTOBOOT: selected Linux`,
-`FATX: boot open E`, and `FATX: loading kernel /devkrnl`.
+`FATX: boot open E`, and `FATX: loading kernel /devkrnl`. File loads are now
+coalesced into contiguous runs up to 64 KiB and print 64 KiB progress markers
+so stalls during `/devkrnl` or `/devinit` are visible quickly.
 
 The rebuilt minimal Devuan desktop is the performance baseline again. It uses
-the same Xromwell `3fa5e65`, the same stage1 initramfs, and the same 6.18.33
+the same Xromwell `4dcc618`, the same stage1 initramfs, and the same 6.18.33
 FATX kernel, but the smaller 384 MiB root image and flwm desktop. The complete
 desktop remains a heavier experiment until real hardware confirms it boots and
 responds acceptably.

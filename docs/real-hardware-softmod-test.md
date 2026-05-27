@@ -315,12 +315,14 @@ contents of `E-root\` to `E:\`. This keeps the huge ext2 image out of the
 FATX root directory while keeping Xromwell's kernel/initrd loads at root,
 which is the hardware-proven path.
 
-The current Devuan softmod packages use Xromwell `3fa5e65`. Its FATX lookup is
+The current Devuan softmod packages use Xromwell `4dcc618`. Its FATX lookup is
 case-insensitive, and it uses a 4 KiB lazy chain-map page cache for the known
 hardware `FATX: spc=2 csize=1024 table=1253376` case. This avoids both the
 slow one-entry-at-a-time path from `5518ffc` and the whole-table read stall
 seen with `1045ad9`. It also makes FATX autoboot Linux-only after
 `linuxboot.cfg` is found, avoiding the extra ReactOS probe before kernel load.
+File loads are coalesced into contiguous runs up to 64 KiB so 1 KiB-cluster
+upgraded disks do not require one data read per cluster.
 The expected early lines on that disk are:
 
 ```text
@@ -330,6 +332,7 @@ FATX: parsed linuxboot.cfg
 AUTOBOOT: selected Linux
 FATX: boot open E
 FATX: loading kernel /devkrnl
+Loading /devkrnl from FATX ... [65536] [131072] ...
 ```
 
 If it prints `FATX: table read ...` for that same 1.25 MiB table, the old
@@ -368,7 +371,7 @@ as the lead distro package for the next usability pass.
 The terminal, desktop, and complete desktop packages are separate install
 profiles because Xromwell reads the global `E:\linuxboot.cfg`.
 
-Test the `3fa5e65` Devuan desktop package first. It is the current baseline
+Test the `4dcc618` Devuan desktop package first. It is the current baseline
 because xemu reaches X after the cached-page FATX loader. The complete package
 should be tested after the baseline passes; the latest xemu run confirms
 Xromwell passes the FATX stage but the complete root falls back to the console

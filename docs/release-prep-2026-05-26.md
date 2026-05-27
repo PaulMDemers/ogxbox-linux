@@ -123,13 +123,16 @@ C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-minimal-xromwell-62835f4
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\xromwell-linux-only-autoboot-dirty-15s-20260527-141740.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-minimal-linux-only-autoboot-dirty-20260527-141926.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\xromwell-3fa5e65-linux-only-autoboot-15s-20260527-142310.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\xromwell-4dcc618-coalesced-fatxload-12s-20260527-144050.png
 ```
 
 These proofs reach the intended terminal or desktop and show the automatic
 network bring-up path. The emulator reports no carrier for `eth0`, as expected
 for the current xemu network setup.
 
-The `3fa5e65` Linux-only autoboot proof reaches the desktop and shows the new
+The `4dcc618` coalesced FATX loader proof shows the new 64 KiB progress
+markers during `/devkrnl`. The prior `3fa5e65` Linux-only autoboot proof
+reaches the desktop and shows the new
 checkpoint sequence after `linuxboot.cfg`: `FATX: parsed linuxboot.cfg`,
 `AUTOBOOT: selected Linux`, `FATX: boot open E`, and
 `FATX: loading kernel /devkrnl`. The `62835f4` complete run proves Xromwell
@@ -200,7 +203,7 @@ and `devinit`; Linux then opens `/LINUX/DEVUAN.EXT2` from the mounted FATX
 partition. The current layout is xemu-proven by the
 `devuan-complete-fatx-ci-xromwell` screenshot above.
 
-The current softmod zips include Xromwell `3fa5e65`. It keeps
+The current softmod zips include Xromwell `4dcc618`. It keeps
 case-insensitive FATX path matching and replaces the failed eager 1.25 MiB
 table read with a 4 KiB lazy chain-map page cache. This specifically targets
 real Xbox E: partitions like the May 27 hardware photos that reported
@@ -208,8 +211,9 @@ real Xbox E: partitions like the May 27 hardware photos that reported
 time and was slow, while `1045ad9` tried to read the whole table up front and
 stalled before printing `table read`. The expected line on that disk is now
 `FATX: cached lazy table 1253376 page=4096 ...`. After `linuxboot.cfg` is
-found, `3fa5e65` also skips the ReactOS FATX probe and goes straight to the
-Linux loader.
+found, this build skips the ReactOS FATX probe and goes straight to the Linux
+loader. Kernel/initrd file loads are coalesced into contiguous runs up to
+64 KiB and print early progress markers.
 
 If real hardware still stops before Linux, photograph the final `FATX:` line.
 The matching xemu Xromwell proofs for the prior `1045ad9` build reached both
