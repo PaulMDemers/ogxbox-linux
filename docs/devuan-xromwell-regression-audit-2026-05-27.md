@@ -146,19 +146,43 @@ print `found` and then hangs during `/devkrnl`, the table read is not the only
 issue and the old loader behavior is no longer enough with the current E: file
 layout.
 
+Hardware result: the casefold package still stopped at `AUTOBOOT FATX (E:)`.
+That means the case-sensitive name lookup was not the blocker. The next test
+keeps the same `fe80736` lineage and case-insensitive lookup, but skips the old
+full chain-table read during FATX partition open. It reads individual chain
+entries lazily instead.
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\audit\xromwell-fe80736-casefold-lazytable-devuan-daedalus-i386.zip
+SHA256 E8BEB1F2692595FBFBCB3250675BE5989FF878B2EF92A816B790C92DA454B1DE
+Dashboard folder: E:\Apps\XromwellDevuanDaedalusFe80736Lazy\
+```
+
+Expected distinguishing line immediately after `AUTOBOOT FATX (E:)`:
+
+```text
+FATX: open part sector=0x55F400
+FATX: lazy table clusters=... csize=16384 ent=4 table=... cluster1=...
+```
+
+If this gets past `AUTOBOOT FATX (E:)`, the old eager chain-table read is
+confirmed as the hardware hang. If this still shows no `FATX: open part` line,
+the call may be hanging before or during the first FATX header sector read and
+the next target is `BootFromDevice`/IDE instrumentation before
+`OpenFATXPartition`.
+
 ## Test Plan
 
-1. Test `xromwell-fe80736-casefold-devuan-daedalus-i386.zip`.
+1. Test `xromwell-fe80736-casefold-lazytable-devuan-daedalus-i386.zip`.
 
    Delete or overwrite the four root files first, then copy this package's
-   `E-root\` contents to `E:\`. If it boots quickly, the regression is after
-   the original FATX autoboot implementation plus case-insensitive lookup.
+   `E-root\` contents to `E:\`. If it boots quickly, the old eager table read
+   is confirmed as the regression for the old-loader line.
 
-2. If the casefold package hangs before `FATX: detect linux /linuxboot.cfg`,
-   move to a lazy-table rollback package rather than further kernel/initrd
-   changes.
+2. If it hangs before `FATX: open part`, instrument `BootFromDevice` and
+   `BootIdeReadSector` around the first E: header read.
 
-3. If the casefold package prints `found` but hangs during `/devkrnl`, compare
+3. If it prints `lazy table` and `found` but hangs during `/devkrnl`, compare
    the current E: root file copy order and fragmentation against the original
    fast package, then instrument the first kernel file read.
 
