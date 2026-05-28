@@ -554,9 +554,51 @@ FATX: find match xkrnl c=... sz=...
 FATX: fixed found /xkrnl size=... cluster=...
 ```
 
+Hardware result: the static-directory-buffer package reaches lookup, then
+hangs before the full root directory cluster returns:
+
+```text
+FATX: fixed open /xkrnl
+FATX: find scan seek=xkrnl c=1
+FATX: find load c=1
+```
+
+The next package changes the directory lookup to read 512-byte sectors and stop
+as soon as the target entry is found, instead of requiring a full 16 KB root
+cluster read:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\audit\xromwell-3fa5e65-sector512-findsector-devuan-perf1-daedalus-i386.zip
+SHA256 BE0E45F4A59D7EBDAE0DBBD4B293394C919F1B5BBA5179E48A39CAE1BE80934F
+Dashboard folder: E:\Apps\XromwellDevuanFindSectorPerf1\
+XBE SHA256: 0F13CE8D0BA92744AAB5D113BA17976DAD2A6F1EC0D026C0A51338F3E45870A9
+Root files in this package: E:\linuxboot.cfg, E:\xkrnl, E:\xinit, E:\xdevuan.ext2
+```
+
+Expected sector lookup markers:
+
+```text
+FATX: find sec c=1 o=0 ok
+FATX: find sec c=1 o=512 ok
+FATX: find match xkrnl e=... c=... sz=...
+FATX: fixed found /xkrnl size=... cluster=...
+```
+
 ## Test Plan
 
-1. Test the static-directory-buffer lookup package:
+1. Test the sector-at-a-time lookup package:
+
+   ```text
+   C:\Users\Paul\Desktop\xbox_linux\artifacts\audit\xromwell-3fa5e65-sector512-findsector-devuan-perf1-daedalus-i386.zip
+   SHA256 BE0E45F4A59D7EBDAE0DBBD4B293394C919F1B5BBA5179E48A39CAE1BE80934F
+   Dashboard folder: E:\Apps\XromwellDevuanFindSectorPerf1\
+   ```
+
+   Copy every file from its own `E-root` folder. Report the last `FATX: find`
+   or `FATX: fixed` line visible if it hangs.
+
+2. Keep the static-directory-buffer lookup package as the full cluster-read
+   failure checkpoint:
 
    ```text
    C:\Users\Paul\Desktop\xbox_linux\artifacts\audit\xromwell-3fa5e65-sector512-findstatic-devuan-perf1-daedalus-i386.zip
@@ -567,7 +609,7 @@ FATX: fixed found /xkrnl size=... cluster=...
    Copy every file from its own `E-root` folder. Report the last `FATX: find`
    or `FATX: fixed` line visible if it hangs.
 
-2. Keep the phase-trace package as the `fixed open` failure checkpoint:
+3. Keep the phase-trace package as the `fixed open` failure checkpoint:
 
    ```text
    C:\Users\Paul\Desktop\xbox_linux\artifacts\audit\xromwell-3fa5e65-sector512-phasetrace-devuan-perf1-daedalus-i386.zip
@@ -578,7 +620,7 @@ FATX: fixed found /xkrnl size=... cluster=...
    Copy every file from its own `E-root` folder. Report the last `FATX: fixed`
    or `FATX: read` line visible if it hangs.
 
-3. Keep the self-contained perf1 package as the clean failed package:
+4. Keep the self-contained perf1 package as the clean failed package:
 
    ```text
    C:\Users\Paul\Desktop\xbox_linux\artifacts\audit\xromwell-3fa5e65-sector512-devuan-perf1-selfcontained-daedalus-i386.zip
@@ -589,7 +631,7 @@ FATX: fixed found /xkrnl size=... cluster=...
    Copy every file from its own `E-root` folder. Do not pull files from another
    package. For repeatability, follow its `COPY-ORDER.txt`.
 
-4. Keep the full perf1 package as a failed allocation-sensitive probe:
+5. Keep the full perf1 package as a failed allocation-sensitive probe:
 
    ```text
    C:\Users\Paul\Desktop\xbox_linux\artifacts\audit\xromwell-3fa5e65-sector512-devuan-perf1-daedalus-i386.zip
@@ -601,7 +643,7 @@ FATX: fixed found /xkrnl size=... cluster=...
    sector512 package but tell us whether loop read-ahead plus delayed
    diagnostics reduce the black-terminal delay and mouse stalls.
 
-5. Keep the quiet sector512 alternate-filename package as the Xromwell boot
+6. Keep the quiet sector512 alternate-filename package as the Xromwell boot
    success checkpoint:
 
    ```text
@@ -614,15 +656,15 @@ FATX: fixed found /xkrnl size=... cluster=...
    and `E-root\xinit` to `E:\`. Copy `E-root\xdevuan.ext2` after Xromwell proves
    it can load `xkrnl` and `xinit`.
 
-6. Keep the root-scan packages only as diagnostics. Do not promote them into
+7. Keep the root-scan packages only as diagnostics. Do not promote them into
    the release path.
 
-7. If `3fa5e65` also stops at `/devkrnl`, build an instrumented package that
+8. If `3fa5e65` also stops at `/devkrnl`, build an instrumented package that
    prints the physical cluster address and read length before every kernel
    cluster read, then test after deleting and re-copying only `devkrnl` to
    change its FATX placement.
 
-8. Test `xromwell-16788e0-devuan-daedalus-i386.zip` only if the casefold
+9. Test `xromwell-16788e0-devuan-daedalus-i386.zip` only if the casefold
    package reaches config detection.
 
    If `fe80736` boots but `16788e0` hangs, the bug is in the cluster-size,
