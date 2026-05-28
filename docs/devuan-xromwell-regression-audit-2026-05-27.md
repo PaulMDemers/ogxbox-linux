@@ -236,13 +236,44 @@ root files were copied to `E:\` and not only under the dashboard app folder.
 If it finds `linuxboot.cfg` but then misses `devkrnl`, the same root lookup
 fallback needs to cover the kernel/initrd payloads too.
 
+Hardware result: this package prints real E: root entries such as `DATA`,
+`Applications`, `CACHE`, `Backup`, and report files, confirming that Xromwell
+is reading the real root directory and not the dashboard app directory. The
+first package only printed the first eight valid entries from root cluster 1,
+so the screenshot was not a complete directory listing.
+
+A deeper root-scan package was built to make the next result less ambiguous.
+It scans more candidate clusters and prints any filename that looks relevant to
+the boot files (`linux`, `boot`, `cfg`, `devkrnl`, or `devinit`) before falling
+back to a miss summary.
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\audit\xromwell-fe80736-root-deep-devuan-daedalus-i386.zip
+SHA256 7391D599A41B41F2122F701081AF5C76D1359343CBA3DBC93A21E4562E8CB01E
+Dashboard folder: E:\Apps\XromwellDevuanDaedalusFe80736RootDeep\
+```
+
+Expected distinguishing lines:
+
+```text
+FATX: root maybe c... e... linuxboot.cfg ...
+FATX: root scan found linuxboot.cfg ...
+```
+
+If it does not find the config, the miss line now includes the amount of root
+data scanned:
+
+```text
+FATX: root scan missed linuxboot.cfg clusters=... entries=... limit=1024
+```
+
 ## Test Plan
 
-1. Test `xromwell-fe80736-root-scan-devuan-daedalus-i386.zip`.
+1. Test `xromwell-fe80736-root-deep-devuan-daedalus-i386.zip`.
 
    Delete or overwrite the four root files first, then copy this package's
-   `E-root\` contents to `E:\`. Watch for `FATX: root c... e...` lines and
-   photograph them if it still fails.
+   `E-root\` contents to `E:\`. Watch for `FATX: root maybe ...` lines and
+   photograph the final `found` or `missed` line if it still fails.
 
 2. If it hangs before `FATX: open part`, instrument `BootFromDevice` and
    `BootIdeReadSector` around the first E: header read.
