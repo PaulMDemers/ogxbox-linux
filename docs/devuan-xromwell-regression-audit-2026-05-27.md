@@ -613,7 +613,12 @@ FATX: file sec c=28501 o=0 ok
 FATX: file done xkrnl read=2617856
 ```
 
-## Test Plan
+## Probe Test Plan
+
+This probe plan is now superseded for release-prep by the May 28 reset
+baseline below. Keep these packages as diagnostic checkpoints only; do not use
+them as the next normal hardware test unless we deliberately return to loader
+debugging.
 
 1. Test the sector-at-a-time file-load package:
 
@@ -710,7 +715,69 @@ FATX: file done xkrnl read=2617856
    If `fe80736` boots but `16788e0` hangs, the bug is in the cluster-size,
    chain-table, or guarded-chain path before lazy caching was added.
 
-The next code fix should come after this hardware split. The probable fixes are
-either a lazy-table rollback based closer to the fast Devuan build, or
-real-hardware IDE/FATX instrumentation around `OpenFATXPartition` and the first
-`/devkrnl` run.
+## Reset Baseline, May 28
+
+The probe series answered useful questions, but it also created too many
+moving pieces for release prep. The current reset is to stop testing the
+`xkrnl`/`xinit` probe packages as candidate releases and return to the exact
+known-good Devuan desktop artifact line.
+
+What changed across the three important states:
+
+```text
+Earlier snappy Devuan desktop:
+  Package: artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386.zip
+  XBE:     C78475E8713EC694F484C40209966805E9F9CD267E7C2EE6A3B9217E40FE0CD2
+  Kernel:  D3C812196908F8F2CA96C7863184C59C39982E27A2DD1ED6DFF125D5DA9FCAFE devkrnl
+  Initrd:  7CADFFDE0B78BA6C263DAD34B69862642A622A9491AD69B9CCFA1B40C0CF6CCB devinit
+  Rootfs:  5F5DCEC72E2B0762ABF8790B5A58D383F51249AEA317394107BF7F804EAF1EB5 devuan.ext2
+  Config:  BBC6D53EC8A72D2FCC7954610FFFC12D3AE14AE8F10B16958BD9705D2401C631 linuxboot.cfg
+
+Slow/stuttery sector512 success checkpoint:
+  Package: artifacts\audit\xromwell-3fa5e65-sector512-altname-devuan-daedalus-i386.zip
+  XBE:     81B3A6850627A8BEC6FA0D92BB4652400DB3EC863072EAA7351BB159DED0BAFD
+  Kernel:  same kernel bytes, renamed xkrnl
+  Initrd:  same initrd bytes, renamed xinit
+  Rootfs:  same rootfs bytes, renamed xdevuan.ext2
+  Config:  same intent, but points at xkrnl/xinit/xdevuan.ext2
+  Result:  booted on hardware, desktop lagged badly.
+
+Perf/probe line:
+  XBE:     progressively instrumented sector512/findsector/filesector builds
+  Initrd:  changed to performance-probe initrd in perf1 packages
+  Rootfs:  changed to performance-probe rootfs in perf1 packages
+  Config:  added read-ahead and late-diagnostic flags
+  Result:  useful diagnostics, not a stable release baseline.
+```
+
+The restored package is self-contained and intentionally uses the earlier
+snappy line's file names and bytes:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\audit\xromwell-4dcc618-restored-devuan-daedalus-i386.zip
+SHA256 3742B8EAD01EDD5697240B8DD1679A36B6FD83E8A7055901F82A86BE3FC8227A
+Dashboard folder: E:\Apps\XromwellDevuanRestored4dcc618\
+Root files: E:\linuxboot.cfg, E:\devkrnl, E:\devinit, E:\devuan.ext2
+```
+
+xemu proof:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\audit-restored-4dcc618-20260528-130956.png
+```
+
+Result: the restored package reaches the Devuan X desktop in xemu. The terminal
+shows the expected tool list and read-ahead diagnostics. That validates the
+package contents and boot config.
+
+Next hardware step: copy every file from the restored package's own `E-root\`
+folder to `E:\`, launch its `default.xbe`, and report whether it reaches the
+desktop. Do not mix files from the `xkrnl` probe folders into this run. Keep
+the probe zips only as audit checkpoints until we deliberately resume loader
+debugging.
+
+The next code fix should come only after the restored baseline is retested on
+hardware. If the restored baseline is fast again, the probe line should be
+retired. If the restored baseline fails on the current disk layout, the next
+target is a clean-copy/allocation test rather than another mixed-artifact
+package.
