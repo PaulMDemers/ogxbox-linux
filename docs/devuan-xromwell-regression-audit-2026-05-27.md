@@ -296,26 +296,55 @@ baseline should move back to the release Devuan desktop package and the
 4dcc618 Xromwell loader. Treat the fe80736 root-scan builds as throwaway
 diagnostics only.
 
+Hardware result: the 4dcc618 release package is not a clean real-hardware
+baseline on this disk. It finds and parses `linuxboot.cfg`, selects Linux,
+reopens E:, finds `/devkrnl`, then stops here:
+
+```text
+FATX: loading kernel /devkrnl
+Loading /devkrnl from FATX tmp=0x1000000 size=2617856 cluster=1301
+```
+
+No `[65536]` marker appears, so the first coalesced kernel read does not return.
+The next split is `3fa5e65`, which keeps the cached lazy FATX table and direct
+Linux autoboot, but is one commit before `4dcc618` added contiguous 64 KiB file
+read coalescing.
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\audit\xromwell-3fa5e65-devuan-daedalus-i386.zip
+SHA256 ACB91289E87C97909F48F22E56CDE4A7110114E6FADA750973FFF8D2CB1DF325
+Dashboard folder: E:\Apps\XromwellDevuanDaedalus3fa5e65\
+XBE SHA256: FA1D074FC2582DA4E4636783A4A909AA272A3D2C6D5AD4D512CAA0915B7A2284
+```
+
+This package uses the same `devkrnl`, `devinit`, `devuan.ext2`, and
+`linuxboot.cfg` append line as the release package. If it gets past `/devkrnl`,
+`4dcc618`'s coalesced FATX file load is the regression. If it also stops at
+`/devkrnl`, the issue is lower than coalescing: the cached table/file cluster
+read path or the physical placement/fragmentation of `devkrnl` on this E:
+partition.
+
 ## Test Plan
 
-1. Return to the known-snappy release package:
+1. Test the non-coalesced `3fa5e65` package:
 
    ```text
-   C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386.zip
-   SHA256 d1b5024ab4a5910f035a1a632209eac2cdac4d40621b35deb6bc2f308b17f383
-   Dashboard folder: E:\Apps\XromwellDevuanDaedalus\
+   C:\Users\Paul\Desktop\xbox_linux\artifacts\audit\xromwell-3fa5e65-devuan-daedalus-i386.zip
+   SHA256 ACB91289E87C97909F48F22E56CDE4A7110114E6FADA750973FFF8D2CB1DF325
+   Dashboard folder: E:\Apps\XromwellDevuanDaedalus3fa5e65\
    ```
 
    Delete or overwrite the four root files first, then copy this package's
-   `E-root\` contents to `E:\`. This package should be the baseline for the
-   next real-hardware pass.
+   `E-root\` contents to `E:\`. If it prints progress past `/devkrnl`, revert
+   or rewrite 4dcc618 before release.
 
 2. Keep the root-scan packages only as diagnostics. Do not promote them into
    the release path.
 
-3. If the 4dcc618 package still behaves slowly on the same E: layout, the next
-   target is the FATX root directory/file placement and fragmentation on disk,
-   not Devuan package contents.
+3. If `3fa5e65` also stops at `/devkrnl`, build an instrumented package that
+   prints the physical cluster address and read length before every kernel
+   cluster read, then test after deleting and re-copying only `devkrnl` to
+   change its FATX placement.
 
 4. Test `xromwell-16788e0-devuan-daedalus-i386.zip` only if the casefold
    package reaches config detection.
