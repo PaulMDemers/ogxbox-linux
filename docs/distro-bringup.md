@@ -427,8 +427,11 @@ Next Devuan tasks:
 - Run `xbox-perf` on real hardware and compare against Debian and Tiny Core.
 - Confirm DHCP with `xbox-network-up --wait`, then test `ping`, `wget`, `apt`,
   and CA certificates in the live desktop.
-- Build a Devuan rw shell smoke or persistence package using the same safe
-  `xbox-sync-ro` flow that passed under Debian.
+- Continue Devuan persistence work from the new rw shell-smoke package, but do
+  not run it on real hardware yet. xemu writes the persistence marker and
+  normal-use file, the second boot finds both, and the extracted ext2 image
+  passes `e2fsck -fn` after a hard stop. The remaining blocker is that
+  `xbox-sync-ro` still does not reach `XBOX_ROOT_REMOUNT_RO_OK` on Devuan.
 - Consider moving the next memory and disk optimization pass to Devuan first,
   then backport only the useful parts to Debian.
 

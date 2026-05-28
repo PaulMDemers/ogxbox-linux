@@ -69,6 +69,27 @@ The clean-remount pass with `xbox_sync_ro_smoke=1` then reported
 extracted ext2 image completed without bitmap warnings. For rw testing, run
 `xbox-sync-ro` before powering off.
 
+Devuan now has a matching rw shell-smoke packager:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\scripts\package_devuan_daedalus_i386_rw_shell_smoke.ps1
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-rw-shell-smoke.zip
+SHA256 A29A31C259560A147FD9CACED2C4194561C42F3148480DB3BE99D87AD7CB014C
+```
+
+Current Devuan status: xemu writes the marker and normal-use file, the second
+boot finds both, and an extracted `devuan.ext2` passes `e2fsck -fn` after a
+hard stop. The remaining blocker is remount-read-only: `xbox-sync-ro` does not
+yet print `XBOX_ROOT_REMOUNT_RO_OK` on Devuan, so this package is not ready for
+real-hardware rw validation.
+
+Proof screenshots:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-rw-shell-sysrq-syncro-written-20260528-142322.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-rw-shell-sysrq-syncro-present-20260528-142545.png
+```
+
 The safer alternative, if we want persistence before FATX write support, is a
 native Linux partition or another Xbox disk area dedicated to Linux. That avoids
 teaching the kernel to modify FATX, but it is less convenient for the desired

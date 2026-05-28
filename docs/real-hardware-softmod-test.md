@@ -386,6 +386,11 @@ that package folder for this baseline. The `xkrnl`/`xinit` packages in
 `artifacts\audit\` are diagnostic probes and should not be used as release
 baselines.
 
+Hardware network note: the restored Devuan desktop appears to bring networking
+up automatically during boot. Keep `xbox-network-up --wait` as the manual
+verification command, but do not rebuild the baseline just to change network
+bring-up.
+
 Test the `4dcc618` Devuan desktop package first. It is the current baseline
 because xemu reaches X after the cached-page FATX loader. The complete package
 should be tested after the baseline passes; the latest xemu run confirms
@@ -418,9 +423,13 @@ XBOX_NETWORK_DHCP_OK
 If xemu shows `eth0` as `NO-CARRIER`, that is expected for the current emulator
 test setup and does not disprove the real hardware driver path.
 
-Use the shell-only package first for real-hardware rw validation. It writes the
-persistence marker and normal-use file, runs `xbox-sync-ro`, and should report
-`XBOX_ROOT_REMOUNT_RO_OK` before reset or power-off. See:
+The Debian shell-only rw package remains the real-hardware rw validation
+candidate. The Devuan rw shell-smoke package exists now, but it is not
+hardware-safe yet: xemu writes and re-reads the marker files and the extracted
+ext2 image passes `e2fsck -fn`, but `xbox-sync-ro` still does not report
+`XBOX_ROOT_REMOUNT_RO_OK` on Devuan.
+
+For the Debian rw validation flow, see:
 
 ```text
 C:\Users\Paul\Desktop\xbox_linux\docs\real-hardware-rw-smoke-checklist.md

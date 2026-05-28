@@ -146,6 +146,7 @@ DESKTOP=0
 PERSIST_SMOKE=0
 SYNC_RO_SMOKE=0
 DIAG_MODE=early
+NO_EARLY_HELPERS=0
 for arg in $(cat /proc/cmdline 2>/dev/null); do
     case "$arg" in
         xbox_desktop=1) DESKTOP=1 ;;
@@ -154,27 +155,32 @@ for arg in $(cat /proc/cmdline 2>/dev/null); do
         xbox_diag=late) DIAG_MODE=late ;;
         xbox_diag=off) DIAG_MODE=off ;;
         xbox_diag=early) DIAG_MODE=early ;;
+        xbox_no_early_helpers=1) NO_EARLY_HELPERS=1 ;;
     esac
 done
 
 echo
 echo "XBOX_ROOT_INIT_STARTED"
-echo "desktop=$DESKTOP persist_smoke=$PERSIST_SMOKE sync_ro_smoke=$SYNC_RO_SMOKE"
+echo "desktop=$DESKTOP persist_smoke=$PERSIST_SMOKE sync_ro_smoke=$SYNC_RO_SMOKE no_early_helpers=$NO_EARLY_HELPERS"
 echo
 if grep -q 'xbox_init_pause=1' /proc/cmdline 2>/dev/null; then
     echo "xbox_init_pause=1: pausing before early helpers"
     sleep 10
 fi
-echo "Starting early Xbox helpers"
-xbox-storage-tune >/tmp/xbox-storage-tune.log 2>&1 || true
-echo "storage tune: done"
-xbox-network-up --background >/tmp/xbox-network-up-launch.log 2>&1 || true
-echo "network helper: backgrounded"
-if [ "$DIAG_MODE" = "early" ]; then
-    ( xbox-diag >/tmp/xbox-diag.txt 2>&1; echo "diag complete" >/tmp/xbox-diag.done ) &
-    echo "diag helper: backgrounded"
+if [ "$NO_EARLY_HELPERS" = "1" ]; then
+    echo "early helpers: skipped"
 else
-    echo "diag helper: $DIAG_MODE"
+    echo "Starting early Xbox helpers"
+    xbox-storage-tune >/tmp/xbox-storage-tune.log 2>&1 || true
+    echo "storage tune: done"
+    xbox-network-up --background >/tmp/xbox-network-up-launch.log 2>&1 || true
+    echo "network helper: backgrounded"
+    if [ "$DIAG_MODE" = "early" ]; then
+        ( xbox-diag >/tmp/xbox-diag.txt 2>&1; echo "diag complete" >/tmp/xbox-diag.done ) &
+        echo "diag helper: backgrounded"
+    else
+        echo "diag helper: $DIAG_MODE"
+    fi
 fi
 
 if [ "$PERSIST_SMOKE" = "1" ] && [ -x /usr/local/bin/xbox-persist-smoke ]; then
@@ -510,7 +516,28 @@ export PATH=/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/sbin:/usr/local/bin
 echo "syncing filesystems"
 sync
 echo "remounting / read-only"
-if mount -o remount,ro /; then
+ROOT_DEV="$(awk '$2 == "/" { print $1; exit }' /proc/mounts 2>/dev/null)"
+if [ -w /proc/sysrq-trigger ]; then
+    echo 1 > /proc/sys/kernel/sysrq 2>/dev/null || true
+    echo u > /proc/sysrq-trigger 2>/dev/null || true
+    sleep 2
+    if awk '$2 == "/" && $4 ~ /(^|,)ro(,|$)/ { found=1 } END { exit found ? 0 : 1 }' /proc/mounts 2>/dev/null; then
+        echo "XBOX_ROOT_REMOUNT_RO_OK"
+        echo "It is now safer to power off or reset."
+        exit 0
+    fi
+fi
+if [ -n "$ROOT_DEV" ] && [ -x /bin/busybox ] && /bin/busybox mount -o remount,ro "$ROOT_DEV" /; then
+    echo "XBOX_ROOT_REMOUNT_RO_OK"
+    echo "It is now safer to power off or reset."
+    exit 0
+fi
+if [ -n "$ROOT_DEV" ] && mount -n -o remount,ro "$ROOT_DEV" /; then
+    echo "XBOX_ROOT_REMOUNT_RO_OK"
+    echo "It is now safer to power off or reset."
+    exit 0
+fi
+if mount -n -o remount,ro /; then
     echo "XBOX_ROOT_REMOUNT_RO_OK"
     echo "It is now safer to power off or reset."
     exit 0
