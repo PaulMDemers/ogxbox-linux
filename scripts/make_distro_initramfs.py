@@ -25,6 +25,8 @@ ROOT_MODE=ro
 E_PARTITION_OFFSET=2884108288
 CHROOT_PROOF=0
 PAYLOAD_SOURCE=fatx
+FATX_LOOP_READ_AHEAD_KB=
+ROOT_LOOP_READ_AHEAD_KB=
 
 for arg in $(cat /proc/cmdline 2>/dev/null); do
     case "$arg" in
@@ -40,6 +42,8 @@ for arg in $(cat /proc/cmdline 2>/dev/null); do
         xbox_root_mode=ro) ROOT_MODE=ro ;;
         xbox_fatx_e_offset=*) E_PARTITION_OFFSET="${arg#xbox_fatx_e_offset=}" ;;
         xbox_chroot_proof=1) CHROOT_PROOF=1 ;;
+        xbox_fatx_loop_readahead_kb=*) FATX_LOOP_READ_AHEAD_KB="${arg#xbox_fatx_loop_readahead_kb=}" ;;
+        xbox_loop_readahead_kb=*) ROOT_LOOP_READ_AHEAD_KB="${arg#xbox_loop_readahead_kb=}" ;;
     esac
 done
 
@@ -52,6 +56,21 @@ echo "payload source: $PAYLOAD_SOURCE"
 echo "fatx mode: $FATX_MODE"
 echo "root mode: $ROOT_MODE"
 echo
+
+tune_readahead() {
+    dev="$1"
+    kb="$2"
+    [ -n "$kb" ] || return 0
+    case "$kb" in
+        *[!0-9]*|"") return 0 ;;
+    esac
+    base="$(basename "$dev")"
+    q="/sys/block/$base/queue/read_ahead_kb"
+    if [ -w "$q" ]; then
+        echo "$kb" > "$q" 2>/dev/null || true
+        echo "read_ahead_kb $base=$kb"
+    fi
+}
 
 if [ "$PAYLOAD_SOURCE" = "iso" ]; then
     if [ -z "$PAYLOAD_DISK" ]; then
@@ -105,6 +124,7 @@ else
         cat /tmp/fatx-losetup.err 2>/dev/null || true
         exec setsid cttyhack sh
     fi
+    tune_readahead /dev/loop0 "$FATX_LOOP_READ_AHEAD_KB"
 
     if ! /bin/busybox mount -t fatx -o "$FATX_MODE" /dev/loop0 /mnt/xboxe 2>/tmp/fatx-mount.err; then
         echo "FATX mount failed:"
@@ -128,6 +148,7 @@ if ! /bin/busybox losetup /dev/loop1 "$ROOT_IMAGE" 2>/tmp/root-losetup.err; then
     cat /tmp/root-losetup.err 2>/dev/null || true
     exec setsid cttyhack sh
 fi
+tune_readahead /dev/loop1 "$ROOT_LOOP_READ_AHEAD_KB"
 
 if ! /bin/busybox mount -t "$ROOT_FSTYPE" -o "$ROOT_MODE" /dev/loop1 /mnt/root 2>/tmp/root-mount.err; then
     echo "Root image mount failed:"

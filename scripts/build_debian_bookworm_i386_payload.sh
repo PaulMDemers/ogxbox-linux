@@ -145,11 +145,15 @@ export HOME=/root
 DESKTOP=0
 PERSIST_SMOKE=0
 SYNC_RO_SMOKE=0
+DIAG_MODE=early
 for arg in $(cat /proc/cmdline 2>/dev/null); do
     case "$arg" in
         xbox_desktop=1) DESKTOP=1 ;;
         xbox_persist_smoke=1) PERSIST_SMOKE=1 ;;
         xbox_sync_ro_smoke=1) SYNC_RO_SMOKE=1 ;;
+        xbox_diag=late) DIAG_MODE=late ;;
+        xbox_diag=off) DIAG_MODE=off ;;
+        xbox_diag=early) DIAG_MODE=early ;;
     esac
 done
 
@@ -166,8 +170,12 @@ xbox-storage-tune >/tmp/xbox-storage-tune.log 2>&1 || true
 echo "storage tune: done"
 xbox-network-up --background >/tmp/xbox-network-up-launch.log 2>&1 || true
 echo "network helper: backgrounded"
-( xbox-diag >/tmp/xbox-diag.txt 2>&1; echo "diag complete" >/tmp/xbox-diag.done ) &
-echo "diag helper: backgrounded"
+if [ "$DIAG_MODE" = "early" ]; then
+    ( xbox-diag >/tmp/xbox-diag.txt 2>&1; echo "diag complete" >/tmp/xbox-diag.done ) &
+    echo "diag helper: backgrounded"
+else
+    echo "diag helper: $DIAG_MODE"
+fi
 
 if [ "$PERSIST_SMOKE" = "1" ] && [ -x /usr/local/bin/xbox-persist-smoke ]; then
     echo "persistence smoke: running"
@@ -564,6 +572,22 @@ cat > "$ROOT/usr/local/bin/xbox-xsession" <<'EOF'
 export HOME="${HOME:-/tmp/root-home}"
 mkdir -p "$HOME"
 
+TERMINAL_LIGHT=0
+DIAG_MODE=early
+for arg in $(cat /proc/cmdline 2>/dev/null); do
+    case "$arg" in
+        xbox_terminal_light=1) TERMINAL_LIGHT=1 ;;
+        xbox_diag=late) DIAG_MODE=late ;;
+        xbox_diag=off) DIAG_MODE=off ;;
+        xbox_diag=early) DIAG_MODE=early ;;
+    esac
+done
+
+start_late_diag() {
+    [ "$DIAG_MODE" = "late" ] || return 0
+    ( sleep 8; xbox-diag >/tmp/xbox-diag.txt 2>&1; echo "diag complete" >/tmp/xbox-diag.done ) &
+}
+
 cat > "$HOME/.jwmrc" <<'EORC'
 <?xml version="1.0"?>
 <JWM>
@@ -601,11 +625,21 @@ EORC
 
 xsetroot -solid '#1f3f4f' 2>/dev/null || true
 if [ -f /etc/xbox-complete-profile ] && command -v jwm >/dev/null 2>&1 && command -v aterm >/dev/null 2>&1; then
-    aterm -fn fixed -fg white -bg black -geometry 78x24+20+32 -title "Xbox Devuan Complete" -e /bin/sh -lc 'echo XBOX_DEVUAN_COMPLETE_DESKTOP_OK; uname -a; echo; cat /etc/os-release 2>/dev/null | sed -n "1,4p"; echo; echo apps: dillo links2 xfe mc mtpaint gpicview xpdf wordgrinder sc; echo tools: ping wget curl rsync ssh ftp nc apt xbox-perf xbox-sync-ro xbox-network-up; echo; echo network:; ip addr show dev eth0 2>/dev/null || true; grep -E "XBOX_NETWORK_(DHCP_OK|DHCP_FAILED|NO_ETH0)" /tmp/xbox-network-up.txt 2>/dev/null || true; echo; echo right-click desktop for app menu; echo diag: /tmp/xbox-diag.txt; echo network log: /tmp/xbox-network-up.txt; exec /bin/sh -i' >/tmp/aterm.log 2>&1 &
+    if [ "$TERMINAL_LIGHT" = "1" ]; then
+        aterm -fn fixed -fg white -bg black -geometry 78x24+20+32 -title "Xbox Devuan Complete" -e /bin/sh -lc 'echo XBOX_DEVUAN_COMPLETE_DESKTOP_OK; echo tools: xbox-perf xbox-sync-ro xbox-network-up; echo logs: /tmp/xbox-diag.txt /tmp/xbox-network-up.txt; exec /bin/sh -i' >/tmp/aterm.log 2>&1 &
+    else
+        aterm -fn fixed -fg white -bg black -geometry 78x24+20+32 -title "Xbox Devuan Complete" -e /bin/sh -lc 'echo XBOX_DEVUAN_COMPLETE_DESKTOP_OK; uname -a; echo; cat /etc/os-release 2>/dev/null | sed -n "1,4p"; echo; echo apps: dillo links2 xfe mc mtpaint gpicview xpdf wordgrinder sc; echo tools: ping wget curl rsync ssh ftp nc apt xbox-perf xbox-sync-ro xbox-network-up; echo; echo network:; ip addr show dev eth0 2>/dev/null || true; grep -E "XBOX_NETWORK_(DHCP_OK|DHCP_FAILED|NO_ETH0)" /tmp/xbox-network-up.txt 2>/dev/null || true; echo; echo right-click desktop for app menu; echo diag: /tmp/xbox-diag.txt; echo network log: /tmp/xbox-network-up.txt; exec /bin/sh -i' >/tmp/aterm.log 2>&1 &
+    fi
+    start_late_diag
     exec jwm
 fi
 if command -v flwm_topside >/dev/null 2>&1 && command -v aterm >/dev/null 2>&1; then
-    aterm -fn fixed -fg white -bg black -geometry 78x24+20+32 -title "Xbox Debian" -e /bin/sh -lc 'echo XBOX_DEBIAN_X_DESKTOP_OK; uname -a; echo; echo memory:; grep -E "MemTotal|MemFree|MemAvailable|Buffers|Cached|SwapTotal|SwapFree" /proc/meminfo 2>/dev/null; echo; echo tools: ping wget apt xbox-perf xbox-sync-ro xbox-network-up; echo; echo network:; ip addr show dev eth0 2>/dev/null || true; grep -E "XBOX_NETWORK_(DHCP_OK|DHCP_FAILED|NO_ETH0)" /tmp/xbox-network-up.txt 2>/dev/null || true; echo; echo read-ahead:; grep read_ahead_kb /tmp/xbox-diag.txt 2>/dev/null || true; echo; if [ -s /tmp/xbox-persist-smoke.txt ]; then echo persistence:; grep -E "XBOX_(PERSIST_MARKER|NORMAL_USE_FILE)_(WRITTEN|PRESENT|WRITE_FAILED|RENAME_FAILED|20260526)" /tmp/xbox-persist-smoke.txt 2>/dev/null || tail -10 /tmp/xbox-persist-smoke.txt; echo; fi; if [ -s /tmp/xbox-sync-ro.txt ]; then echo sync-ro:; grep -E "XBOX_ROOT_REMOUNT_RO_(OK|FAILED)" /tmp/xbox-sync-ro.txt 2>/dev/null || cat /tmp/xbox-sync-ro.txt; echo; fi; echo diag: /tmp/xbox-diag.txt; echo network log: /tmp/xbox-network-up.txt; exec /bin/sh -i' >/tmp/aterm.log 2>&1 &
+    if [ "$TERMINAL_LIGHT" = "1" ]; then
+        aterm -fn fixed -fg white -bg black -geometry 78x24+20+32 -title "Xbox Debian" -e /bin/sh -lc 'echo XBOX_DEBIAN_X_DESKTOP_OK; echo tools: ping wget apt xbox-perf xbox-sync-ro xbox-network-up; echo logs: /tmp/xbox-diag.txt /tmp/xbox-network-up.txt; exec /bin/sh -i' >/tmp/aterm.log 2>&1 &
+    else
+        aterm -fn fixed -fg white -bg black -geometry 78x24+20+32 -title "Xbox Debian" -e /bin/sh -lc 'echo XBOX_DEBIAN_X_DESKTOP_OK; uname -a; echo; echo memory:; grep -E "MemTotal|MemFree|MemAvailable|Buffers|Cached|SwapTotal|SwapFree" /proc/meminfo 2>/dev/null; echo; echo tools: ping wget apt xbox-perf xbox-sync-ro xbox-network-up; echo; echo network:; ip addr show dev eth0 2>/dev/null || true; grep -E "XBOX_NETWORK_(DHCP_OK|DHCP_FAILED|NO_ETH0)" /tmp/xbox-network-up.txt 2>/dev/null || true; echo; echo read-ahead:; grep read_ahead_kb /tmp/xbox-diag.txt 2>/dev/null || true; echo; if [ -s /tmp/xbox-persist-smoke.txt ]; then echo persistence:; grep -E "XBOX_(PERSIST_MARKER|NORMAL_USE_FILE)_(WRITTEN|PRESENT|WRITE_FAILED|RENAME_FAILED|20260526)" /tmp/xbox-persist-smoke.txt 2>/dev/null || tail -10 /tmp/xbox-persist-smoke.txt; echo; fi; if [ -s /tmp/xbox-sync-ro.txt ]; then echo sync-ro:; grep -E "XBOX_ROOT_REMOUNT_RO_(OK|FAILED)" /tmp/xbox-sync-ro.txt 2>/dev/null || cat /tmp/xbox-sync-ro.txt; echo; fi; echo diag: /tmp/xbox-diag.txt; echo network log: /tmp/xbox-network-up.txt; exec /bin/sh -i' >/tmp/aterm.log 2>&1 &
+    fi
+    start_late_diag
     exec flwm_topside
 fi
 xterm -geometry 78x24+20+32 -title "Xbox Debian" -e /bin/sh -lc 'echo XBOX_DEBIAN_X_DESKTOP_OK; uname -a; exec /bin/sh -i' &

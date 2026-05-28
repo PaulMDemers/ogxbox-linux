@@ -421,9 +421,64 @@ it still hangs on the first `xkrnl` line, the problem is lower than request
 size and the next target is IDE status/timeout instrumentation around that
 absolute sector.
 
+Hardware result: the quiet sector512 package boots through Xromwell and reaches
+the Devuan desktop on real hardware. Boot speed is reasonable. Once X starts,
+the desktop is usable but very slow: mouse input works, then periodically lags,
+and the first terminal window remains a black square longer than expected
+before painting.
+
+That moves the active problem from Xromwell's pre-kernel FATX loader to runtime
+I/O or early-desktop contention. The root filesystem is still an ext2 image
+loop-mounted through the Linux FATX driver from E:, so slow or under-read-ahead
+loopback reads can stall userspace after X starts.
+
+A performance probe package was built from the same successful sector512
+Xromwell XBE. It adds opt-in stage1/root settings:
+
+- set read-ahead on `/dev/loop0`, the FATX E: loop device;
+- set read-ahead on `/dev/loop1`, the ext2 root image loop device;
+- delay the verbose `xbox-diag` helper until after the desktop has had time to
+  paint;
+- use a lighter initial terminal command so the window appears faster.
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\audit\xromwell-3fa5e65-sector512-devuan-perf1-daedalus-i386.zip
+SHA256 25B51D19096033D8004BAE0E935877D6AE72BEB33E6D55A791423584232C6F75
+Dashboard folder: E:\Apps\XromwellDevuanPerf1\
+XBE SHA256: 81B3A6850627A8BEC6FA0D92BB4652400DB3EC863072EAA7351BB159DED0BAFD
+Initramfs SHA256: 648AE901C0BD15744F885687343FDA3118C4C3495E3E89DD5B7DEB62DAD31C50
+Payload SHA256: 6C1A8D3D47BBD151DED8002F5175B98B5594929F8DC1C6BA16965E313D1E7F22
+Root files: E:\linuxboot.cfg, E:\xkrnl, E:\xinit, E:\xdevuan.ext2
+```
+
+The package append line adds:
+
+```text
+xbox_fatx_loop_readahead_kb=1024 xbox_loop_readahead_kb=1024 xbox_diag=late xbox_terminal_light=1
+```
+
+The generated ext2 image passed `e2fsck -fn`:
+
+```text
+artifacts/hdd/xbox-devuan-daedalus-i386-perf1.ext2: 9701/98304 files (0.1% non-contiguous), 71165/98304 blocks
+```
+
 ## Test Plan
 
-1. Test the quiet sector512 alternate-filename package:
+1. Test the perf1 sector512 Devuan desktop package:
+
+   ```text
+   C:\Users\Paul\Desktop\xbox_linux\artifacts\audit\xromwell-3fa5e65-sector512-devuan-perf1-daedalus-i386.zip
+   SHA256 25B51D19096033D8004BAE0E935877D6AE72BEB33E6D55A791423584232C6F75
+   Dashboard folder: E:\Apps\XromwellDevuanPerf1\
+   ```
+
+   This is the current best next test. It should boot like the successful
+   sector512 package but tell us whether loop read-ahead plus delayed
+   diagnostics reduce the black-terminal delay and mouse stalls.
+
+2. Keep the quiet sector512 alternate-filename package as the Xromwell boot
+   success checkpoint:
 
    ```text
    C:\Users\Paul\Desktop\xbox_linux\artifacts\audit\xromwell-3fa5e65-sector512-altname-devuan-daedalus-i386.zip
@@ -435,15 +490,15 @@ absolute sector.
    and `E-root\xinit` to `E:\`. Copy `E-root\xdevuan.ext2` after Xromwell proves
    it can load `xkrnl` and `xinit`.
 
-2. Keep the root-scan packages only as diagnostics. Do not promote them into
+3. Keep the root-scan packages only as diagnostics. Do not promote them into
    the release path.
 
-3. If `3fa5e65` also stops at `/devkrnl`, build an instrumented package that
+4. If `3fa5e65` also stops at `/devkrnl`, build an instrumented package that
    prints the physical cluster address and read length before every kernel
    cluster read, then test after deleting and re-copying only `devkrnl` to
    change its FATX placement.
 
-4. Test `xromwell-16788e0-devuan-daedalus-i386.zip` only if the casefold
+5. Test `xromwell-16788e0-devuan-daedalus-i386.zip` only if the casefold
    package reaches config detection.
 
    If `fe80736` boots but `16788e0` hangs, the bug is in the cluster-size,

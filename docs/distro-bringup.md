@@ -410,6 +410,14 @@ XBOX_DEVUAN_COMPLETE_DESKTOP_OK
 
 Next Devuan tasks:
 
+- Test the `perf1` Devuan package, which keeps the successful sector512
+  Xromwell loader but sets loop read-ahead, delays `xbox-diag`, and uses a
+  lighter first terminal:
+
+  ```text
+  C:\Users\Paul\Desktop\xbox_linux\artifacts\audit\xromwell-3fa5e65-sector512-devuan-perf1-daedalus-i386.zip
+  ```
+
 - Run `xbox-perf` on real hardware and compare against Debian and Tiny Core.
 - Confirm DHCP with `xbox-network-up --wait`, then test `ping`, `wget`, `apt`,
   and CA certificates in the live desktop.
