@@ -410,13 +410,12 @@ XBOX_DEVUAN_COMPLETE_DESKTOP_OK
 
 Next Devuan tasks:
 
-- Test the sector-at-a-time Xromwell lookup package. The static-buffer package
-  reached `FATX: find load c=1` and then hung before the whole root directory
-  cluster returned, so this package reads directory sectors individually and
-  stops as soon as `xkrnl` is found:
+- Test the sector-at-a-time Xromwell file-load package. The lookup package
+  now finds `/xkrnl` and enters the old full-cluster kernel read path, so this
+  package applies 512-byte reads to `/xkrnl` and `/xinit` loading too:
 
   ```text
-  C:\Users\Paul\Desktop\xbox_linux\artifacts\audit\xromwell-3fa5e65-sector512-findsector-devuan-perf1-daedalus-i386.zip
+  C:\Users\Paul\Desktop\xbox_linux\artifacts\audit\xromwell-3fa5e65-sector512-filesector-devuan-perf1-daedalus-i386.zip
   ```
 
 - Run `xbox-perf` on real hardware and compare against Debian and Tiny Core.
