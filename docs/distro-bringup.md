@@ -433,6 +433,8 @@ Next Devuan tasks:
 
   It reconstructs the hardware-passed line and is the reset path after rw or
   diagnostic package tests.
+  Real hardware result, May 28, 2026: this rebuilt baseline booted and works
+  well. Treat it as the Devuan desktop release candidate.
 - Do not let rw experiments overwrite the release files. The Devuan rw smoke
   package now uses `rwkrnl`, `rwinit`, and `rwdevuan.ext2`; only
   `linuxboot.cfg` is intentionally shared because Xromwell reads it from E:\.

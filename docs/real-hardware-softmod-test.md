@@ -65,6 +65,16 @@ Additional hardware results from May 26, 2026:
   have continued booting. Shelve the HDTV path for now and keep AV/composite as
   the reliable hardware test path.
 
+Additional hardware results from May 28, 2026:
+
+- The rebuilt Devuan release-baseline package boots on the softmodded Xbox and
+  works well. Treat this package as the Devuan desktop release candidate:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-release-baseline.zip
+SHA256 9C0A2362A6E4317DC6BEEB6651E9FD10AD09E029C7CD33D24BF5C0F61DB94D65
+```
+
 The May 25 refresh adds:
 
 - a FATX contiguous-file read fast path in the 6.18 kernel for the `linuxroot.ext2` loop image
@@ -80,10 +90,12 @@ The May 25 refresh adds:
 
 Verify these on real hardware when the Xbox is available:
 
-- Release sweep package set from May 26, 2026. See:
+- First release-candidate package set:
 
 ```text
-C:\Users\Paul\Desktop\xbox_linux\docs\release-sweep-2026-05-26.md
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-tinycore-lean.zip
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-terminal.zip
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-release-baseline.zip
 ```
 
 - RW shell smoke package on AV/composite: first boot writes both marker files,

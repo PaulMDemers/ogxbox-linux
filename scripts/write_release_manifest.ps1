@@ -4,11 +4,9 @@ param(
         "artifacts\cromwell-tinycore11-stage6-xfbdev-desktop-6.18.33.iso",
         "artifacts\cromwell-devuan-daedalus-i386-terminal.iso",
         "artifacts\cromwell-devuan-daedalus-i386-desktop.iso",
-        "artifacts\cromwell-devuan-daedalus-i386-complete.iso",
         "artifacts\softmod\xromwell-hddfatx-tinycore-lean.zip",
         "artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-terminal.zip",
-        "artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386.zip",
-        "artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-complete.zip"
+        "artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-release-baseline.zip"
     )
 )
 
