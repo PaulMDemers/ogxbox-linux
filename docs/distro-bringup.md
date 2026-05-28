@@ -424,6 +424,18 @@ Next Devuan tasks:
   the baseline for network, persistence, and desktop usability work. Do not mix
   `devkrnl`/`devinit`/`devuan.ext2` files from the `xkrnl` probe packages.
 
+- For release-prep copying, prefer the rebuilt release-baseline package:
+
+  ```text
+  C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-release-baseline.zip
+  SHA256 9C0A2362A6E4317DC6BEEB6651E9FD10AD09E029C7CD33D24BF5C0F61DB94D65
+  ```
+
+  It reconstructs the hardware-passed line and is the reset path after rw or
+  diagnostic package tests.
+- Do not let rw experiments overwrite the release files. The Devuan rw smoke
+  package now uses `rwkrnl`, `rwinit`, and `rwdevuan.ext2`; only
+  `linuxboot.cfg` is intentionally shared because Xromwell reads it from E:\.
 - Run `xbox-perf` on real hardware and compare against Debian and Tiny Core.
 - Confirm DHCP with `xbox-network-up --wait`, then test `ping`, `wget`, `apt`,
   and CA certificates in the live desktop.

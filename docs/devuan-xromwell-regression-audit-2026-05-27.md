@@ -778,3 +778,60 @@ loader debugging. The `xkrnl`/`xinit` line should not feed release-prep work.
 Future network, persistence, and desktop performance work should build from
 the restored `4dcc618`/`devkrnl`/`devinit`/`devuan.ext2` package unless a new
 hardware result gives us a reason to move again.
+
+## May 28 rw-smoke contamination checkpoint
+
+After the restored package passed hardware, the first Devuan rw shell-smoke
+package reused the release root filenames:
+
+```text
+E:\linuxboot.cfg
+E:\devkrnl
+E:\devinit
+E:\devuan.ext2
+```
+
+That package intentionally used the experimental FATX rw kernel, so copying it
+overwrote the hardware-good `devkrnl` bytes:
+
+```text
+Hardware-good devkrnl:
+  D3C812196908F8F2CA96C7863184C59C39982E27A2DD1ED6DFF125D5DA9FCAFE
+
+Experimental rw devkrnl:
+  0AC26C6FB52F89503DE2E7ADAD65DC856A12A06B13D51F9AC430B7CE9AB40546
+```
+
+The hardware then stopped again before Linux took control:
+
+```text
+FATX: loading kernel /devkrnl
+Loading /devkrnl from FATX tmp=0x1000000 size=2617856 cluster=3816
+```
+
+Treat this as a packaging/isolation failure first, not a Devuan userspace
+regression. The fix is to keep the restored release line and all experimental
+rw/probe lines in distinct root filenames.
+
+New release reset package:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-release-baseline.zip
+SHA256 9C0A2362A6E4317DC6BEEB6651E9FD10AD09E029C7CD33D24BF5C0F61DB94D65
+Dashboard folder: E:\Apps\XromwellDevuanRestored4dcc618\
+Root files: E:\linuxboot.cfg, E:\devkrnl, E:\devinit, E:\devuan.ext2
+```
+
+New isolated rw shell-smoke package:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-rw-shell-smoke.zip
+SHA256 CBF90C1F12253FCA4BA4777AAA350FC81803A0CBA0ACF7EE744C1E3BF319F499
+Dashboard folder: E:\Apps\XromwellDevuanRwShellSmoke\
+Root files: E:\linuxboot.cfg, E:\rwkrnl, E:\rwinit, E:\rwdevuan.ext2
+```
+
+`linuxboot.cfg` remains global because Xromwell reads it from E:\. That file is
+the only expected overlap. Restore the release-baseline `E-root\` to return to
+the hardware-passed desktop; install the rw smoke `E-root\` only when
+deliberately testing persistence.

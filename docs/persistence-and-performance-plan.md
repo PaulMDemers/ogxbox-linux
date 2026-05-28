@@ -74,7 +74,7 @@ Devuan now has a matching rw shell-smoke packager:
 ```text
 C:\Users\Paul\Desktop\xbox_linux\scripts\package_devuan_daedalus_i386_rw_shell_smoke.ps1
 C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-rw-shell-smoke.zip
-SHA256 A29A31C259560A147FD9CACED2C4194561C42F3148480DB3BE99D87AD7CB014C
+SHA256 CBF90C1F12253FCA4BA4777AAA350FC81803A0CBA0ACF7EE744C1E3BF319F499
 ```
 
 Current Devuan status: xemu writes the marker and normal-use file, the second
@@ -82,6 +82,18 @@ boot finds both, and an extracted `devuan.ext2` passes `e2fsck -fn` after a
 hard stop. The remaining blocker is remount-read-only: `xbox-sync-ro` does not
 yet print `XBOX_ROOT_REMOUNT_RO_OK` on Devuan, so this package is not ready for
 real-hardware rw validation.
+
+The package now uses isolated root filenames so it cannot overwrite the
+hardware-passed Devuan release files:
+
+```text
+E:\rwkrnl
+E:\rwinit
+E:\rwdevuan.ext2
+```
+
+`linuxboot.cfg` is still global and must be restored from the release-baseline
+package to return to the normal Devuan desktop profile.
 
 Proof screenshots:
 

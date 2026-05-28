@@ -381,10 +381,32 @@ Dashboard folder: E:\Apps\XromwellDevuanRestored4dcc618\
 Root files: E:\linuxboot.cfg, E:\devkrnl, E:\devinit, E:\devuan.ext2
 ```
 
+For normal testing and release prep, use the rebuilt baseline package instead
+of copying directly from `artifacts\audit\`:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-release-baseline.zip
+SHA256 9C0A2362A6E4317DC6BEEB6651E9FD10AD09E029C7CD33D24BF5C0F61DB94D65
+Dashboard folder: E:\Apps\XromwellDevuanRestored4dcc618\
+Root files: E:\linuxboot.cfg, E:\devkrnl, E:\devinit, E:\devuan.ext2
+```
+
 Real hardware result: booted and appears to work well. Copy only files from
 that package folder for this baseline. The `xkrnl`/`xinit` packages in
 `artifacts\audit\` are diagnostic probes and should not be used as release
 baselines.
+
+The Devuan rw smoke package now uses isolated filenames:
+
+```text
+E:\rwkrnl
+E:\rwinit
+E:\rwdevuan.ext2
+```
+
+That prevents it from overwriting the hardware-passed release kernel and root
+image. `linuxboot.cfg` is still the active global profile; restore it from the
+release-baseline package after any rw smoke test.
 
 Hardware network note: the restored Devuan desktop appears to bring networking
 up automatically during boot. Keep `xbox-network-up --wait` as the manual
