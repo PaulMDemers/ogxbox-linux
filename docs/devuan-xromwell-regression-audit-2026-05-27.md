@@ -493,9 +493,53 @@ a clean-copy order. If it still hangs at `/xkrnl` after copying from a clean E:
 root, the loader needs a stronger real-hardware fix than the current 512-byte
 cap.
 
+Hardware result: the self-contained `perf1` package still hangs at the same
+point while loading `/xkrnl`. That rules out cross-package artifact smearing
+and makes this a Xromwell FATX loader issue on real hardware.
+
+A phase-trace package was built from the same sector512 lineage. It is
+self-contained and adds markers around the fixed FATX file-load path so the
+next hardware photo can show the exact failing phase:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\audit\xromwell-3fa5e65-sector512-phasetrace-devuan-perf1-daedalus-i386.zip
+SHA256 5526F7EC1E357CA1024E3198DF787E6AA940966E26C74A5FCCCF0BC9824B1529
+Dashboard folder: E:\Apps\XromwellDevuanPhaseTracePerf1\
+XBE SHA256: D2518C4EB83140C977B2D9F67920F871CB6A9B9A0BF91E66239ABAAC178AB49F
+Root files in this package: E:\linuxboot.cfg, E:\xkrnl, E:\xinit, E:\xdevuan.ext2
+```
+
+Expected phase markers:
+
+```text
+FATX: fixed open /xkrnl
+FATX: fixed found /xkrnl size=... cluster=...
+FATX: read xkrnl c=... abs=...
+FATX: fixed loaded /xkrnl read=...
+```
+
+The last visible marker tells us whether the hang is in root lookup,
+chain-table/root-directory reads, the first raw sector read, or the post-read
+file copy. The Cromwell source for this diagnostic is preserved on:
+
+```text
+PaulMDemers/cromwell.git codex/sector512-phasetrace @ 9fc54d0
+```
+
 ## Test Plan
 
-1. Test the self-contained perf1 package:
+1. Test the phase-trace package:
+
+   ```text
+   C:\Users\Paul\Desktop\xbox_linux\artifacts\audit\xromwell-3fa5e65-sector512-phasetrace-devuan-perf1-daedalus-i386.zip
+   SHA256 5526F7EC1E357CA1024E3198DF787E6AA940966E26C74A5FCCCF0BC9824B1529
+   Dashboard folder: E:\Apps\XromwellDevuanPhaseTracePerf1\
+   ```
+
+   Copy every file from its own `E-root` folder. Report the last `FATX: fixed`
+   or `FATX: read` line visible if it hangs.
+
+2. Keep the self-contained perf1 package as the clean failed package:
 
    ```text
    C:\Users\Paul\Desktop\xbox_linux\artifacts\audit\xromwell-3fa5e65-sector512-devuan-perf1-selfcontained-daedalus-i386.zip
@@ -506,7 +550,7 @@ cap.
    Copy every file from its own `E-root` folder. Do not pull files from another
    package. For repeatability, follow its `COPY-ORDER.txt`.
 
-2. Keep the full perf1 package as a failed allocation-sensitive probe:
+3. Keep the full perf1 package as a failed allocation-sensitive probe:
 
    ```text
    C:\Users\Paul\Desktop\xbox_linux\artifacts\audit\xromwell-3fa5e65-sector512-devuan-perf1-daedalus-i386.zip
@@ -518,7 +562,7 @@ cap.
    sector512 package but tell us whether loop read-ahead plus delayed
    diagnostics reduce the black-terminal delay and mouse stalls.
 
-3. Keep the quiet sector512 alternate-filename package as the Xromwell boot
+4. Keep the quiet sector512 alternate-filename package as the Xromwell boot
    success checkpoint:
 
    ```text
@@ -531,15 +575,15 @@ cap.
    and `E-root\xinit` to `E:\`. Copy `E-root\xdevuan.ext2` after Xromwell proves
    it can load `xkrnl` and `xinit`.
 
-4. Keep the root-scan packages only as diagnostics. Do not promote them into
+5. Keep the root-scan packages only as diagnostics. Do not promote them into
    the release path.
 
-5. If `3fa5e65` also stops at `/devkrnl`, build an instrumented package that
+6. If `3fa5e65` also stops at `/devkrnl`, build an instrumented package that
    prints the physical cluster address and read length before every kernel
    cluster read, then test after deleting and re-copying only `devkrnl` to
    change its FATX placement.
 
-6. Test `xromwell-16788e0-devuan-daedalus-i386.zip` only if the casefold
+7. Test `xromwell-16788e0-devuan-daedalus-i386.zip` only if the casefold
    package reaches config detection.
 
    If `fe80736` boots but `16788e0` hangs, the bug is in the cluster-size,

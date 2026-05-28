@@ -410,13 +410,13 @@ XBOX_DEVUAN_COMPLETE_DESKTOP_OK
 
 Next Devuan tasks:
 
-- Test the self-contained `perf1` package. The earlier full perf1 test stopped
-  in Xromwell while loading `xkrnl`, despite matching the successful
-  kernel/XBE hashes, so this package includes a copy-order note to keep the
-  test repeatable without mixing artifacts from another folder:
+- Test the phase-trace Xromwell package. The self-contained `perf1` package
+  still stopped in Xromwell while loading `xkrnl`, so the next package adds
+  markers around fixed FATX file loading while keeping all artifacts in one
+  folder:
 
   ```text
-  C:\Users\Paul\Desktop\xbox_linux\artifacts\audit\xromwell-3fa5e65-sector512-devuan-perf1-selfcontained-daedalus-i386.zip
+  C:\Users\Paul\Desktop\xbox_linux\artifacts\audit\xromwell-3fa5e65-sector512-phasetrace-devuan-perf1-daedalus-i386.zip
   ```
 
 - Run `xbox-perf` on real hardware and compare against Debian and Tiny Core.
