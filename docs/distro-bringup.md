@@ -410,13 +410,13 @@ XBOX_DEVUAN_COMPLETE_DESKTOP_OK
 
 Next Devuan tasks:
 
-- Test the phase-trace Xromwell package. The self-contained `perf1` package
-  still stopped in Xromwell while loading `xkrnl`, so the next package adds
-  markers around fixed FATX file loading while keeping all artifacts in one
-  folder:
+- Test the static-directory-buffer Xromwell package. The phase-trace package
+  stopped directly after `FATX: fixed open /xkrnl`, which points at the FATX
+  root lookup path. This package keeps all artifacts in one folder and moves
+  the directory scan scratch cluster out of the bootloader stack:
 
   ```text
-  C:\Users\Paul\Desktop\xbox_linux\artifacts\audit\xromwell-3fa5e65-sector512-phasetrace-devuan-perf1-daedalus-i386.zip
+  C:\Users\Paul\Desktop\xbox_linux\artifacts\audit\xromwell-3fa5e65-sector512-findstatic-devuan-perf1-daedalus-i386.zip
   ```
 
 - Run `xbox-perf` on real hardware and compare against Debian and Tiny Core.
