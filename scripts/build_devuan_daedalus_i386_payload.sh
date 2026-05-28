@@ -10,6 +10,7 @@ SIZE_MIB="${6:-384}"
 FORCE="${7:-0}"
 DESKTOP="${8:-0}"
 COMPLETE="${9:-0}"
+DESKTOP_PLUS="${10:-0}"
 
 THIS_DIR="$(cd "$(dirname "$0")" && pwd)"
 BASE_BUILDER="$THIS_DIR/build_debian_bookworm_i386_payload.sh"
@@ -34,7 +35,7 @@ exec /usr/sbin/debootstrap --no-check-gpg "$@"
 EOF
 chmod 755 "$WRAP_DIR/debootstrap"
 
-PATH="$WRAP_DIR:$PATH" "$BASE_BUILDER" "$ROOT" "$IMAGE" "$SUITE" "$ARCH" "$MIRROR" "$SIZE_MIB" "$FORCE" "$DESKTOP" "$COMPLETE"
+PATH="$WRAP_DIR:$PATH" "$BASE_BUILDER" "$ROOT" "$IMAGE" "$SUITE" "$ARCH" "$MIRROR" "$SIZE_MIB" "$FORCE" "$DESKTOP" "$COMPLETE" "$DESKTOP_PLUS"
 
 cat > "$ROOT/etc/hostname" <<'EOF'
 xbox-devuan

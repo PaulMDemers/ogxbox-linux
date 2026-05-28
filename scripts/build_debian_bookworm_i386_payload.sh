@@ -10,10 +10,15 @@ SIZE_MIB="${6:-384}"
 FORCE="${7:-0}"
 DESKTOP="${8:-0}"
 COMPLETE="${9:-0}"
+DESKTOP_PLUS="${10:-0}"
 BASE_PACKAGES="busybox,sysvinit-core,ifupdown,isc-dhcp-client,iproute2,netbase,procps,psmisc,less,nano,kmod,iputils-ping,wget,ca-certificates"
+DESKTOP_PLUS_PACKAGES="fluxbox"
 COMPLETE_PACKAGES="dillo links2 mc rsync curl openssh-client netcat-openbsd ftp xfe mtpaint gpicview jwm xpdf sc wordgrinder"
 case "$MIRROR $SUITE" in
-    *devuan*|*daedalus*|*excalibur*|*ceres*) COMPLETE_PACKAGES="devuan-keyring $COMPLETE_PACKAGES" ;;
+    *devuan*|*daedalus*|*excalibur*|*ceres*)
+        DESKTOP_PLUS_PACKAGES="devuan-keyring $DESKTOP_PLUS_PACKAGES"
+        COMPLETE_PACKAGES="devuan-keyring $COMPLETE_PACKAGES"
+        ;;
 esac
 
 if ! command -v debootstrap >/dev/null 2>&1; then
@@ -84,10 +89,32 @@ EOF
     touch "$ROOT/.xbox-complete-packages-installed"
 fi
 
+if [ "$DESKTOP_PLUS" = "1" ] && [ ! -e "$ROOT/.xbox-desktop-plus-fluxbox-packages-installed" ]; then
+    cat > "$ROOT/usr/sbin/policy-rc.d" <<'EOF'
+#!/bin/sh
+exit 101
+EOF
+    chmod 755 "$ROOT/usr/sbin/policy-rc.d"
+    chroot "$ROOT" env DEBIAN_FRONTEND=noninteractive apt-get \
+        -o Acquire::AllowInsecureRepositories=true \
+        -o APT::Get::AllowUnauthenticated=true \
+        update
+    chroot "$ROOT" env DEBIAN_FRONTEND=noninteractive apt-get \
+        -o APT::Get::AllowUnauthenticated=true \
+        install -y --no-install-recommends $DESKTOP_PLUS_PACKAGES
+    rm -f "$ROOT/usr/sbin/policy-rc.d"
+    touch "$ROOT/.xbox-desktop-plus-fluxbox-packages-installed"
+fi
+
 if [ "$COMPLETE" = "1" ]; then
     touch "$ROOT/etc/xbox-complete-profile"
 else
     rm -f "$ROOT/etc/xbox-complete-profile"
+fi
+if [ "$DESKTOP_PLUS" = "1" ]; then
+    touch "$ROOT/etc/xbox-desktop-plus-profile"
+else
+    rm -f "$ROOT/etc/xbox-desktop-plus-profile"
 fi
 
 cat > "$ROOT/etc/hostname" <<'EOF'
@@ -618,47 +645,79 @@ start_late_diag() {
 cat > "$HOME/.jwmrc" <<'EORC'
 <?xml version="1.0"?>
 <JWM>
-  <RootMenu onroot="12">
+  <RootMenu onroot="123">
     <Program label="Terminal">xterm</Program>
-    <Program label="Dillo Browser">dillo</Program>
-    <Program label="Links2 Browser">xterm -e links2</Program>
-    <Program label="Xfe File Manager">xfe</Program>
-    <Program label="Midnight Commander">xterm -e mc</Program>
-    <Program label="mtPaint">mtpaint</Program>
-    <Program label="Image Viewer">gpicview</Program>
-    <Program label="PDF Viewer">xpdf</Program>
-    <Program label="WordGrinder">xterm -e wordgrinder</Program>
-    <Program label="SC Spreadsheet">xterm -e sc</Program>
+    <Program label="System Monitor">xterm -e sh -lc 'xbox-perf; exec sh -i'</Program>
     <Program label="Network Status">xterm -e sh -lc 'cat /tmp/xbox-network-up.txt; exec sh -i'</Program>
+    <Program label="Shell">xterm -e sh -i</Program>
     <Restart label="Restart JWM"/>
     <Exit label="Exit X"/>
   </RootMenu>
-  <Tray x="0" y="-1" height="26">
+  <Tray x="0" y="32" width="-1" height="28" autohide="off">
     <TrayButton label="Menu">root:1</TrayButton>
+    <Spacer width="2"/>
+    <TrayButton label="_">showdesktop</TrayButton>
+    <Spacer width="2"/>
     <TaskList maxwidth="256"/>
     <Clock format="%H:%M"/>
   </Tray>
-  <WindowStyle>
-    <Font>fixed-10</Font>
-    <Width>3</Width>
-    <Height>18</Height>
-    <Foreground>white</Foreground>
-    <Background>#304860</Background>
-    <Active><Foreground>white</Foreground><Background>#507090</Background></Active>
-  </WindowStyle>
-  <Desktop><Background type="solid">#1f3f4f</Background></Desktop>
 </JWM>
 EORC
 
+if [ -f /etc/xbox-complete-profile ]; then
+    sed -i '/<Program label="System Monitor">/a\
+    <Program label="Dillo Browser">dillo</Program>\
+    <Program label="Links2 Browser">xterm -e links2</Program>\
+    <Program label="Xfe File Manager">xfe</Program>\
+    <Program label="Midnight Commander">xterm -e mc</Program>\
+    <Program label="mtPaint">mtpaint</Program>\
+    <Program label="Image Viewer">gpicview</Program>\
+    <Program label="PDF Viewer">xpdf</Program>\
+    <Program label="WordGrinder">xterm -e wordgrinder</Program>\
+    <Program label="SC Spreadsheet">xterm -e sc</Program>' "$HOME/.jwmrc"
+fi
+
 xsetroot -solid '#1f3f4f' 2>/dev/null || true
-if [ -f /etc/xbox-complete-profile ] && command -v jwm >/dev/null 2>&1 && command -v aterm >/dev/null 2>&1; then
-    if [ "$TERMINAL_LIGHT" = "1" ]; then
-        aterm -fn fixed -fg white -bg black -geometry 78x24+20+32 -title "Xbox Devuan Complete" -e /bin/sh -lc 'echo XBOX_DEVUAN_COMPLETE_DESKTOP_OK; echo tools: xbox-perf xbox-sync-ro xbox-network-up; echo logs: /tmp/xbox-diag.txt /tmp/xbox-network-up.txt; exec /bin/sh -i' >/tmp/aterm.log 2>&1 &
+if [ -f /etc/xbox-desktop-plus-profile ] && command -v fluxbox >/dev/null 2>&1 && command -v aterm >/dev/null 2>&1; then
+    mkdir -p "$HOME/.fluxbox"
+    cat > "$HOME/.fluxbox/menu" <<'EOFBMENU'
+[begin] (Xbox Devuan)
+  [exec] (Terminal) {aterm -fn fixed -fg white -bg black -e /bin/sh -i}
+  [exec] (System Monitor) {aterm -fn fixed -fg white -bg black -e /bin/sh -lc 'xbox-perf; exec sh -i'}
+  [exec] (Network Status) {aterm -fn fixed -fg white -bg black -e /bin/sh -lc 'cat /tmp/xbox-network-up.txt; exec sh -i'}
+  [exec] (Shell) {aterm -fn fixed -fg white -bg black -e /bin/sh -i}
+  [restart] (Restart Fluxbox)
+  [exit] (Exit X)
+[end]
+EOFBMENU
+    cat > "$HOME/.fluxbox/init" <<'EOFBINIT'
+session.screen0.toolbar.visible: true
+session.screen0.toolbar.placement: BottomCenter
+session.screen0.toolbar.widthPercent: 100
+session.screen0.strftimeFormat: %H:%M
+session.screen0.slit.autoHide: false
+session.menuFile: ~/.fluxbox/menu
+session.styleFile: /usr/share/fluxbox/styles/Meta
+EOFBINIT
+    aterm -fn fixed -fg white -bg black -geometry 78x20+20+32 -title "Xbox Devuan Plus" -e /bin/sh -lc "echo XBOX_DEVUAN_DESKTOP_PLUS_OK; echo tools: xbox-perf xbox-sync-ro xbox-network-up; echo logs: /tmp/xbox-diag.txt /tmp/xbox-network-up.txt; echo right-click or use toolbar/menu; exec /bin/sh -i" >/tmp/aterm.log 2>&1 &
+    start_late_diag
+    exec fluxbox >/tmp/fluxbox.log 2>&1
+fi
+if [ \( -f /etc/xbox-complete-profile -o -f /etc/xbox-desktop-plus-profile \) ] && command -v jwm >/dev/null 2>&1 && command -v aterm >/dev/null 2>&1; then
+    if [ -f /etc/xbox-desktop-plus-profile ]; then
+        MARKER="XBOX_DEVUAN_DESKTOP_PLUS_OK"
+        TITLE="Xbox Devuan Plus"
     else
-        aterm -fn fixed -fg white -bg black -geometry 78x24+20+32 -title "Xbox Devuan Complete" -e /bin/sh -lc 'echo XBOX_DEVUAN_COMPLETE_DESKTOP_OK; uname -a; echo; cat /etc/os-release 2>/dev/null | sed -n "1,4p"; echo; echo apps: dillo links2 xfe mc mtpaint gpicview xpdf wordgrinder sc; echo tools: ping wget curl rsync ssh ftp nc apt xbox-perf xbox-sync-ro xbox-network-up; echo; echo network:; ip addr show dev eth0 2>/dev/null || true; grep -E "XBOX_NETWORK_(DHCP_OK|DHCP_FAILED|NO_ETH0)" /tmp/xbox-network-up.txt 2>/dev/null || true; echo; echo right-click desktop for app menu; echo diag: /tmp/xbox-diag.txt; echo network log: /tmp/xbox-network-up.txt; exec /bin/sh -i' >/tmp/aterm.log 2>&1 &
+        MARKER="XBOX_DEVUAN_COMPLETE_DESKTOP_OK"
+        TITLE="Xbox Devuan Complete"
+    fi
+    if [ "$TERMINAL_LIGHT" = "1" ]; then
+        aterm -fn fixed -fg white -bg black -geometry 78x20+20+72 -title "$TITLE" -e /bin/sh -lc "echo $MARKER; echo tools: xbox-perf xbox-sync-ro xbox-network-up; echo logs: /tmp/xbox-diag.txt /tmp/xbox-network-up.txt; echo right-click or use taskbar Menu; exec /bin/sh -i" >/tmp/aterm.log 2>&1 &
+    else
+        aterm -fn fixed -fg white -bg black -geometry 78x20+20+72 -title "$TITLE" -e /bin/sh -lc "echo $MARKER; uname -a; echo; cat /etc/os-release 2>/dev/null | sed -n '1,4p'; echo; echo tools: ping wget apt xbox-perf xbox-sync-ro xbox-network-up; echo; echo network:; ip addr show dev eth0 2>/dev/null || true; grep -E 'XBOX_NETWORK_(DHCP_OK|DHCP_FAILED|NO_ETH0)' /tmp/xbox-network-up.txt 2>/dev/null || true; echo; echo right-click or use taskbar Menu; echo diag: /tmp/xbox-diag.txt; echo network log: /tmp/xbox-network-up.txt; exec /bin/sh -i" >/tmp/aterm.log 2>&1 &
     fi
     start_late_diag
-    exec jwm
+    exec jwm -f "$HOME/.jwmrc" >/tmp/jwm.log 2>&1
 fi
 if command -v flwm_topside >/dev/null 2>&1 && command -v aterm >/dev/null 2>&1; then
     if [ "$TERMINAL_LIGHT" = "1" ]; then
@@ -711,15 +770,15 @@ rm -f /tmp/.X0-lock /tmp/.X11-unix/X0 /tmp/Xorg.0.log
 mkdir -p /tmp/.X11-unix
 
 if [ -x /usr/local/bin/Xfbdev ]; then
-    export LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/lib
+    XFBDEV_LIBRARY_PATH=/usr/local/lib:/usr/lib:/lib
     export DISPLAY=:0
     echo "Starting Xfbdev server"
     if [ "$X_MOUSE" = "1" ]; then
         echo "Xfbdev explicit mouse device: /dev/input/mice"
-        /usr/local/bin/Xfbdev :0 -screen 640x480x32 -mouse /dev/input/mice,5 -nolisten tcp >/tmp/xfbdev.log 2>&1 &
+        LD_LIBRARY_PATH="$XFBDEV_LIBRARY_PATH" /usr/local/bin/Xfbdev :0 -screen 640x480x32 -mouse /dev/input/mice,5 -nolisten tcp >/tmp/xfbdev.log 2>&1 &
     else
         echo "Xfbdev explicit mouse device: disabled; default pointer input may still work"
-        /usr/local/bin/Xfbdev :0 -screen 640x480x32 -nolisten tcp >/tmp/xfbdev.log 2>&1 &
+        LD_LIBRARY_PATH="$XFBDEV_LIBRARY_PATH" /usr/local/bin/Xfbdev :0 -screen 640x480x32 -nolisten tcp >/tmp/xfbdev.log 2>&1 &
     fi
     XPID=$!
     sleep 2
@@ -729,10 +788,23 @@ if [ -x /usr/local/bin/Xfbdev ]; then
         exit 1
     fi
     echo "Starting X session"
+    if [ -f /etc/xbox-desktop-plus-profile ] || [ -f /etc/xbox-complete-profile ]; then
+        unset LD_LIBRARY_PATH
+    else
+        export LD_LIBRARY_PATH="$XFBDEV_LIBRARY_PATH"
+    fi
     /usr/local/bin/xbox-xsession >/tmp/xsession.log 2>&1
     status=$?
     echo "X session exited with status $status"
     cat /tmp/xsession.log 2>/dev/null || true
+    if [ -s /tmp/fluxbox.log ]; then
+        echo "Fluxbox log:"
+        cat /tmp/fluxbox.log
+    fi
+    if [ -s /tmp/aterm.log ]; then
+        echo "Terminal log:"
+        cat /tmp/aterm.log
+    fi
     cat /tmp/xfbdev.log 2>/dev/null || true
     kill "$XPID" 2>/dev/null || true
     wait "$XPID" 2>/dev/null || true

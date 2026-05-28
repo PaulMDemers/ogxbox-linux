@@ -34,6 +34,13 @@ Devuan Daedalus i386 desktop test:
 C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386.zip
 ```
 
+Devuan Daedalus i386 desktop-plus experimental test:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-desktop-plus.zip
+SHA256 0064F7B12869F4CFF2365CF74BDAFEB9EB87D3D9C7A29537215F85D19A4C30B1
+```
+
 ## Current Hardware Result
 
 Tested on a softmodded Xbox on May 25, 2026:
@@ -108,6 +115,10 @@ C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daeda
 - Forced-HDTV 480p Debian package: shelved. It went black on the HDMI adapter,
   although drive activity suggested boot continued. Keep the normal
   AV/composite package as the active test route.
+- Devuan desktop-plus experimental package: verify that it reaches
+  `XBOX_DEVUAN_DESKTOP_PLUS_OK`, shows Fluxbox window decorations, and displays
+  a bottom toolbar/taskbar. This package is xemu-proven only so far and uses
+  isolated `pluskrnl`, `plusinit`, and `plusdevuan.ext2` files.
 
 ## Backup First
 
@@ -124,6 +135,9 @@ E:\debian.ext2
 E:\devkrnl
 E:\devinit
 E:\devuan.ext2
+E:\pluskrnl
+E:\plusinit
+E:\plusdevuan.ext2
 E:\LINUX\DEVUAN.EXT2
 ```
 
@@ -302,6 +316,12 @@ Expected Devuan complete desktop dashboard folder:
 E:\Apps\XromwellDevuanDaedalusComplete\
 ```
 
+Expected Devuan desktop-plus experimental dashboard folder:
+
+```text
+E:\Apps\XromwellDevuanDesktopPlus\
+```
+
 For Devuan terminal and minimal desktop, copy the package `E-root\` files to
 `E:\`:
 
@@ -326,6 +346,20 @@ Copy `Apps\XromwellDevuanDaedalusComplete\` to `E:\Apps\`, then copy the
 contents of `E-root\` to `E:\`. This keeps the huge ext2 image out of the
 FATX root directory while keeping Xromwell's kernel/initrd loads at root,
 which is the hardware-proven path.
+
+For Devuan desktop-plus, copy `Apps\XromwellDevuanDesktopPlus\` to
+`E:\Apps\`, then copy this package's `E-root\` files to `E:\`:
+
+```text
+E:\linuxboot.cfg
+E:\pluskrnl
+E:\plusinit
+E:\plusdevuan.ext2
+```
+
+Only `linuxboot.cfg` is shared with the release baseline. The plus kernel,
+initrd, and root image intentionally do not overwrite `devkrnl`, `devinit`,
+or `devuan.ext2`.
 
 The current Devuan softmod packages use Xromwell `4dcc618`. Its FATX lookup is
 case-insensitive, and it uses a 4 KiB lazy chain-map page cache for the known

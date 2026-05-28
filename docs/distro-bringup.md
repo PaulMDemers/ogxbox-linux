@@ -290,6 +290,8 @@ powershell -ExecutionPolicy Bypass -File .\scripts\package_devuan_daedalus_i386_
 powershell -ExecutionPolicy Bypass -File .\scripts\build_devuan_daedalus_i386_complete_payload.ps1
 powershell -ExecutionPolicy Bypass -File .\scripts\package_devuan_daedalus_i386_complete_softmod.ps1
 powershell -ExecutionPolicy Bypass -File .\scripts\build_devuan_daedalus_i386_complete_iso.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\build_devuan_daedalus_i386_desktop_plus_payload.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\package_devuan_daedalus_i386_desktop_plus_softmod.ps1
 ```
 
 Artifacts:
@@ -303,6 +305,7 @@ C:\Users\Paul\Desktop\xbox_linux\artifacts\cromwell-devuan-daedalus-i386-complet
 C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-terminal.zip
 C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386.zip
 C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-complete.zip
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-desktop-plus.zip
 ```
 
 The terminal and minimal desktop packages use the same `devkrnl`, `devinit`,
@@ -341,6 +344,24 @@ It still uses the Tiny Core `Xfbdev` server, but swaps the session manager to
 `jwm` and writes an app menu for browser, file manager, terminal, editor,
 paint, image viewer, PDF, spreadsheet, and word processor smoke testing.
 
+The desktop-plus profile is the next release-candidate experiment, built from
+the hardware-passed Devuan baseline while keeping separate boot filenames:
+
+```text
+E:\linuxboot.cfg
+E:\pluskrnl
+E:\plusinit
+E:\plusdevuan.ext2
+```
+
+It adds Fluxbox for visible window decorations, a toolbar/taskbar, and a small
+right-click menu. While doing this, the Xfbdev launcher now scopes
+`LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/lib` only to the Xfbdev server
+process and unsets it before starting desktop clients. That avoids mixing the
+vendored Tiny Core Xfbdev libraries into Devuan X clients; the earlier symptom
+was Fluxbox/JWM failing with fontconfig/freetype symbol errors or running with
+no decorations/taskbar.
+
 xemu proof:
 
 ```text
@@ -365,6 +386,7 @@ C:\Users\Paul\Desktop\xbox_linux\run\screenshots\xromwell-linux-only-autoboot-di
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-minimal-linux-only-autoboot-dirty-20260527-141926.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\xromwell-3fa5e65-linux-only-autoboot-15s-20260527-142310.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\xromwell-4dcc618-coalesced-fatxload-12s-20260527-144050.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-desktop-plus-fluxbox-profile-libpath-proof-20260528-192631.png
 ```
 
 The second proof confirms the Devuan desktop still boots after adding
@@ -441,6 +463,16 @@ Next Devuan tasks:
 - Run `xbox-perf` on real hardware and compare against Debian and Tiny Core.
 - Confirm DHCP with `xbox-network-up --wait`, then test `ping`, `wget`, `apt`,
   and CA certificates in the live desktop.
+- Hardware-test the experimental Devuan desktop-plus package after the release
+  baseline is backed up. It should show `XBOX_DEVUAN_DESKTOP_PLUS_OK` in an
+  `aterm` window managed by Fluxbox, with a bottom toolbar/taskbar. It is
+  xemu-proven only at this checkpoint:
+
+  ```text
+  C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-desktop-plus.zip
+  SHA256 0064F7B12869F4CFF2365CF74BDAFEB9EB87D3D9C7A29537215F85D19A4C30B1
+  root image SHA256 52442BA490F20FCAC5BEF6C6FC2168C12D99F4DA11B842DEA12FE9D591EACC23
+  ```
 - Continue Devuan persistence work from the new rw shell-smoke package, but do
   not run it on real hardware yet. xemu writes the persistence marker and
   normal-use file, the second boot finds both, and the extracted ext2 image

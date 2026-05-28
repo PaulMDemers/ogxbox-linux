@@ -6,6 +6,7 @@ param(
     [string]$ImagePath = "artifacts\hdd\xbox-devuan-daedalus-i386.ext2",
     [int]$ImageSizeMiB = 384,
     [switch]$Desktop,
+    [switch]$DesktopPlus,
     [switch]$CompleteDesktop,
     [switch]$ForceBootstrap
 )
@@ -29,16 +30,20 @@ function Convert-ToWslPath([string]$Path) {
 $imageWsl = Convert-ToWslPath $imageFull
 $scriptWsl = Convert-ToWslPath $scriptFull
 $force = if ($ForceBootstrap) { "1" } else { "0" }
-$desktopFlag = if ($Desktop -or $CompleteDesktop) { "1" } else { "0" }
+$desktopFlag = if ($Desktop -or $DesktopPlus -or $CompleteDesktop) { "1" } else { "0" }
 $completeFlag = if ($CompleteDesktop) { "1" } else { "0" }
-if (($Desktop -or $CompleteDesktop) -and $ImageSizeMiB -lt 384) {
+$desktopPlusFlag = if ($DesktopPlus) { "1" } else { "0" }
+if (($Desktop -or $DesktopPlus -or $CompleteDesktop) -and $ImageSizeMiB -lt 384) {
     $ImageSizeMiB = 384
+}
+if ($DesktopPlus -and $ImageSizeMiB -lt 640) {
+    $ImageSizeMiB = 640
 }
 if ($CompleteDesktop -and $ImageSizeMiB -lt 768) {
     $ImageSizeMiB = 768
 }
 
-& wsl.exe -u root -e bash $scriptWsl $WslBuildRoot $imageWsl $Suite $Arch $Mirror $ImageSizeMiB $force $desktopFlag $completeFlag
+& wsl.exe -u root -e bash $scriptWsl $WslBuildRoot $imageWsl $Suite $Arch $Mirror $ImageSizeMiB $force $desktopFlag $completeFlag $desktopPlusFlag
 if ($LASTEXITCODE -ne 0) {
     throw "Devuan payload build failed"
 }

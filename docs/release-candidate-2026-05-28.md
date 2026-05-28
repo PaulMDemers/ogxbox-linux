@@ -62,6 +62,16 @@ C:\Users\Paul\Desktop\xbox_linux\artifacts\release\manifest.json
 C:\Users\Paul\Desktop\xbox_linux\artifacts\release\SHA256SUMS.txt
 ```
 
-The next desktop milestone should build a fuller Devuan profile from this
-baseline, with a real taskbar/menu and no Xromwell or root filename changes
-unless the hardware baseline gives us a reason.
+The next desktop milestone is now an experimental Devuan desktop-plus package.
+It keeps the release-baseline Xromwell/kernel/initrd lineage but uses isolated
+root filenames (`pluskrnl`, `plusinit`, `plusdevuan.ext2`) and adds Fluxbox for
+window decorations plus a bottom taskbar/menu.
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-desktop-plus.zip
+SHA256 0064F7B12869F4CFF2365CF74BDAFEB9EB87D3D9C7A29537215F85D19A4C30B1
+xemu proof: C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-desktop-plus-fluxbox-profile-libpath-proof-20260528-192631.png
+```
+
+Do not add desktop-plus to the public release candidate set until it has passed
+real hardware.
