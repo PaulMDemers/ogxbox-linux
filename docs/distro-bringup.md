@@ -410,12 +410,14 @@ XBOX_DEVUAN_COMPLETE_DESKTOP_OK
 
 Next Devuan tasks:
 
-- Test the `perf1` Devuan package, which keeps the successful sector512
-  Xromwell loader but sets loop read-ahead, delays `xbox-diag`, and uses a
-  lighter first terminal:
+- Test the `perf1` delta package. The full perf1 package stopped in Xromwell
+  while loading `xkrnl`, despite matching the successful kernel/XBE hashes, so
+  this delta intentionally avoids replacing the known-good `E:\xkrnl`
+  placement. Restore `xkrnl` from the successful sector512 package, then copy
+  only `linuxboot.cfg`, `xinit`, and `xdevuan.ext2` from:
 
   ```text
-  C:\Users\Paul\Desktop\xbox_linux\artifacts\audit\xromwell-3fa5e65-sector512-devuan-perf1-daedalus-i386.zip
+  C:\Users\Paul\Desktop\xbox_linux\artifacts\audit\xromwell-3fa5e65-sector512-devuan-perf1-delta.zip
   ```
 
 - Run `xbox-perf` on real hardware and compare against Debian and Tiny Core.

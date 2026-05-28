@@ -463,9 +463,52 @@ The generated ext2 image passed `e2fsck -fn`:
 artifacts/hdd/xbox-devuan-daedalus-i386-perf1.ext2: 9701/98304 files (0.1% non-contiguous), 71165/98304 blocks
 ```
 
+Hardware result: the full `perf1` package did not reach Linux. It stopped back
+in Xromwell while loading the same `xkrnl` bytes:
+
+```text
+FATX: loading kernel /xkrnl
+Loading /xkrnl from FATX tmp=0x1000000
+```
+
+The XBE and kernel file hashes match the successful quiet sector512 package,
+so the likely variable is FATX allocation/placement caused by recopying the
+root files, not the Linux-side performance flags. A delta package was built to
+avoid disturbing the known-good `E:\xkrnl` placement. It omits `xkrnl` from
+`E-root` on purpose.
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\audit\xromwell-3fa5e65-sector512-devuan-perf1-delta.zip
+SHA256 EAEA3CCAEDDABEDFA8B3EEAB5BF87A10D5A67D5DE0A4AB6F121CFCC03A8A5DB5
+Dashboard folder: E:\Apps\XromwellDevuanPerf1Delta\
+XBE SHA256: 81B3A6850627A8BEC6FA0D92BB4652400DB3EC863072EAA7351BB159DED0BAFD
+Initramfs SHA256: 648AE901C0BD15744F885687343FDA3118C4C3495E3E89DD5B7DEB62DAD31C50
+Payload SHA256: 6C1A8D3D47BBD151DED8002F5175B98B5594929F8DC1C6BA16965E313D1E7F22
+Root files in this package: E:\linuxboot.cfg, E:\xinit, E:\xdevuan.ext2
+```
+
+For this delta test, restore/copy `E:\xkrnl` from the successful quiet
+sector512 package once, then copy only the delta package's `linuxboot.cfg`,
+`xinit`, and `xdevuan.ext2`. If that boots, the next release rule is to avoid
+rewriting the boot kernel when testing userspace/rootfs changes. If it still
+hangs at `/xkrnl`, the loader needs a stronger real-hardware fix than the
+current 512-byte cap.
+
 ## Test Plan
 
-1. Test the perf1 sector512 Devuan desktop package:
+1. Test the perf1 delta package without replacing `E:\xkrnl`:
+
+   ```text
+   C:\Users\Paul\Desktop\xbox_linux\artifacts\audit\xromwell-3fa5e65-sector512-devuan-perf1-delta.zip
+   SHA256 EAEA3CCAEDDABEDFA8B3EEAB5BF87A10D5A67D5DE0A4AB6F121CFCC03A8A5DB5
+   Dashboard folder: E:\Apps\XromwellDevuanPerf1Delta\
+   ```
+
+   Restore `E:\xkrnl` from the successful quiet sector512 package, then copy
+   only `E-root\linuxboot.cfg`, `E-root\xinit`, and `E-root\xdevuan.ext2` from
+   the delta package to E: root.
+
+2. Keep the full perf1 package as a failed allocation-sensitive probe:
 
    ```text
    C:\Users\Paul\Desktop\xbox_linux\artifacts\audit\xromwell-3fa5e65-sector512-devuan-perf1-daedalus-i386.zip
@@ -477,7 +520,7 @@ artifacts/hdd/xbox-devuan-daedalus-i386-perf1.ext2: 9701/98304 files (0.1% non-c
    sector512 package but tell us whether loop read-ahead plus delayed
    diagnostics reduce the black-terminal delay and mouse stalls.
 
-2. Keep the quiet sector512 alternate-filename package as the Xromwell boot
+3. Keep the quiet sector512 alternate-filename package as the Xromwell boot
    success checkpoint:
 
    ```text
@@ -490,15 +533,15 @@ artifacts/hdd/xbox-devuan-daedalus-i386-perf1.ext2: 9701/98304 files (0.1% non-c
    and `E-root\xinit` to `E:\`. Copy `E-root\xdevuan.ext2` after Xromwell proves
    it can load `xkrnl` and `xinit`.
 
-3. Keep the root-scan packages only as diagnostics. Do not promote them into
+4. Keep the root-scan packages only as diagnostics. Do not promote them into
    the release path.
 
-4. If `3fa5e65` also stops at `/devkrnl`, build an instrumented package that
+5. If `3fa5e65` also stops at `/devkrnl`, build an instrumented package that
    prints the physical cluster address and read length before every kernel
    cluster read, then test after deleting and re-copying only `devkrnl` to
    change its FATX placement.
 
-5. Test `xromwell-16788e0-devuan-daedalus-i386.zip` only if the casefold
+6. Test `xromwell-16788e0-devuan-daedalus-i386.zip` only if the casefold
    package reaches config detection.
 
    If `fe80736` boots but `16788e0` hangs, the bug is in the cluster-size,
