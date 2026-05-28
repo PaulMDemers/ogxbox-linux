@@ -226,5 +226,19 @@ The May 27 root-init refresh also prints the target root init before
 inside `/xbox-init`. Early diagnostics now run in the background so a slow
 `xbox-diag` pass cannot hide the first userspace marker.
 
+The restored Devuan desktop package is the current real-hardware release
+baseline:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\audit\xromwell-4dcc618-restored-devuan-daedalus-i386.zip
+SHA256 3742B8EAD01EDD5697240B8DD1679A36B6FD83E8A7055901F82A86BE3FC8227A
+Dashboard folder: E:\Apps\XromwellDevuanRestored4dcc618\
+Root files: E:\linuxboot.cfg, E:\devkrnl, E:\devinit, E:\devuan.ext2
+```
+
+Hardware result: booted on the softmodded Xbox and appears to work well. Use
+this package, not the later `xkrnl`/`xinit` probe packages, for release-prep
+network, persistence, and desktop usability work.
+
 The ISO profiles do not share this limitation because their `linuxboot.cfg`
 and payload live on the disc image.

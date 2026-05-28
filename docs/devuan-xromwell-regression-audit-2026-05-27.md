@@ -770,14 +770,11 @@ Result: the restored package reaches the Devuan X desktop in xemu. The terminal
 shows the expected tool list and read-ahead diagnostics. That validates the
 package contents and boot config.
 
-Next hardware step: copy every file from the restored package's own `E-root\`
-folder to `E:\`, launch its `default.xbe`, and report whether it reaches the
-desktop. Do not mix files from the `xkrnl` probe folders into this run. Keep
-the probe zips only as audit checkpoints until we deliberately resume loader
-debugging.
+Hardware result: the restored package booted on the softmodded Xbox and
+appears to work well. Treat it as the Devuan desktop release baseline.
 
-The next code fix should come only after the restored baseline is retested on
-hardware. If the restored baseline is fast again, the probe line should be
-retired. If the restored baseline fails on the current disk layout, the next
-target is a clean-copy/allocation test rather than another mixed-artifact
-package.
+Keep the probe zips only as audit checkpoints until we deliberately resume
+loader debugging. The `xkrnl`/`xinit` line should not feed release-prep work.
+Future network, persistence, and desktop performance work should build from
+the restored `4dcc618`/`devkrnl`/`devinit`/`devuan.ext2` package unless a new
+hardware result gives us a reason to move again.

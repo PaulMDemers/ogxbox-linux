@@ -371,7 +371,7 @@ as the lead distro package for the next usability pass.
 The terminal, desktop, and complete desktop packages are separate install
 profiles because Xromwell reads the global `E:\linuxboot.cfg`.
 
-For the next Devuan desktop reset test, use the restored package built from the
+The Devuan desktop release baseline is the restored package built from the
 same artifacts as the earlier snappy `4dcc618` desktop build:
 
 ```text
@@ -381,9 +381,10 @@ Dashboard folder: E:\Apps\XromwellDevuanRestored4dcc618\
 Root files: E:\linuxboot.cfg, E:\devkrnl, E:\devinit, E:\devuan.ext2
 ```
 
-Copy only files from that package folder for this test. The `xkrnl`/`xinit`
-packages in `artifacts\audit\` are diagnostic probes and should not be used as
-release baselines.
+Real hardware result: booted and appears to work well. Copy only files from
+that package folder for this baseline. The `xkrnl`/`xinit` packages in
+`artifacts\audit\` are diagnostic probes and should not be used as release
+baselines.
 
 Test the `4dcc618` Devuan desktop package first. It is the current baseline
 because xemu reaches X after the cached-page FATX loader. The complete package

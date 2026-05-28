@@ -410,10 +410,9 @@ XBOX_DEVUAN_COMPLETE_DESKTOP_OK
 
 Next Devuan tasks:
 
-- Stop the `xkrnl`/`xinit` probe line for release-prep testing and reset the
-  hardware baseline to the restored `4dcc618` Devuan desktop package. It uses
-  the same XBE, kernel, initramfs, root image, filenames, and append line as
-  the earlier snappy Devuan desktop build:
+- Use the restored `4dcc618` Devuan desktop package as the hardware-passed
+  release baseline. It uses the same XBE, kernel, initramfs, root image,
+  filenames, and append line as the earlier snappy Devuan desktop build:
 
   ```text
   C:\Users\Paul\Desktop\xbox_linux\artifacts\audit\xromwell-4dcc618-restored-devuan-daedalus-i386.zip
@@ -421,8 +420,9 @@ Next Devuan tasks:
   Dashboard folder: E:\Apps\XromwellDevuanRestored4dcc618\
   ```
 
-  Copy every file from this package's own `E-root\` folder to `E:\`. Do not
-  mix `devkrnl`/`devinit`/`devuan.ext2` files from the `xkrnl` probe packages.
+  Real hardware result: booted and appears to work well. Keep this package as
+  the baseline for network, persistence, and desktop usability work. Do not mix
+  `devkrnl`/`devinit`/`devuan.ext2` files from the `xkrnl` probe packages.
 
 - Run `xbox-perf` on real hardware and compare against Debian and Tiny Core.
 - Confirm DHCP with `xbox-network-up --wait`, then test `ping`, `wget`, `apt`,
