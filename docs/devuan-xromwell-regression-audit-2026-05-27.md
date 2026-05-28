@@ -267,20 +267,55 @@ data scanned:
 FATX: root scan missed linuxboot.cfg clusters=... entries=... limit=1024
 ```
 
+Hardware result: the deeper scan is too noisy to keep pursuing as a release
+candidate. It prints many `FATX: root maybe ...` entries from dashboard-related
+clusters, which confirms that it can walk around the FATX data area, but the
+diagnostic heuristic is not a clean signal for boot correctness.
+
+The important comparison is now:
+
+```text
+Known snappy/minimal Devuan package:
+  C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386.zip
+  Payload:  C:\Users\Paul\Desktop\xbox_linux\artifacts\hdd\xbox-devuan-daedalus-i386.ext2
+  Payload size: 402653184 bytes
+  XBE SHA256: C78475E8713EC694F484C40209966805E9F9CD267E7C2EE6A3B9217E40FE0CD2
+  Xromwell lineage: 4dcc618 coalesced/cached FATX loader
+
+Current root-deep diagnostic package:
+  C:\Users\Paul\Desktop\xbox_linux\artifacts\audit\xromwell-fe80736-root-deep-devuan-daedalus-i386.zip
+  Payload: same 402653184-byte Devuan ext2 image
+  Same linuxboot.cfg append line
+  XBE SHA256: 23531BE51890F968209CB82BF85D81FA562B41CE6B0BE9EF55FA99E79617F97A
+  Xromwell lineage: dirty fe80736 audit fork with lazy table, raw-read fix,
+  and experimental root scanner
+```
+
+So the regression is not explained by the minimal Devuan image size. The clean
+baseline should move back to the release Devuan desktop package and the
+4dcc618 Xromwell loader. Treat the fe80736 root-scan builds as throwaway
+diagnostics only.
+
 ## Test Plan
 
-1. Test `xromwell-fe80736-root-deep-devuan-daedalus-i386.zip`.
+1. Return to the known-snappy release package:
+
+   ```text
+   C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386.zip
+   SHA256 d1b5024ab4a5910f035a1a632209eac2cdac4d40621b35deb6bc2f308b17f383
+   Dashboard folder: E:\Apps\XromwellDevuanDaedalus\
+   ```
 
    Delete or overwrite the four root files first, then copy this package's
-   `E-root\` contents to `E:\`. Watch for `FATX: root maybe ...` lines and
-   photograph the final `found` or `missed` line if it still fails.
+   `E-root\` contents to `E:\`. This package should be the baseline for the
+   next real-hardware pass.
 
-2. If it hangs before `FATX: open part`, instrument `BootFromDevice` and
-   `BootIdeReadSector` around the first E: header read.
+2. Keep the root-scan packages only as diagnostics. Do not promote them into
+   the release path.
 
-3. If it prints `root scan found` but hangs during `/devkrnl`, compare
-   the current E: root file copy order and fragmentation against the original
-   fast package, then instrument the first kernel file read.
+3. If the 4dcc618 package still behaves slowly on the same E: layout, the next
+   target is the FATX root directory/file placement and fragmentation on disk,
+   not Devuan package contents.
 
 4. Test `xromwell-16788e0-devuan-daedalus-i386.zip` only if the casefold
    package reaches config detection.
