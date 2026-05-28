@@ -195,18 +195,59 @@ SHA256 6C8AE561439FD209312DE44B23E339B6B55966A1F5021D8BDDB993179C7E937E
 Dashboard folder: E:\Apps\XromwellDevuanDaedalusFe80736Rawfix\
 ```
 
+Hardware result: this raw-read fix package no longer corrupts the video and it
+gets through FATX open, lazy table setup, and Linux config detection. It now
+fails cleanly because the normal FATX lookup does not find the root config:
+
+```text
+FATX: detect linux /linuxboot.cfg
+FATX: linuxboot.cfg not found
+AUTOBOOT FatX failed.
+```
+
+That confirms two earlier problems on real hardware:
+
+- The old eager chain-table read was a real blocker.
+- The old unaligned `FATXRawRead` path could corrupt nearby state when lazy
+  chain-entry reads used a 4-byte stack buffer.
+
+The next question is why root lookup misses `linuxboot.cfg` even though the
+softmod package places it at `E:\linuxboot.cfg`. A root-scan package was built
+from the same rawfix base. It scans early root directory clusters directly and
+prints the first few entries it sees.
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\audit\xromwell-fe80736-root-scan-devuan-daedalus-i386.zip
+SHA256 9A28A8A170ACBE3167295E14BADA6EFFF96974B19FE9045D70202639A48A1FBB
+Dashboard folder: E:\Apps\XromwellDevuanDaedalusFe80736RootScan\
+```
+
+Expected distinguishing lines:
+
+```text
+FATX: root scan fallback linuxboot.cfg
+FATX: root c1 e0 ...
+FATX: root scan found linuxboot.cfg at c... e... filecl=... size=...
+```
+
+If the root scan finds `linuxboot.cfg`, the normal root-chain traversal is the
+remaining bug. If it prints entries but misses the file, verify that the package
+root files were copied to `E:\` and not only under the dashboard app folder.
+If it finds `linuxboot.cfg` but then misses `devkrnl`, the same root lookup
+fallback needs to cover the kernel/initrd payloads too.
+
 ## Test Plan
 
-1. Test `xromwell-fe80736-lazytable-rawfix-devuan-daedalus-i386.zip`.
+1. Test `xromwell-fe80736-root-scan-devuan-daedalus-i386.zip`.
 
    Delete or overwrite the four root files first, then copy this package's
-   `E-root\` contents to `E:\`. If it gets past config detection, the vertical
-   bars were the old unaligned raw-read stack overwrite.
+   `E-root\` contents to `E:\`. Watch for `FATX: root c... e...` lines and
+   photograph them if it still fails.
 
 2. If it hangs before `FATX: open part`, instrument `BootFromDevice` and
    `BootIdeReadSector` around the first E: header read.
 
-3. If it prints `lazy table` and `found` but hangs during `/devkrnl`, compare
+3. If it prints `root scan found` but hangs during `/devkrnl`, compare
    the current E: root file copy order and fragmentation against the original
    fast package, then instrument the first kernel file read.
 
