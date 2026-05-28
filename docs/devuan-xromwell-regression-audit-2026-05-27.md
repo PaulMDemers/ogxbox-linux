@@ -383,14 +383,52 @@ large IDE reads in the Xromwell FATX path on real hardware. If it hangs on the
 first `FATX: raw` line, the absolute sector is suspect and the next move is to
 copy the boot files after forcing a different allocation area on E:.
 
+Hardware result: the sector-trace package did not immediately hang at
+`linuxboot.cfg`. Instead it printed a long list of 512-byte raw reads while
+reading the config file:
+
+```text
+FATX: read linuxboot.cfg c=1744 abs=0x570178 off=0 len=16384
+FATX: raw linuxboot.cfg sec=0x570178 off=0 len=512
+...
+```
+
+That is an important split: 512-byte reads are viable on this real hardware,
+but the per-sector trace is too noisy to see whether the kernel and initrd
+load cleanly. A quieter sector512 package was built from the same `3fa5e65`
+lineage. It keeps the 512-byte read cap, removes the per-sector spam, and
+prints one first-cluster line per file.
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\audit\xromwell-3fa5e65-sector512-altname-devuan-daedalus-i386.zip
+SHA256 3FEBAD94F47E1619EDB8750530D2ADBAD463CB9E63F09E5F19BFCB86ABC648D9
+Dashboard folder: E:\Apps\XromwellDevuanDaedalusSector512\
+XBE SHA256: 81B3A6850627A8BEC6FA0D92BB4652400DB3EC863072EAA7351BB159DED0BAFD
+Root files: E:\linuxboot.cfg, E:\xkrnl, E:\xinit, E:\xdevuan.ext2
+```
+
+Expected useful lines:
+
+```text
+FATX: read linuxboot.cfg c=...
+FATX: read xkrnl c=... abs=0x... off=0 len=16384
+FATX: read xinit c=... abs=0x... off=0 len=16384
+```
+
+If this gets through `xkrnl` and `xinit`, then the release fix should be a
+conservative real-hardware FATX read cap rather than the noisy trace build. If
+it still hangs on the first `xkrnl` line, the problem is lower than request
+size and the next target is IDE status/timeout instrumentation around that
+absolute sector.
+
 ## Test Plan
 
-1. Test the sector-trace alternate-filename package:
+1. Test the quiet sector512 alternate-filename package:
 
    ```text
-   C:\Users\Paul\Desktop\xbox_linux\artifacts\audit\xromwell-3fa5e65-sectortrace-altname-devuan-daedalus-i386.zip
-   SHA256 56F855A23B381EECA85B29198BFDEF7875785484711227487422DACC4C112738
-   Dashboard folder: E:\Apps\XromwellDevuanDaedalusSectorTrace\
+   C:\Users\Paul\Desktop\xbox_linux\artifacts\audit\xromwell-3fa5e65-sector512-altname-devuan-daedalus-i386.zip
+   SHA256 3FEBAD94F47E1619EDB8750530D2ADBAD463CB9E63F09E5F19BFCB86ABC648D9
+   Dashboard folder: E:\Apps\XromwellDevuanDaedalusSector512\
    ```
 
    For the fastest first pass, copy only `E-root\linuxboot.cfg`, `E-root\xkrnl`,
