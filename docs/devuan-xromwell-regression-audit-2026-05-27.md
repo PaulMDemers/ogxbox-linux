@@ -324,19 +324,44 @@ This package uses the same `devkrnl`, `devinit`, `devuan.ext2`, and
 read path or the physical placement/fragmentation of `devkrnl` on this E:
 partition.
 
+Hardware result: `3fa5e65` also stops at the first kernel load, so the
+regression is not only the 4dcc618 coalesced read. It still gets through
+`linuxboot.cfg`, reopens E:, and then stops while loading the kernel file.
+
+The next package keeps `3fa5e65`, adds a print before the first few file-cluster
+reads, and changes the root filenames so the kernel is copied as a new FATX
+file rather than reusing the existing `/devkrnl` chain:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\audit\xromwell-3fa5e65-readtrace-altname-devuan-daedalus-i386.zip
+SHA256 EC4463F70B40EB35CF8563862ED59E7FEA44974A42C0B9F8B05074B64BB5A49B
+Dashboard folder: E:\Apps\XromwellDevuanDaedalusReadTraceAlt\
+Root files: E:\linuxboot.cfg, E:\xkrnl, E:\xinit, E:\xdevuan.ext2
+```
+
+Expected distinguishing line before any hang:
+
+```text
+FATX: read xkrnl c=... abs=0x... off=... len=1024
+```
+
+If the new `xkrnl` placement loads, the stale/fragmented `/devkrnl` chain is
+the likely culprit. If it hangs after printing the `xkrnl` read line, the
+absolute sector on that line tells us the next IDE/FATX probe target.
+
 ## Test Plan
 
-1. Test the non-coalesced `3fa5e65` package:
+1. Test the read-trace alternate-filename package:
 
    ```text
-   C:\Users\Paul\Desktop\xbox_linux\artifacts\audit\xromwell-3fa5e65-devuan-daedalus-i386.zip
-   SHA256 ACB91289E87C97909F48F22E56CDE4A7110114E6FADA750973FFF8D2CB1DF325
-   Dashboard folder: E:\Apps\XromwellDevuanDaedalus3fa5e65\
+   C:\Users\Paul\Desktop\xbox_linux\artifacts\audit\xromwell-3fa5e65-readtrace-altname-devuan-daedalus-i386.zip
+   SHA256 EC4463F70B40EB35CF8563862ED59E7FEA44974A42C0B9F8B05074B64BB5A49B
+   Dashboard folder: E:\Apps\XromwellDevuanDaedalusReadTraceAlt\
    ```
 
-   Delete or overwrite the four root files first, then copy this package's
-   `E-root\` contents to `E:\`. If it prints progress past `/devkrnl`, revert
-   or rewrite 4dcc618 before release.
+   For the fastest first pass, copy only `E-root\linuxboot.cfg`, `E-root\xkrnl`,
+   and `E-root\xinit` to `E:\`. Copy `E-root\xdevuan.ext2` after Xromwell proves
+   it can load `xkrnl` and `xinit`.
 
 2. Keep the root-scan packages only as diagnostics. Do not promote them into
    the release path.
