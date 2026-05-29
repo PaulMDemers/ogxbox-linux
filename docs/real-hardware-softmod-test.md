@@ -79,10 +79,11 @@ Additional hardware results from May 26, 2026:
   have continued booting. Shelve the HDTV path for now and keep AV/composite as
   the reliable hardware test path.
 
-Additional hardware results from May 28, 2026:
+Additional hardware results from May 28-29, 2026:
 
 - The rebuilt Devuan release-baseline package boots on the softmodded Xbox and
-  works well. Treat this package as the Devuan desktop release candidate:
+  works well, but later repeat testing exposed nondeterministic Xromwell FATX
+  loader hangs in the `4dcc618` coalesced-read path:
 
 ```text
 C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-release-baseline.zip
@@ -118,7 +119,8 @@ SHA256 9C0A2362A6E4317DC6BEEB6651E9FD10AD09E029C7CD33D24BF5C0F61DB94D65
 - Hardware result: `payload-settle-readsectors` stopped at the same first
   `/devkrnl` read spot. Do not continue the later payload/IDE timing variants
   as the release path.
-- The next hardware package is the rollback sector512 baseline:
+- The active Devuan desktop release candidate is now the rollback sector512
+  baseline:
 
 ```text
 C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-sector512-baseline.zip
@@ -130,6 +132,7 @@ Dashboard folder: E:\Apps\XromwellDevuanSector512Baseline\
   the restored release Devuan payload and normal root filenames. xemu sanity
   proof:
   `C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-sector512-baseline-xemu-20260529-125306.png`
+  Hardware result, May 29, 2026: loaded on the softmodded Xbox.
 
 The May 25 refresh adds:
 
@@ -151,7 +154,7 @@ Verify these on real hardware when the Xbox is available:
 ```text
 C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-tinycore-lean.zip
 C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-terminal.zip
-C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-release-baseline.zip
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-sector512-baseline.zip
 ```
 
 - RW shell smoke package on AV/composite: first boot writes both marker files,

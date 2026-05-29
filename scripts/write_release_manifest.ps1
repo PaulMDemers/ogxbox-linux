@@ -6,7 +6,7 @@ param(
         "artifacts\cromwell-devuan-daedalus-i386-desktop.iso",
         "artifacts\softmod\xromwell-hddfatx-tinycore-lean.zip",
         "artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-terminal.zip",
-        "artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-release-baseline.zip"
+        "artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-sector512-baseline.zip"
     )
 )
 

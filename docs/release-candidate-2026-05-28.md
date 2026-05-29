@@ -11,9 +11,9 @@ Devuan terminal
 C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-terminal.zip
 SHA256 7e7d36d4b4001157d7615ec5a94dbe1b56b15082e7f916e716629e44be9c9f28
 
-Devuan desktop baseline
-C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-release-baseline.zip
-SHA256 9C0A2362A6E4317DC6BEEB6651E9FD10AD09E029C7CD33D24BF5C0F61DB94D65
+Devuan desktop sector512 baseline
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-sector512-baseline.zip
+SHA256 E5347331F87448F5D081FB0576B0A9BD0E40D15E27865E1169577A22676CB2AC
 ```
 
 Matching ISO artifacts:
@@ -35,7 +35,8 @@ SHA256 4cdceee91327489554f13774c95c03e386aa20d66b5c338e43bb5772aabbb1e1
 Current hardware status:
 
 - Tiny Core lean boots and is the snappy Tiny Core target.
-- Devuan desktop release-baseline boots on the softmodded Xbox and works well.
+- Devuan desktop sector512 baseline boots on the softmodded Xbox and works
+  well. This is the active Devuan desktop release candidate.
 - Devuan networking appears to come up automatically during boot.
 - HDMI/HDTV mode is shelved; AV/composite is the active reliable test path.
 
@@ -43,8 +44,8 @@ Release discipline:
 
 - Install one Xromwell Linux profile at a time because `E:\linuxboot.cfg` is
   global.
-- The Devuan desktop release candidate uses `devkrnl`, `devinit`, and
-  `devuan.ext2`.
+- The Devuan desktop release candidate uses the sector512 Xromwell XBE with
+  `devkrnl`, `devinit`, and `devuan.ext2`.
 - The Devuan rw smoke package uses `rwkrnl`, `rwinit`, and `rwdevuan.ext2` so
   it cannot overwrite the release candidate files.
 - The `xkrnl` and `xinit` packages are diagnostics only.
@@ -138,3 +139,8 @@ and `linuxboot.cfg`. It passed xemu sanity:
 ```text
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-sector512-baseline-xemu-20260529-125306.png
 ```
+
+Hardware result, May 29, 2026: this sector512 rollback package loaded on the
+softmodded Xbox. It replaces the earlier `4dcc618` release-baseline package as
+the active Devuan desktop release candidate. Keep the later loader stability
+set only as diagnostic history.

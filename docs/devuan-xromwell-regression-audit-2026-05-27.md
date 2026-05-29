@@ -1044,3 +1044,7 @@ C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-sector512-baseline-xemu-
 Do not continue the `payload-progress`, `payload-settle`, `idephase`, or
 `ata-readsectors` variants as release candidates. Keep them only as debugging
 evidence.
+
+Hardware result: the sector512 rollback package loaded on the softmodded Xbox.
+This is now the active Devuan desktop release candidate and the base for the
+next desktop/taskbar/performance work.

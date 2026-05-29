@@ -432,31 +432,31 @@ XBOX_DEVUAN_COMPLETE_DESKTOP_OK
 
 Next Devuan tasks:
 
-- Use the restored `4dcc618` Devuan desktop package as the hardware-passed
-  release baseline. It uses the same XBE, kernel, initramfs, root image,
-  filenames, and append line as the earlier snappy Devuan desktop build:
+- Use the sector512 rollback package as the active hardware-passed Devuan
+  desktop release candidate. It uses the `3fa5e65-sector512` XBE that booted
+  4 out of 5 attempts, with the restored Devuan kernel, initramfs, root image,
+  filenames, and append line:
 
   ```text
-  C:\Users\Paul\Desktop\xbox_linux\artifacts\audit\xromwell-4dcc618-restored-devuan-daedalus-i386.zip
-  SHA256 3742B8EAD01EDD5697240B8DD1679A36B6FD83E8A7055901F82A86BE3FC8227A
-  Dashboard folder: E:\Apps\XromwellDevuanRestored4dcc618\
+  C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-sector512-baseline.zip
+  SHA256 E5347331F87448F5D081FB0576B0A9BD0E40D15E27865E1169577A22676CB2AC
+  Dashboard folder: E:\Apps\XromwellDevuanSector512Baseline\
   ```
 
-  Real hardware result: booted and appears to work well. Keep this package as
-  the baseline for network, persistence, and desktop usability work. Do not mix
-  `devkrnl`/`devinit`/`devuan.ext2` files from the `xkrnl` probe packages.
+  Real hardware result: loaded on May 29, 2026. Keep this package as the
+  baseline for network, persistence, and desktop usability work. Do not mix
+  `devkrnl`/`devinit`/`devuan.ext2` files from the `xkrnl` probe packages or
+  later loader timing experiments.
 
-- For release-prep copying, prefer the rebuilt release-baseline package:
+- Historical note: the rebuilt `4dcc618` release-baseline package did boot and
+  work, but later repeat tests exposed nondeterministic FATX loader hangs in
+  that coalesced-read XBE. Keep it as a checkpoint, not the current release
+  candidate:
 
   ```text
   C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-release-baseline.zip
   SHA256 9C0A2362A6E4317DC6BEEB6651E9FD10AD09E029C7CD33D24BF5C0F61DB94D65
   ```
-
-  It reconstructs the hardware-passed line and is the reset path after rw or
-  diagnostic package tests.
-  Real hardware result, May 28, 2026: this rebuilt baseline booted and works
-  well. Treat it as the Devuan desktop release candidate.
 - Do not let rw experiments overwrite the release files. The Devuan rw smoke
   package now uses `rwkrnl`, `rwinit`, and `rwdevuan.ext2`; only
   `linuxboot.cfg` is intentionally shared because Xromwell reads it from E:\.
