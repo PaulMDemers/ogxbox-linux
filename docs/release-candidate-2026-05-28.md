@@ -64,18 +64,24 @@ C:\Users\Paul\Desktop\xbox_linux\artifacts\release\SHA256SUMS.txt
 ```
 
 The next desktop milestone is now an experimental Devuan desktop-plus package.
-It keeps the release-baseline Xromwell/kernel/initrd lineage but uses isolated
-root filenames (`pluskrnl`, `plusinit`, `plusdevuan.ext2`) and adds Fluxbox for
-window decorations plus a bottom taskbar/menu.
+It keeps the sector512 baseline Xromwell/kernel/initrd lineage but uses
+isolated root filenames (`pkrnl`, `pinit`, `pdevuan.ext2`) and adds Fluxbox
+for window decorations plus a bottom taskbar/menu.
 
 ```text
-C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-desktop-plus.zip
-SHA256 0064F7B12869F4CFF2365CF74BDAFEB9EB87D3D9C7A29537215F85D19A4C30B1
-xemu proof: C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-desktop-plus-fluxbox-profile-libpath-proof-20260528-192631.png
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-sector512-desktop-plus.zip
+SHA256 9CB9A62D66A965AB6C37464DDF1E4445DAD0FD8D75ACEF0EF0062844F997ECAC
+xemu userspace proof: C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-sector512-desktop-plus-userspace-xemu-20260529-134206.png
 ```
 
 Do not add desktop-plus to the public release candidate set until it has passed
 real hardware.
+
+Note: the ad-hoc xemu DVD wrapper used for the exact sector512 `default.xbe`
+does not pass the initrd in xemu and panics at `unknown-block(3,1)`, even for
+the sector512 baseline. Treat that as an emulator wrapper limitation, not a
+softmod package failure. The userspace proof above uses the established xemu
+wrapper with the same kernel, initrd, append line, and desktop-plus root image.
 
 May 28 hardware loader note: after desktop-plus testing, the same
 release-baseline bytes also showed nondeterministic Xromwell FATX loader hangs

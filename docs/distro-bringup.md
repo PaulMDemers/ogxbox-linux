@@ -305,7 +305,7 @@ C:\Users\Paul\Desktop\xbox_linux\artifacts\cromwell-devuan-daedalus-i386-complet
 C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-terminal.zip
 C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386.zip
 C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-complete.zip
-C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-desktop-plus.zip
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-sector512-desktop-plus.zip
 ```
 
 The terminal and minimal desktop packages use the same `devkrnl`, `devinit`,
@@ -349,9 +349,9 @@ the hardware-passed Devuan baseline while keeping separate boot filenames:
 
 ```text
 E:\linuxboot.cfg
-E:\pluskrnl
-E:\plusinit
-E:\plusdevuan.ext2
+E:\pkrnl
+E:\pinit
+E:\pdevuan.ext2
 ```
 
 It adds Fluxbox for visible window decorations, a toolbar/taskbar, and a small
@@ -466,12 +466,14 @@ Next Devuan tasks:
 - Hardware-test the experimental Devuan desktop-plus package after the release
   baseline is backed up. It should show `XBOX_DEVUAN_DESKTOP_PLUS_OK` in an
   `aterm` window managed by Fluxbox, with a bottom toolbar/taskbar. It is
-  xemu-proven only at this checkpoint:
+  xemu-proven for userspace with the established wrapper, while the hardware
+  package uses the sector512 baseline `default.xbe`:
 
   ```text
-  C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-desktop-plus.zip
-  SHA256 0064F7B12869F4CFF2365CF74BDAFEB9EB87D3D9C7A29537215F85D19A4C30B1
+  C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-sector512-desktop-plus.zip
+  SHA256 9CB9A62D66A965AB6C37464DDF1E4445DAD0FD8D75ACEF0EF0062844F997ECAC
   root image SHA256 52442BA490F20FCAC5BEF6C6FC2168C12D99F4DA11B842DEA12FE9D591EACC23
+  xemu userspace proof C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-sector512-desktop-plus-userspace-xemu-20260529-134206.png
   ```
 - Continue Devuan persistence work from the new rw shell-smoke package, but do
   not run it on real hardware yet. xemu writes the persistence marker and

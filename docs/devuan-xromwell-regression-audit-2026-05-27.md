@@ -1048,3 +1048,18 @@ evidence.
 Hardware result: the sector512 rollback package loaded on the softmodded Xbox.
 This is now the active Devuan desktop release candidate and the base for the
 next desktop/taskbar/performance work.
+
+Next package built from that baseline:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-sector512-desktop-plus.zip
+SHA256 9CB9A62D66A965AB6C37464DDF1E4445DAD0FD8D75ACEF0EF0062844F997ECAC
+```
+
+It keeps the sector512 `default.xbe`, the baseline kernel/initrd bytes, and
+separate root filenames (`pkrnl`, `pinit`, `pdevuan.ext2`). xemu userspace
+proof reaches Fluxbox and prints `XBOX_DEVUAN_DESKTOP_PLUS_OK`:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-sector512-desktop-plus-userspace-xemu-20260529-134206.png
+```

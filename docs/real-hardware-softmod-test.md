@@ -37,8 +37,8 @@ C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daeda
 Devuan Daedalus i386 desktop-plus experimental test:
 
 ```text
-C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-desktop-plus.zip
-SHA256 0064F7B12869F4CFF2365CF74BDAFEB9EB87D3D9C7A29537215F85D19A4C30B1
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-sector512-desktop-plus.zip
+SHA256 9CB9A62D66A965AB6C37464DDF1E4445DAD0FD8D75ACEF0EF0062844F997ECAC
 ```
 
 Devuan loader-only stability set:
@@ -169,8 +169,9 @@ C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daeda
   AV/composite package as the active test route.
 - Devuan desktop-plus experimental package: verify that it reaches
   `XBOX_DEVUAN_DESKTOP_PLUS_OK`, shows Fluxbox window decorations, and displays
-  a bottom toolbar/taskbar. This package is xemu-proven only so far and uses
-  isolated `pluskrnl`, `plusinit`, and `plusdevuan.ext2` files.
+  a bottom toolbar/taskbar. This package is xemu-proven for userspace and uses
+  isolated `pkrnl`, `pinit`, and `pdevuan.ext2` files with the sector512
+  baseline `default.xbe`.
 - Devuan loader-only stability set: use this before further desktop-plus work
   if Xromwell hangs while reading the kernel or initrd. The active rollback
   candidate is now
@@ -193,9 +194,9 @@ E:\debian.ext2
 E:\devkrnl
 E:\devinit
 E:\devuan.ext2
-E:\pluskrnl
-E:\plusinit
-E:\plusdevuan.ext2
+E:\pkrnl
+E:\pinit
+E:\pdevuan.ext2
 E:\LINUX\DEVUAN.EXT2
 ```
 
@@ -377,7 +378,7 @@ E:\Apps\XromwellDevuanDaedalusComplete\
 Expected Devuan desktop-plus experimental dashboard folder:
 
 ```text
-E:\Apps\XromwellDevuanDesktopPlus\
+E:\Apps\XromwellDevuanSector512DesktopPlus\
 ```
 
 For Devuan terminal and minimal desktop, copy the package `E-root\` files to
@@ -405,14 +406,14 @@ contents of `E-root\` to `E:\`. This keeps the huge ext2 image out of the
 FATX root directory while keeping Xromwell's kernel/initrd loads at root,
 which is the hardware-proven path.
 
-For Devuan desktop-plus, copy `Apps\XromwellDevuanDesktopPlus\` to
+For Devuan desktop-plus, copy `Apps\XromwellDevuanSector512DesktopPlus\` to
 `E:\Apps\`, then copy this package's `E-root\` files to `E:\`:
 
 ```text
 E:\linuxboot.cfg
-E:\pluskrnl
-E:\plusinit
-E:\plusdevuan.ext2
+E:\pkrnl
+E:\pinit
+E:\pdevuan.ext2
 ```
 
 When switching between Devuan loader stability variants, delete these four
