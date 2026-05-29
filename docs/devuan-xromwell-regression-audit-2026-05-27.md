@@ -1009,3 +1009,38 @@ xemu sanity proof for `payload-settle-readsectors`:
 ```text
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-loader-payload-settle-xemu-20260529-121556.png
 ```
+
+Hardware result: `payload-settle-readsectors` stopped at the same first
+`/devkrnl` read region. That closes the timing-delay/retry hypothesis. The
+useful difference in the 4-out-of-5 package was not the later `payload-*`
+instrumentation; it was the earlier rollback to the `3fa5e65-sector512` line,
+which avoids `4dcc618`'s up-to-64 KiB coalesced FATX file reads and uses
+conservative 512-byte file reads.
+
+New active rollback package:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-sector512-baseline.zip
+SHA256 E5347331F87448F5D081FB0576B0A9BD0E40D15E27865E1169577A22676CB2AC
+Dashboard folder: E:\Apps\XromwellDevuanSector512Baseline\
+XBE SHA256: 81B3A6850627A8BEC6FA0D92BB4652400DB3EC863072EAA7351BB159DED0BAFD
+```
+
+It uses the 4-out-of-5 sector512 XBE with the restored release payload bytes:
+
+```text
+devkrnl       D3C812196908F8F2CA96C7863184C59C39982E27A2DD1ED6DFF125D5DA9FCAFE
+devinit       7CADFFDE0B78BA6C263DAD34B69862642A622A9491AD69B9CCFA1B40C0CF6CCB
+devuan.ext2   5F5DCEC72E2B0762ABF8790B5A58D383F51249AEA317394107BF7F804EAF1EB5
+linuxboot.cfg BBC6D53EC8A72D2FCC7954610FFFC12D3AE14AE8F10B16958BD9705D2401C631
+```
+
+xemu sanity proof:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-sector512-baseline-xemu-20260529-125306.png
+```
+
+Do not continue the `payload-progress`, `payload-settle`, `idephase`, or
+`ata-readsectors` variants as release candidates. Keep them only as debugging
+evidence.

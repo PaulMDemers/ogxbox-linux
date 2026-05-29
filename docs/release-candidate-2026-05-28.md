@@ -113,3 +113,28 @@ xemu sanity proof for `payload-settle-readsectors`:
 ```text
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-loader-payload-settle-xemu-20260529-121556.png
 ```
+
+May 29 decision: `payload-settle-readsectors` failed at the same real-hardware
+spot as `payload-progress-readsectors`. Stop advancing the `payload-*`,
+`idephase-*`, and ATA timing experiment line. The useful split was earlier:
+the `3fa5e65-sector512` XBE booted 4 out of 5 attempts because it uses the
+older direct-autoboot lineage with conservative 512-byte FATX file reads,
+where the release-baseline `4dcc618` XBE had added up-to-64 KiB coalesced FATX
+file reads.
+
+Rollback baseline for the next hardware pass:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-sector512-baseline.zip
+SHA256 E5347331F87448F5D081FB0576B0A9BD0E40D15E27865E1169577A22676CB2AC
+Dashboard folder: E:\Apps\XromwellDevuanSector512Baseline\
+XBE SHA256: 81B3A6850627A8BEC6FA0D92BB4652400DB3EC863072EAA7351BB159DED0BAFD
+```
+
+This package uses the 4/5 sector512 XBE with the restored release Devuan
+payload hashes and normal root filenames: `devkrnl`, `devinit`, `devuan.ext2`,
+and `linuxboot.cfg`. It passed xemu sanity:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-sector512-baseline-xemu-20260529-125306.png
+```

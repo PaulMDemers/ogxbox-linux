@@ -108,13 +108,28 @@ SHA256 9C0A2362A6E4317DC6BEEB6651E9FD10AD09E029C7CD33D24BF5C0F61DB94D65
   detail for long file reads.
 - The `payload-progress-readsectors` variant stopped at the first `/devkrnl`
   data read region: `FATX: prog devkrnl r=0 c=3816 a=57DA70`.
-- The follow-up variant to test next is
+- The follow-up variant tested after that was
   `xromwell-hddfatx-devuan-loader-payload-settle.zip`, which keeps the frozen
   Devuan payload and adds a 1 ms settle delay plus retry/reporting around each
   `devkrnl`/`devinit` sector read.
 - xemu sanity proof for `payload-settle-readsectors` reaches the Devuan
   desktop:
   `C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-loader-payload-settle-xemu-20260529-121556.png`
+- Hardware result: `payload-settle-readsectors` stopped at the same first
+  `/devkrnl` read spot. Do not continue the later payload/IDE timing variants
+  as the release path.
+- The next hardware package is the rollback sector512 baseline:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-sector512-baseline.zip
+SHA256 E5347331F87448F5D081FB0576B0A9BD0E40D15E27865E1169577A22676CB2AC
+Dashboard folder: E:\Apps\XromwellDevuanSector512Baseline\
+```
+
+  This uses the `3fa5e65-sector512` XBE that booted 4 out of 5 attempts, with
+  the restored release Devuan payload and normal root filenames. xemu sanity
+  proof:
+  `C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-sector512-baseline-xemu-20260529-125306.png`
 
 The May 25 refresh adds:
 
@@ -154,12 +169,11 @@ C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daeda
   a bottom toolbar/taskbar. This package is xemu-proven only so far and uses
   isolated `pluskrnl`, `plusinit`, and `plusdevuan.ext2` files.
 - Devuan loader-only stability set: use this before further desktop-plus work
-  if Xromwell hangs while reading the kernel or initrd. Start the next round
-  with `xromwell-hddfatx-devuan-loader-payload-settle.zip`; if it fails,
-  photograph the final `FATX: prog`, `FATX: retry`, `FIND`, or `FS` marker
-  before comparing against `xromwell-hddfatx-devuan-loader-payload-progress.zip`,
-  `xromwell-hddfatx-devuan-loader-3fa5e65-filesector.zip`, and
-  `xromwell-hddfatx-devuan-loader-3fa5e65-sector512.zip`.
+  if Xromwell hangs while reading the kernel or initrd. The active rollback
+  candidate is now
+  `xromwell-hddfatx-devuan-daedalus-i386-sector512-baseline.zip`; the later
+  `payload-*`, `idephase-*`, and `ata-readsectors-*` packages are diagnostic
+  dead ends unless we deliberately resume loader research.
 
 ## Backup First
 
