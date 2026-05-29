@@ -861,49 +861,54 @@ Only `default.xbe` changes between variants:
 
 ```text
 C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\devuan-loader-stability-set.zip
-SHA256 5BD1C174BDC3633538DBB83E6B19DF52167C3E08455A2C3A0AFCF8936C15C350
+SHA256 D97192D1061F88525FEDF1AEAD617847A2DA7D61FA3DB793E68E50E14E0C6060
+
+xromwell-hddfatx-devuan-loader-payload-settle.zip
+SHA256 1B3E33C458D33AB9705BEE12912CD415568FB367071D7CC6E93E345A13A987AC
 
 xromwell-hddfatx-devuan-loader-payload-progress.zip
-SHA256 AEDDC596969BCF3E32241B5E9038085B2D4B48B64F8B70B7FA32F3DD2D804392
+SHA256 3DD52F03B0659C5BC29E68D49CA07571FDF87323D2432B8E2E3B49FDF19DEC30
 
 xromwell-hddfatx-devuan-loader-idephase-payload.zip
-SHA256 B6A4A8188EFF85162E9B6CEA8002EAA37305F7ED13E433CA5ABC64A0ED325EA1
+SHA256 48EF1DD95F39B48A8741DF267283C59C5EA2E3278D8CB2C0A43ACE7145962FC7
 
 xromwell-hddfatx-devuan-loader-idephase-readsectors.zip
-SHA256 B89B0E5BB217BC2C3F9EFF26FB15E83D349789CFA56BB0E77CE7D980C567B2FA
+SHA256 1C0054226C3C7E8A892A097D7C4618E4AAB98D6A27128D3D24544692E9258310
 
 xromwell-hddfatx-devuan-loader-ata-readsectors-filesector.zip
-SHA256 5DD99707D2914D7C841585CEC1F58E7EE3EA2539B21A1B5C844098D1F178A4CA
+SHA256 7F5244665502099BD8F7BA88F908396DD291A9A28ADA0D01281F17DAA5EDEE41
 
 xromwell-hddfatx-devuan-loader-3fa5e65-sector512.zip
-SHA256 E9F9E356DFC8FE39998B28E819065F299F2036773CB0109CAAFC92F819B639AC
+SHA256 49AD5B70653A3E23BB3DEF4FA2D33C4EE366787BAC99A45DD5D10AF30806F30B
 
 xromwell-hddfatx-devuan-loader-3fa5e65-filesector.zip
-SHA256 D9614DDA72AC031FCA75E3DA0E5E372FE6EAC9F533136D6305A8EA99A4E5EA2B
+SHA256 3B6A9A601019B8A8A4D0DFF88E39C13ABC8E155E00A9B920BE0F889CE977D698
 
 xromwell-hddfatx-devuan-loader-3fa5e65-findsector.zip
-SHA256 90E85A47EC679EF39FDCC22753D1DCC1F8891EE830A63BBEA4288F3597A33C41
+SHA256 1E0FDC380F1B070E72232ACCE23EFE9589731C714808E9310A3E2F2D92B31DF8
 
 xromwell-hddfatx-devuan-loader-4dcc618-current.zip
-SHA256 E8E7D49FEBAF347853A592657413284E95EADABBB2E6DB5A64BFA43AA70DB898
+SHA256 549B5B3A5DD48E899BD84081EF210CBE8BB0A74A7C434B77B70C99106503530B
 ```
 
 Recommended hardware order:
 
-1. `payload-progress-readsectors`: quiet progress markers while loading
+1. `payload-settle-readsectors`: adds a 1 ms settle delay plus retry/reporting
+   around each `devkrnl`/`devinit` sector read.
+2. `payload-progress-readsectors`: quiet progress markers while loading
    `devkrnl`/`devinit`.
-2. `idephase-payload-readsectors`: quiet until `devkrnl`/`devinit`, then
+3. `idephase-payload-readsectors`: quiet until `devkrnl`/`devinit`, then
    prints FATX/IDE phase markers.
-3. `idephase-readsectors-filesector`: noisy phase trace for the latest
+4. `idephase-readsectors-filesector`: noisy phase trace for the latest
    `/devkrnl` lookup hang.
-4. `ata-readsectors-filesector`: first follow-up after `3fa5e65-sector512`
+5. `ata-readsectors-filesector`: first follow-up after `3fa5e65-sector512`
    showed a 4/5 boot rate.
-5. `3fa5e65-sector512`: current best known loader, but not fully repeatable.
-6. `3fa5e65-filesector`: if ATA readsectors still hangs, use this for file-read
+6. `3fa5e65-sector512`: current best known loader, but not fully repeatable.
+7. `3fa5e65-filesector`: if ATA readsectors still hangs, use this for file-read
    progress output.
-7. `3fa5e65-findsector`: directory lookup diagnostic if config or file finding
+8. `3fa5e65-findsector`: directory lookup diagnostic if config or file finding
    looks suspicious again.
-8. `4dcc618-current`: control variant for reproducing the current
+9. `4dcc618-current`: control variant for reproducing the current
    nondeterministic loader behavior.
 
 Do not rebuild desktop-plus, Devuan rootfs, or kernel/initrd payloads until one
@@ -978,3 +983,29 @@ package is `payload-progress-readsectors`, which keeps the same frozen payload
 and prints one compact progress marker per 64 KiB while loading `/devkrnl` and
 `/devinit`. The last visible `FATX: prog ...` line should identify the read
 region if the loader still stalls.
+
+Hardware update: `payload-progress-readsectors` stopped at the first
+`/devkrnl` payload read region:
+
+```text
+FATX: fixed open /devkrnl
+FIND devkrnl c=1
+FS c=1 o=0 ok
+FATX: find match devkrnl e=6 c=3816 sz=2617856
+FATX: fixed found /devkrnl size=2617856 cluster=3816
+FATX: file start devkrnl sz=2617856 c=3816
+FATX: prog devkrnl r=0 c=3816 a=57DA70
+```
+
+The previous `idephase-payload-readsectors` package completed the first
+sector at this same address when verbose IDE phase logging was enabled. That
+looks like timing sensitivity: the extra prints changed the delay enough for
+the read to complete. The next package is `payload-settle-readsectors`, which
+keeps the frozen payload and adds a 1 ms settle delay plus up to three attempts
+around each boot-payload sector read.
+
+xemu sanity proof for `payload-settle-readsectors`:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-loader-payload-settle-xemu-20260529-121556.png
+```

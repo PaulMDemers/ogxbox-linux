@@ -87,7 +87,7 @@ Loader-only stability set:
 
 ```text
 C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\devuan-loader-stability-set.zip
-SHA256 5BD1C174BDC3633538DBB83E6B19DF52167C3E08455A2C3A0AFCF8936C15C350
+SHA256 D97192D1061F88525FEDF1AEAD617847A2DA7D61FA3DB793E68E50E14E0C6060
 ```
 
 The stability set uses the exact release-baseline Devuan files in every
@@ -100,8 +100,16 @@ lookup at `FATX: find scan seek=devkrnl c=1`.
 The noisy `idephase-readsectors-filesector` follow-up showed ATA `READ SECTORS`
 commands completing through `linuxboot.cfg` lookup/read. The
 `idephase-payload-readsectors` follow-up then showed `/devkrnl` lookup
-succeeding and the first kernel data sector completing. The next test is
-`payload-progress-readsectors`, which keeps the same frozen payload and prints
-compact progress markers while loading `devkrnl` and `devinit`. Keep
-desktop/rootfs work frozen until one loader is repeatable across several cold
-boots.
+succeeding and the first kernel data sector completing. The
+`payload-progress-readsectors` package stopped at the first `/devkrnl` data
+read region, while the verbose package had completed that same first sector.
+The next test is `payload-settle-readsectors`, which keeps the same frozen
+payload and adds a 1 ms settle delay plus retry/reporting around each
+`devkrnl`/`devinit` sector read. Keep desktop/rootfs work frozen until one
+loader is repeatable across several cold boots.
+
+xemu sanity proof for `payload-settle-readsectors`:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-loader-payload-settle-xemu-20260529-121556.png
+```

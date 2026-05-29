@@ -14,6 +14,14 @@ $append = 'init=/init noswitchroot debug console=tty0 ignore_loglevel loglevel=7
 
 $variants = @(
     [pscustomobject]@{
+        Id = 'payload-settle-readsectors'
+        Label = 'payload settled ATA READ SECTORS loader'
+        Xbe = 'artifacts\audit\xromwell-payload-settle-loader-xbe\default.xbe'
+        OutDir = 'xromwell-hddfatx-devuan-loader-payload-settle'
+        Dashboard = 'XromwellDevuanLoaderPayloadSettle'
+        Notes = 'Follow-up after payload-progress-readsectors stopped at the first /devkrnl read region. Adds a 1 ms settle delay before each boot-payload sector read and retries/report failures while keeping the frozen Devuan payload.'
+    },
+    [pscustomobject]@{
         Id = 'payload-progress-readsectors'
         Label = 'payload progress ATA READ SECTORS loader'
         Xbe = 'artifacts\audit\xromwell-payload-progress-loader-xbe\default.xbe'
@@ -195,14 +203,15 @@ $manifestLines = @(
     '',
     'Recommended hardware order:',
     '',
-    '1. `payload-progress-readsectors` - quiet progress markers during devkrnl/devinit file loads.',
-    '2. `idephase-payload-readsectors` - quiet until devkrnl/devinit, then prints FATX/IDE phase markers.',
-    '3. `idephase-readsectors-filesector` - noisy full phase trace from partition/config lookup.',
-    '4. `ata-readsectors-filesector` - first follow-up after sector512 showed a 4/5 boot rate.',
-    '5. `3fa5e65-sector512` - current best known loader, but not fully repeatable.',
-    '6. `3fa5e65-filesector` - best diagnostic if ATA readsectors still hangs during file reads.',
-    '7. `3fa5e65-findsector` - directory lookup diagnostic.',
-    '8. `4dcc618-current` - control package for the nondeterministic current-loader behavior.',
+    '1. `payload-settle-readsectors` - adds a tiny settle delay plus retry around each devkrnl/devinit sector read.',
+    '2. `payload-progress-readsectors` - quiet progress markers during devkrnl/devinit file loads.',
+    '3. `idephase-payload-readsectors` - quiet until devkrnl/devinit, then prints FATX/IDE phase markers.',
+    '4. `idephase-readsectors-filesector` - noisy full phase trace from partition/config lookup.',
+    '5. `ata-readsectors-filesector` - first follow-up after sector512 showed a 4/5 boot rate.',
+    '6. `3fa5e65-sector512` - current best known loader, but not fully repeatable.',
+    '7. `3fa5e65-filesector` - best diagnostic if ATA readsectors still hangs during file reads.',
+    '8. `3fa5e65-findsector` - directory lookup diagnostic.',
+    '9. `4dcc618-current` - control package for the nondeterministic current-loader behavior.',
     ''
 )
 

@@ -45,7 +45,7 @@ Devuan loader-only stability set:
 
 ```text
 C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\devuan-loader-stability-set.zip
-SHA256 5BD1C174BDC3633538DBB83E6B19DF52167C3E08455A2C3A0AFCF8936C15C350
+SHA256 D97192D1061F88525FEDF1AEAD617847A2DA7D61FA3DB793E68E50E14E0C6060
 ```
 
 ## Current Hardware Result
@@ -106,10 +106,15 @@ SHA256 9C0A2362A6E4317DC6BEEB6651E9FD10AD09E029C7CD33D24BF5C0F61DB94D65
 - The `idephase-payload` variant shows `/devkrnl` lookup succeeding and the
   first kernel data sector completing. It still prints too much sector-level
   detail for long file reads.
+- The `payload-progress-readsectors` variant stopped at the first `/devkrnl`
+  data read region: `FATX: prog devkrnl r=0 c=3816 a=57DA70`.
 - The follow-up variant to test next is
-  `xromwell-hddfatx-devuan-loader-payload-progress.zip`, which keeps the frozen
-  Devuan payload and prints compact 64 KiB progress markers while loading
-  `devkrnl` and `devinit`.
+  `xromwell-hddfatx-devuan-loader-payload-settle.zip`, which keeps the frozen
+  Devuan payload and adds a 1 ms settle delay plus retry/reporting around each
+  `devkrnl`/`devinit` sector read.
+- xemu sanity proof for `payload-settle-readsectors` reaches the Devuan
+  desktop:
+  `C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-loader-payload-settle-xemu-20260529-121556.png`
 
 The May 25 refresh adds:
 
@@ -150,9 +155,10 @@ C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daeda
   isolated `pluskrnl`, `plusinit`, and `plusdevuan.ext2` files.
 - Devuan loader-only stability set: use this before further desktop-plus work
   if Xromwell hangs while reading the kernel or initrd. Start the next round
-  with `xromwell-hddfatx-devuan-loader-payload-progress.zip`; if it fails,
-  photograph the final `FATX: prog`, `FIND`, or `FS` marker before comparing against
-  `xromwell-hddfatx-devuan-loader-3fa5e65-filesector.zip` and
+  with `xromwell-hddfatx-devuan-loader-payload-settle.zip`; if it fails,
+  photograph the final `FATX: prog`, `FATX: retry`, `FIND`, or `FS` marker
+  before comparing against `xromwell-hddfatx-devuan-loader-payload-progress.zip`,
+  `xromwell-hddfatx-devuan-loader-3fa5e65-filesector.zip`, and
   `xromwell-hddfatx-devuan-loader-3fa5e65-sector512.zip`.
 
 ## Backup First
