@@ -861,44 +861,49 @@ Only `default.xbe` changes between variants:
 
 ```text
 C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\devuan-loader-stability-set.zip
-SHA256 DE11857A72984324A9813B5197FD26AEB351AB4A1822D7AE84A779A1D27FBA3E
+SHA256 5BD1C174BDC3633538DBB83E6B19DF52167C3E08455A2C3A0AFCF8936C15C350
+
+xromwell-hddfatx-devuan-loader-payload-progress.zip
+SHA256 AEDDC596969BCF3E32241B5E9038085B2D4B48B64F8B70B7FA32F3DD2D804392
 
 xromwell-hddfatx-devuan-loader-idephase-payload.zip
-SHA256 7DF0FDCDFDDCF17C935827B3E1EE295F05FB59AEB435636C43F5594D49A0D331
+SHA256 B6A4A8188EFF85162E9B6CEA8002EAA37305F7ED13E433CA5ABC64A0ED325EA1
 
 xromwell-hddfatx-devuan-loader-idephase-readsectors.zip
-SHA256 5754790CB5626B1B2FE0BDD6DC14BB41A8CFC40603EEFFBF06BED120579CD133
+SHA256 B89B0E5BB217BC2C3F9EFF26FB15E83D349789CFA56BB0E77CE7D980C567B2FA
 
 xromwell-hddfatx-devuan-loader-ata-readsectors-filesector.zip
-SHA256 89F29ACCE31E897F2E6BC26389E3517D3ADC3DA15A4E306D15843705305D35B1
+SHA256 5DD99707D2914D7C841585CEC1F58E7EE3EA2539B21A1B5C844098D1F178A4CA
 
 xromwell-hddfatx-devuan-loader-3fa5e65-sector512.zip
-SHA256 745F1316B70E9727BD042CF2599FA9C9CD1703FBE29706309B216C0C74EDCC85
+SHA256 E9F9E356DFC8FE39998B28E819065F299F2036773CB0109CAAFC92F819B639AC
 
 xromwell-hddfatx-devuan-loader-3fa5e65-filesector.zip
-SHA256 FD5D0839BF6237761420534ACDC12CE508F1D702FC321DB8707D291717405730
+SHA256 D9614DDA72AC031FCA75E3DA0E5E372FE6EAC9F533136D6305A8EA99A4E5EA2B
 
 xromwell-hddfatx-devuan-loader-3fa5e65-findsector.zip
-SHA256 81ECBB0F448D5AF2F6737DFC004F9D971AF483B968857E4DCC5AF940322262A1
+SHA256 90E85A47EC679EF39FDCC22753D1DCC1F8891EE830A63BBEA4288F3597A33C41
 
 xromwell-hddfatx-devuan-loader-4dcc618-current.zip
-SHA256 FE7D2AB3EEA92D150DE54AFA179D25AE715A78CD7E7A32522AAE3AD1144EBB23
+SHA256 E8E7D49FEBAF347853A592657413284E95EADABBB2E6DB5A64BFA43AA70DB898
 ```
 
 Recommended hardware order:
 
-1. `idephase-payload-readsectors`: quiet until `devkrnl`/`devinit`, then
+1. `payload-progress-readsectors`: quiet progress markers while loading
+   `devkrnl`/`devinit`.
+2. `idephase-payload-readsectors`: quiet until `devkrnl`/`devinit`, then
    prints FATX/IDE phase markers.
-2. `idephase-readsectors-filesector`: noisy phase trace for the latest
+3. `idephase-readsectors-filesector`: noisy phase trace for the latest
    `/devkrnl` lookup hang.
-3. `ata-readsectors-filesector`: first follow-up after `3fa5e65-sector512`
+4. `ata-readsectors-filesector`: first follow-up after `3fa5e65-sector512`
    showed a 4/5 boot rate.
-4. `3fa5e65-sector512`: current best known loader, but not fully repeatable.
-5. `3fa5e65-filesector`: if ATA readsectors still hangs, use this for file-read
+5. `3fa5e65-sector512`: current best known loader, but not fully repeatable.
+6. `3fa5e65-filesector`: if ATA readsectors still hangs, use this for file-read
    progress output.
-6. `3fa5e65-findsector`: directory lookup diagnostic if config or file finding
+7. `3fa5e65-findsector`: directory lookup diagnostic if config or file finding
    looks suspicious again.
-7. `4dcc618-current`: control variant for reproducing the current
+8. `4dcc618-current`: control variant for reproducing the current
    nondeterministic loader behavior.
 
 Do not rebuild desktop-plus, Devuan rootfs, or kernel/initrd payloads until one
@@ -950,3 +955,26 @@ least through config discovery. The trace is too noisy before the kernel phase,
 so the next package is `idephase-payload-readsectors`, which suppresses config
 lookup/file-read spam and enables IDE phase markers only while loading boot
 payload files such as `/devkrnl` and `/devinit`.
+
+Hardware update: `idephase-payload-readsectors` finds `/devkrnl`, reads the
+first root-directory sector, finds the file entry, and completes at least the
+first kernel data sector:
+
+```text
+FATX: fixed open /devkrnl
+FIND devkrnl c=1
+FS c=1 o=0
+IDE#0 issue b=57D900 n=1 cmd=20 ok r0 . ok
+FATX: find match devkrnl e=6 c=3816 sz=2617856
+FATX: fixed found /devkrnl size=2617856 cluster=3816
+FATX: file start devkrnl sz=2617856 c=3816
+FATX: file at devkrnl read=0 c=3816 abs=0x57DA70
+FATX: file sec c=3816 o=0
+IDE#1 issue b=57DA70 n=1 cmd=20 ok r0 . ok
+```
+
+That rules out the root lookup and the first data-sector command. The next
+package is `payload-progress-readsectors`, which keeps the same frozen payload
+and prints one compact progress marker per 64 KiB while loading `/devkrnl` and
+`/devinit`. The last visible `FATX: prog ...` line should identify the read
+region if the loader still stalls.

@@ -45,7 +45,7 @@ Devuan loader-only stability set:
 
 ```text
 C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\devuan-loader-stability-set.zip
-SHA256 DE11857A72984324A9813B5197FD26AEB351AB4A1822D7AE84A779A1D27FBA3E
+SHA256 5BD1C174BDC3633538DBB83E6B19DF52167C3E08455A2C3A0AFCF8936C15C350
 ```
 
 ## Current Hardware Result
@@ -103,9 +103,12 @@ SHA256 9C0A2362A6E4317DC6BEEB6651E9FD10AD09E029C7CD33D24BF5C0F61DB94D65
 - The noisy `idephase-readsectors-filesector` variant shows individual ATA
   `READ SECTORS` commands completing through `linuxboot.cfg` lookup/read, but
   it scrolls too much before the `/devkrnl` phase.
+- The `idephase-payload` variant shows `/devkrnl` lookup succeeding and the
+  first kernel data sector completing. It still prints too much sector-level
+  detail for long file reads.
 - The follow-up variant to test next is
-  `xromwell-hddfatx-devuan-loader-idephase-payload.zip`, which keeps the frozen
-  Devuan payload and prints FATX/IDE phase markers only while loading
+  `xromwell-hddfatx-devuan-loader-payload-progress.zip`, which keeps the frozen
+  Devuan payload and prints compact 64 KiB progress markers while loading
   `devkrnl` and `devinit`.
 
 The May 25 refresh adds:
@@ -147,8 +150,8 @@ C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daeda
   isolated `pluskrnl`, `plusinit`, and `plusdevuan.ext2` files.
 - Devuan loader-only stability set: use this before further desktop-plus work
   if Xromwell hangs while reading the kernel or initrd. Start the next round
-  with `xromwell-hddfatx-devuan-loader-idephase-payload.zip`; if it fails,
-  photograph the final `FIND`, `FS`, or `IDE#` marker before comparing against
+  with `xromwell-hddfatx-devuan-loader-payload-progress.zip`; if it fails,
+  photograph the final `FATX: prog`, `FIND`, or `FS` marker before comparing against
   `xromwell-hddfatx-devuan-loader-3fa5e65-filesector.zip` and
   `xromwell-hddfatx-devuan-loader-3fa5e65-sector512.zip`.
 

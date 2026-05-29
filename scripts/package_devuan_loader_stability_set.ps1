@@ -14,6 +14,14 @@ $append = 'init=/init noswitchroot debug console=tty0 ignore_loglevel loglevel=7
 
 $variants = @(
     [pscustomobject]@{
+        Id = 'payload-progress-readsectors'
+        Label = 'payload progress ATA READ SECTORS loader'
+        Xbe = 'artifacts\audit\xromwell-payload-progress-loader-xbe\default.xbe'
+        OutDir = 'xromwell-hddfatx-devuan-loader-payload-progress'
+        Dashboard = 'XromwellDevuanLoaderPayloadProgress'
+        Notes = 'Follow-up after payload IDE phase trace showed the first /devkrnl sector read completes. This variant suppresses per-sector IDE spam and prints compact progress markers while loading devkrnl and devinit.'
+    },
+    [pscustomobject]@{
         Id = 'idephase-payload-readsectors'
         Label = 'payload-only ATA READ SECTORS IDE phase trace'
         Xbe = 'artifacts\audit\xromwell-idephase-payload-loader-xbe\default.xbe'
@@ -187,13 +195,14 @@ $manifestLines = @(
     '',
     'Recommended hardware order:',
     '',
-    '1. `idephase-payload-readsectors` - quiet until devkrnl/devinit, then prints FATX/IDE phase markers.',
-    '2. `idephase-readsectors-filesector` - noisy full phase trace from partition/config lookup.',
-    '3. `ata-readsectors-filesector` - first follow-up after sector512 showed a 4/5 boot rate.',
-    '4. `3fa5e65-sector512` - current best known loader, but not fully repeatable.',
-    '5. `3fa5e65-filesector` - best diagnostic if ATA readsectors still hangs during file reads.',
-    '6. `3fa5e65-findsector` - directory lookup diagnostic.',
-    '7. `4dcc618-current` - control package for the nondeterministic current-loader behavior.',
+    '1. `payload-progress-readsectors` - quiet progress markers during devkrnl/devinit file loads.',
+    '2. `idephase-payload-readsectors` - quiet until devkrnl/devinit, then prints FATX/IDE phase markers.',
+    '3. `idephase-readsectors-filesector` - noisy full phase trace from partition/config lookup.',
+    '4. `ata-readsectors-filesector` - first follow-up after sector512 showed a 4/5 boot rate.',
+    '5. `3fa5e65-sector512` - current best known loader, but not fully repeatable.',
+    '6. `3fa5e65-filesector` - best diagnostic if ATA readsectors still hangs during file reads.',
+    '7. `3fa5e65-findsector` - directory lookup diagnostic.',
+    '8. `4dcc618-current` - control package for the nondeterministic current-loader behavior.',
     ''
 )
 

@@ -87,7 +87,7 @@ Loader-only stability set:
 
 ```text
 C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\devuan-loader-stability-set.zip
-SHA256 DE11857A72984324A9813B5197FD26AEB351AB4A1822D7AE84A779A1D27FBA3E
+SHA256 5BD1C174BDC3633538DBB83E6B19DF52167C3E08455A2C3A0AFCF8936C15C350
 ```
 
 The stability set uses the exact release-baseline Devuan files in every
@@ -98,9 +98,10 @@ the one failure stopped after `Loading /devkrnl...` before progress output. The
 lookup at `FATX: find scan seek=devkrnl c=1`.
 
 The noisy `idephase-readsectors-filesector` follow-up showed ATA `READ SECTORS`
-commands completing through `linuxboot.cfg` lookup/read, but it scrolls too
-much before the kernel phase. The next test is
-`idephase-payload-readsectors`, which keeps the same frozen payload and enables
-FATX/IDE phase markers only while loading `devkrnl` and `devinit`. Keep
+commands completing through `linuxboot.cfg` lookup/read. The
+`idephase-payload-readsectors` follow-up then showed `/devkrnl` lookup
+succeeding and the first kernel data sector completing. The next test is
+`payload-progress-readsectors`, which keeps the same frozen payload and prints
+compact progress markers while loading `devkrnl` and `devinit`. Keep
 desktop/rootfs work frozen until one loader is repeatable across several cold
 boots.
