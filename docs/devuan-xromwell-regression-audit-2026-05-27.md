@@ -861,39 +861,44 @@ Only `default.xbe` changes between variants:
 
 ```text
 C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\devuan-loader-stability-set.zip
-SHA256 90C111CA9E789BB42B6E05344F03A6AE6BE51AEA6F1175DB2EF63FA9D4196BF1
+SHA256 DE11857A72984324A9813B5197FD26AEB351AB4A1822D7AE84A779A1D27FBA3E
+
+xromwell-hddfatx-devuan-loader-idephase-payload.zip
+SHA256 7DF0FDCDFDDCF17C935827B3E1EE295F05FB59AEB435636C43F5594D49A0D331
 
 xromwell-hddfatx-devuan-loader-idephase-readsectors.zip
-SHA256 48073451CAD3ECB50C1C3573EF565D3DCEA61EBE80D99BBA8CB231699532A8F8
+SHA256 5754790CB5626B1B2FE0BDD6DC14BB41A8CFC40603EEFFBF06BED120579CD133
 
 xromwell-hddfatx-devuan-loader-ata-readsectors-filesector.zip
-SHA256 790F9B3CAEF1DAA82310B07760E8661ACB61E99B33306A9428E716199FC5E405
+SHA256 89F29ACCE31E897F2E6BC26389E3517D3ADC3DA15A4E306D15843705305D35B1
 
 xromwell-hddfatx-devuan-loader-3fa5e65-sector512.zip
-SHA256 C62F54384BC4338FA6CD1F61CC421D3ED825B4989A977BFEAC7880390C2EA272
+SHA256 745F1316B70E9727BD042CF2599FA9C9CD1703FBE29706309B216C0C74EDCC85
 
 xromwell-hddfatx-devuan-loader-3fa5e65-filesector.zip
-SHA256 B52CBFE09831BC8F2E1DCC367B68B9D47BB15A78FD1BF628549E38803D7773CA
+SHA256 FD5D0839BF6237761420534ACDC12CE508F1D702FC321DB8707D291717405730
 
 xromwell-hddfatx-devuan-loader-3fa5e65-findsector.zip
-SHA256 EF09F787D7E7B36A6C6F8AE9748A66F7A7461EDE0CEB2009EEA7B19DC200FEA7
+SHA256 81ECBB0F448D5AF2F6737DFC004F9D971AF483B968857E4DCC5AF940322262A1
 
 xromwell-hddfatx-devuan-loader-4dcc618-current.zip
-SHA256 9D5A2B11F339C41AB468B82EAE007CB6DF263CCF517AFEF32420D99C36DF5F0D
+SHA256 FE7D2AB3EEA92D150DE54AFA179D25AE715A78CD7E7A32522AAE3AD1144EBB23
 ```
 
 Recommended hardware order:
 
-1. `idephase-readsectors-filesector`: phase trace for the latest
+1. `idephase-payload-readsectors`: quiet until `devkrnl`/`devinit`, then
+   prints FATX/IDE phase markers.
+2. `idephase-readsectors-filesector`: noisy phase trace for the latest
    `/devkrnl` lookup hang.
-2. `ata-readsectors-filesector`: first follow-up after `3fa5e65-sector512`
+3. `ata-readsectors-filesector`: first follow-up after `3fa5e65-sector512`
    showed a 4/5 boot rate.
-3. `3fa5e65-sector512`: current best known loader, but not fully repeatable.
-4. `3fa5e65-filesector`: if ATA readsectors still hangs, use this for file-read
+4. `3fa5e65-sector512`: current best known loader, but not fully repeatable.
+5. `3fa5e65-filesector`: if ATA readsectors still hangs, use this for file-read
    progress output.
-5. `3fa5e65-findsector`: directory lookup diagnostic if config or file finding
+6. `3fa5e65-findsector`: directory lookup diagnostic if config or file finding
    looks suspicious again.
-6. `4dcc618-current`: control variant for reproducing the current
+7. `4dcc618-current`: control variant for reproducing the current
    nondeterministic loader behavior.
 
 Do not rebuild desktop-plus, Devuan rootfs, or kernel/initrd payloads until one
@@ -927,3 +932,21 @@ r0                    waiting for or entering first sector data read
 FIND devkrnl c=1      entering root lookup for devkrnl
 FS c=1 o=0            reading the first root-directory sector
 ```
+
+Hardware update: the noisy `idephase-readsectors-filesector` package gets past
+the previously suspect root lookup and completes individual ATA `READ SECTORS`
+commands while reading `linuxboot.cfg`. The visible markers include:
+
+```text
+IDE#... issue ... cmd=20 ok r0 . ok
+FIND linuxboot.cfg c=1
+FS c=1 o=0
+FS c=1 o=512
+FATX: find match linuxboot.cfg ...
+```
+
+That means the command path and root-directory sector reads are working at
+least through config discovery. The trace is too noisy before the kernel phase,
+so the next package is `idephase-payload-readsectors`, which suppresses config
+lookup/file-read spam and enables IDE phase markers only while loading boot
+payload files such as `/devkrnl` and `/devinit`.

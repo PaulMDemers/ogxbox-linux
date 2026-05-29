@@ -14,6 +14,14 @@ $append = 'init=/init noswitchroot debug console=tty0 ignore_loglevel loglevel=7
 
 $variants = @(
     [pscustomobject]@{
+        Id = 'idephase-payload-readsectors'
+        Label = 'payload-only ATA READ SECTORS IDE phase trace'
+        Xbe = 'artifacts\audit\xromwell-idephase-payload-loader-xbe\default.xbe'
+        OutDir = 'xromwell-hddfatx-devuan-loader-idephase-payload'
+        Dashboard = 'XromwellDevuanLoaderIdePayload'
+        Notes = 'Follow-up to idephase-readsectors-filesector after hardware showed the config/root lookup reads complete. This variant keeps early config loading quiet and enables FATX/IDE phase markers only while loading boot payload files such as devkrnl and devinit.'
+    },
+    [pscustomobject]@{
         Id = 'idephase-readsectors-filesector'
         Label = 'file-sector loader with ATA READ SECTORS IDE phase trace'
         Xbe = 'artifacts\audit\xromwell-idephase-loader-xbe\default.xbe'
@@ -179,12 +187,13 @@ $manifestLines = @(
     '',
     'Recommended hardware order:',
     '',
-    '1. `idephase-readsectors-filesector` - phase trace for the latest /devkrnl lookup hang.',
-    '2. `ata-readsectors-filesector` - first follow-up after sector512 showed a 4/5 boot rate.',
-    '3. `3fa5e65-sector512` - current best known loader, but not fully repeatable.',
-    '4. `3fa5e65-filesector` - best diagnostic if ATA readsectors still hangs during file reads.',
-    '5. `3fa5e65-findsector` - directory lookup diagnostic.',
-    '6. `4dcc618-current` - control package for the nondeterministic current-loader behavior.',
+    '1. `idephase-payload-readsectors` - quiet until devkrnl/devinit, then prints FATX/IDE phase markers.',
+    '2. `idephase-readsectors-filesector` - noisy full phase trace from partition/config lookup.',
+    '3. `ata-readsectors-filesector` - first follow-up after sector512 showed a 4/5 boot rate.',
+    '4. `3fa5e65-sector512` - current best known loader, but not fully repeatable.',
+    '5. `3fa5e65-filesector` - best diagnostic if ATA readsectors still hangs during file reads.',
+    '6. `3fa5e65-findsector` - directory lookup diagnostic.',
+    '7. `4dcc618-current` - control package for the nondeterministic current-loader behavior.',
     ''
 )
 
