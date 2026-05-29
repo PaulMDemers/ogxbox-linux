@@ -526,6 +526,15 @@ Next Devuan tasks:
   Root files: E:\linuxboot.cfg, E:\flkrnl, E:\flinit, E:\fldevuan.ext2
   xemu userspace proof C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-sector512-desktop-plus-fluxlite-userspace-xemu-20260529-155358.png
   ```
+- For DVD-R testing, build the same FluxLite desktop root as a Cromwell ISO so
+  stage1 reads the root image from ISO9660 instead of the FATX-hosted E:
+  `.ext2` file:
+
+  ```text
+  powershell -ExecutionPolicy Bypass -File .\scripts\build_devuan_daedalus_i386_desktop_plus_fluxlite_iso.ps1
+  C:\Users\Paul\Desktop\xbox_linux\artifacts\cromwell-devuan-daedalus-i386-desktop-plus-fluxlite.iso
+  xemu ISO proof C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-desktop-plus-fluxlite-iso-rebuilt-xemu-20260529-190705.png
+  ```
 - Test the Preload package if FluxLite still takes minutes to become
   responsive. It keeps FluxLite but sequentially reads the Fluxbox binary and
   shared libraries before execing normal Fluxbox:
