@@ -1063,3 +1063,21 @@ proof reaches Fluxbox and prints `XBOX_DEVUAN_DESKTOP_PLUS_OK`:
 ```text
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-sector512-desktop-plus-userspace-xemu-20260529-134206.png
 ```
+
+Hardware result: sector512 desktop-plus boots and starts X on the softmodded
+Xbox, but the desktop is extremely slow in a disk-bound/stuttery way. Preserve
+that package as the working-plus baseline.
+
+First runtime A/B package:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-sector512-desktop-plus-nodiag.zip
+SHA256 4AA93AE4C37B65F11C2EC0F4ECFFF2AFE263795A3338A1E7C5F6DA86E0741B8E
+xemu userspace proof: C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-sector512-desktop-plus-nodiag-userspace-xemu-20260529-143332.png
+```
+
+The NoDiag package keeps the same sector512 `default.xbe`, baseline
+kernel/initrd bytes, and desktop-plus root image bytes, but uses isolated
+filenames (`ndkrnl`, `ndinit`, `nddevuan.ext2`) and changes the append line to
+`xbox_diag=off`. This tests whether the delayed `xbox-diag` process is
+contending with Fluxbox/aterm startup I/O.

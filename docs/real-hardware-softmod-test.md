@@ -172,6 +172,23 @@ C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daeda
   a bottom toolbar/taskbar. This package is xemu-proven for userspace and uses
   isolated `pkrnl`, `pinit`, and `pdevuan.ext2` files with the sector512
   baseline `default.xbe`.
+- Hardware result, May 29, 2026: the sector512 desktop-plus package boots on
+  the softmodded Xbox and starts X. The desktop is extremely slow in a
+  disk-bound/stuttery way rather than simply feeling like too much software.
+  Keep this as the working-plus baseline, then compare against the NoDiag A/B
+  package:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-sector512-desktop-plus-nodiag.zip
+SHA256 4AA93AE4C37B65F11C2EC0F4ECFFF2AFE263795A3338A1E7C5F6DA86E0741B8E
+Dashboard folder: E:\Apps\XromwellDevuanSector512DesktopPlusNoDiag\
+Root files: E:\linuxboot.cfg, E:\ndkrnl, E:\ndinit, E:\nddevuan.ext2
+```
+
+  The NoDiag package changes only the command line/profile filenames:
+  `xbox_diag=off` disables the delayed diagnostic helper that can contend with
+  Fluxbox and aterm startup disk reads. The XBE, kernel, initrd, and root image
+  bytes match the working sector512 desktop-plus lineage.
 - Devuan loader-only stability set: use this before further desktop-plus work
   if Xromwell hangs while reading the kernel or initrd. The active rollback
   candidate is now
@@ -197,6 +214,9 @@ E:\devuan.ext2
 E:\pkrnl
 E:\pinit
 E:\pdevuan.ext2
+E:\ndkrnl
+E:\ndinit
+E:\nddevuan.ext2
 E:\LINUX\DEVUAN.EXT2
 ```
 
@@ -414,6 +434,17 @@ E:\linuxboot.cfg
 E:\pkrnl
 E:\pinit
 E:\pdevuan.ext2
+```
+
+For Devuan desktop-plus NoDiag, copy
+`Apps\XromwellDevuanSector512DesktopPlusNoDiag\` to `E:\Apps\`, then copy this
+package's `E-root\` files to `E:\`:
+
+```text
+E:\linuxboot.cfg
+E:\ndkrnl
+E:\ndinit
+E:\nddevuan.ext2
 ```
 
 When switching between Devuan loader stability variants, delete these four

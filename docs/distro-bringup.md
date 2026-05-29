@@ -475,6 +475,20 @@ Next Devuan tasks:
   root image SHA256 52442BA490F20FCAC5BEF6C6FC2168C12D99F4DA11B842DEA12FE9D591EACC23
   xemu userspace proof C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-sector512-desktop-plus-userspace-xemu-20260529-134206.png
   ```
+  Hardware result, May 29, 2026: the package boots and starts X on the
+  softmodded Xbox, but the desktop is extremely slow in a disk-bound/stuttery
+  way. Preserve it as the working-plus baseline.
+- Test the NoDiag A/B package next. It changes only the root filenames and
+  append line (`xbox_diag=off`) while keeping the same sector512 XBE,
+  baseline kernel/initrd bytes, and desktop-plus root image:
+
+  ```text
+  C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-sector512-desktop-plus-nodiag.zip
+  SHA256 4AA93AE4C37B65F11C2EC0F4ECFFF2AFE263795A3338A1E7C5F6DA86E0741B8E
+  Dashboard folder: E:\Apps\XromwellDevuanSector512DesktopPlusNoDiag\
+  Root files: E:\linuxboot.cfg, E:\ndkrnl, E:\ndinit, E:\nddevuan.ext2
+  xemu userspace proof C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-sector512-desktop-plus-nodiag-userspace-xemu-20260529-143332.png
+  ```
 - Continue Devuan persistence work from the new rw shell-smoke package, but do
   not run it on real hardware yet. xemu writes the persistence marker and
   normal-use file, the second boot finds both, and the extracted ext2 image

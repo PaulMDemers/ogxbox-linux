@@ -77,6 +77,17 @@ xemu userspace proof: C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-se
 Do not add desktop-plus to the public release candidate set until it has passed
 real hardware.
 
+Hardware result, May 29, 2026: sector512 desktop-plus boots and starts X on
+the softmodded Xbox. The desktop is very slow in a disk-bound/stuttery way.
+The next A/B package disables the delayed diagnostic helper without changing
+the XBE, kernel, initrd, or root image bytes:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-sector512-desktop-plus-nodiag.zip
+SHA256 4AA93AE4C37B65F11C2EC0F4ECFFF2AFE263795A3338A1E7C5F6DA86E0741B8E
+xemu userspace proof: C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-sector512-desktop-plus-nodiag-userspace-xemu-20260529-143332.png
+```
+
 Note: the ad-hoc xemu DVD wrapper used for the exact sector512 `default.xbe`
 does not pass the initrd in xemu and panics at `unknown-block(3,1)`, even for
 the sector512 baseline. Treat that as an emulator wrapper limitation, not a
