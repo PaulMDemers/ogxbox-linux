@@ -99,6 +99,21 @@ Root files: E:\linuxboot.cfg, E:\rakrnl, E:\rainit, E:\rdevuan.ext2
 Append additions: xbox_fatx_loop_readahead_kb=2048 xbox_loop_readahead_kb=2048
 ```
 
+TerminalFix rebuild for the black-terminal regression:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-sector512-desktop-plus-terminalfix.zip
+SHA256 75A5BFA2F7E014D48BF4683238AE48A28B54F1FA475D10FF87355407C0BC3F4D
+Dashboard folder: E:\Apps\XromwellDevuanSector512DesktopPlusTerminalFix\
+Root files: E:\linuxboot.cfg, E:\tfkrnl, E:\tfinit, E:\tfdevuan.ext2
+xemu userspace proof: C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-sector512-desktop-plus-terminalfix-userspace-xemu-20260529-151726.png
+```
+
+This keeps the sector512 Xromwell XBE and baseline kernel/initrd bytes, but
+rebuilds the desktop-plus root image so the Fluxbox startup terminal uses
+small `/usr/local/bin/xbox-plus-*` helpers through the `xterm`/`aterm` wrapper.
+In xemu the proof terminal prints `XBOX_DEVUAN_DESKTOP_PLUS_OK` immediately.
+
 Note: the ad-hoc xemu DVD wrapper used for the exact sector512 `default.xbe`
 does not pass the initrd in xemu and panics at `unknown-block(3,1)`, even for
 the sector512 baseline. Treat that as an emulator wrapper limitation, not a

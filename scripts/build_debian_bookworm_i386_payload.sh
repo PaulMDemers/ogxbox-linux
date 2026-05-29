@@ -590,7 +590,54 @@ cat > "$ROOT/usr/local/bin/xterm" <<'EOF'
 #!/bin/sh
 exec /usr/local/bin/xbox-terminal "$@"
 EOF
-chmod 755 "$ROOT/usr/local/bin/xbox-terminal" "$ROOT/usr/local/bin/xterm"
+
+cat > "$ROOT/usr/local/bin/xbox-plus-shell" <<'EOF'
+#!/bin/sh
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/sbin:/usr/local/bin
+export LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/lib
+export TERM="${TERM:-xterm}"
+export HOME="${HOME:-/tmp/root-home}"
+cd "$HOME" 2>/dev/null || cd /
+printf 'XBOX_DEVUAN_DESKTOP_PLUS_SHELL\n'
+exec /bin/sh -i
+EOF
+
+cat > "$ROOT/usr/local/bin/xbox-plus-proof" <<'EOF'
+#!/bin/sh
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/sbin:/usr/local/bin
+export LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/lib
+export TERM="${TERM:-xterm}"
+export HOME="${HOME:-/tmp/root-home}"
+cd "$HOME" 2>/dev/null || cd /
+printf 'XBOX_DEVUAN_DESKTOP_PLUS_OK\n'
+printf 'tools: xbox-perf xbox-sync-ro xbox-network-up\n'
+printf 'logs: /tmp/xbox-diag.txt /tmp/xbox-network-up.txt /tmp/xsession.log\n'
+printf 'right-click or use toolbar/menu\n'
+exec /bin/sh -i
+EOF
+
+cat > "$ROOT/usr/local/bin/xbox-plus-perf" <<'EOF'
+#!/bin/sh
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/sbin:/usr/local/bin
+export LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/lib
+export TERM="${TERM:-xterm}"
+export HOME="${HOME:-/tmp/root-home}"
+cd "$HOME" 2>/dev/null || cd /
+xbox-perf
+exec /bin/sh -i
+EOF
+
+cat > "$ROOT/usr/local/bin/xbox-plus-network" <<'EOF'
+#!/bin/sh
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/sbin:/usr/local/bin
+export LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/lib
+export TERM="${TERM:-xterm}"
+export HOME="${HOME:-/tmp/root-home}"
+cd "$HOME" 2>/dev/null || cd /
+cat /tmp/xbox-network-up.txt 2>/dev/null || printf 'network log not present yet\n'
+exec /bin/sh -i
+EOF
+chmod 755 "$ROOT/usr/local/bin/xbox-terminal" "$ROOT/usr/local/bin/xterm" "$ROOT/usr/local/bin/xbox-plus-shell" "$ROOT/usr/local/bin/xbox-plus-proof" "$ROOT/usr/local/bin/xbox-plus-perf" "$ROOT/usr/local/bin/xbox-plus-network"
 
 cat > "$ROOT/etc/X11/xbox-xorg.conf" <<'EOF'
 Section "ServerFlags"
@@ -682,10 +729,10 @@ if [ -f /etc/xbox-desktop-plus-profile ] && command -v fluxbox >/dev/null 2>&1 &
     mkdir -p "$HOME/.fluxbox"
     cat > "$HOME/.fluxbox/menu" <<'EOFBMENU'
 [begin] (Xbox Devuan)
-  [exec] (Terminal) {aterm -fn fixed -fg white -bg black -e /bin/sh -i}
-  [exec] (System Monitor) {aterm -fn fixed -fg white -bg black -e /bin/sh -lc 'xbox-perf; exec sh -i'}
-  [exec] (Network Status) {aterm -fn fixed -fg white -bg black -e /bin/sh -lc 'cat /tmp/xbox-network-up.txt; exec sh -i'}
-  [exec] (Shell) {aterm -fn fixed -fg white -bg black -e /bin/sh -i}
+  [exec] (Terminal) {xterm -e /usr/local/bin/xbox-plus-shell}
+  [exec] (System Monitor) {xterm -e /usr/local/bin/xbox-plus-perf}
+  [exec] (Network Status) {xterm -e /usr/local/bin/xbox-plus-network}
+  [exec] (Shell) {xterm -e /bin/sh -i}
   [restart] (Restart Fluxbox)
   [exit] (Exit X)
 [end]
@@ -699,7 +746,13 @@ session.screen0.slit.autoHide: false
 session.menuFile: ~/.fluxbox/menu
 session.styleFile: /usr/share/fluxbox/styles/Meta
 EOFBINIT
-    aterm -fn fixed -fg white -bg black -geometry 78x20+20+32 -title "Xbox Devuan Plus" -e /bin/sh -lc "echo XBOX_DEVUAN_DESKTOP_PLUS_OK; echo tools: xbox-perf xbox-sync-ro xbox-network-up; echo logs: /tmp/xbox-diag.txt /tmp/xbox-network-up.txt; echo right-click or use toolbar/menu; exec /bin/sh -i" >/tmp/aterm.log 2>&1 &
+    {
+        echo "launching desktop-plus proof terminal"
+        date 2>/dev/null || true
+        command -v aterm 2>/dev/null || true
+        command -v xterm 2>/dev/null || true
+    } >/tmp/xbox-plus-session.log 2>&1
+    xterm -geometry 78x20+20+32 -title "Xbox Devuan Plus" -e /usr/local/bin/xbox-plus-proof >/tmp/aterm.log 2>&1 &
     start_late_diag
     exec fluxbox >/tmp/fluxbox.log 2>&1
 fi

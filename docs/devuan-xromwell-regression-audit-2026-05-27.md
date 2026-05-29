@@ -1096,3 +1096,19 @@ kernel/initrd/root image bytes. It changes only isolated root filenames and the
 Linux append line, adding `xbox_fatx_loop_readahead_kb=2048` and
 `xbox_loop_readahead_kb=2048` so stage1 tunes `/dev/loop0` and `/dev/loop1`
 before mounting the FATX E: view and ext2 root image.
+
+TerminalFix package:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-sector512-desktop-plus-terminalfix.zip
+SHA256 75A5BFA2F7E014D48BF4683238AE48A28B54F1FA475D10FF87355407C0BC3F4D
+Dashboard folder: E:\Apps\XromwellDevuanSector512DesktopPlusTerminalFix\
+Root files: E:\linuxboot.cfg, E:\tfkrnl, E:\tfinit, E:\tfdevuan.ext2
+xemu userspace proof: C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-sector512-desktop-plus-terminalfix-userspace-xemu-20260529-151726.png
+```
+
+This fixes the xemu-visible version of the black-terminal issue by rebuilding
+only the root image. Fluxbox now launches terminal menu entries through the
+`xterm` compatibility wrapper and small `/usr/local/bin/xbox-plus-*` scripts.
+The proof terminal prints `XBOX_DEVUAN_DESKTOP_PLUS_OK` before dropping to an
+interactive shell.

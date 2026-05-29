@@ -203,6 +203,19 @@ Root files: E:\linuxboot.cfg, E:\rakrnl, E:\rainit, E:\rdevuan.ext2
   `xbox_fatx_loop_readahead_kb=2048`, and
   `xbox_loop_readahead_kb=2048`. Test it after the working desktop-plus
   package and compare terminal first-paint time, mouse stalls, and `xbox-perf`.
+- Devuan desktop-plus TerminalFix package:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-sector512-desktop-plus-terminalfix.zip
+SHA256 75A5BFA2F7E014D48BF4683238AE48A28B54F1FA475D10FF87355407C0BC3F4D
+Dashboard folder: E:\Apps\XromwellDevuanSector512DesktopPlusTerminalFix\
+Root files: E:\linuxboot.cfg, E:\tfkrnl, E:\tfinit, E:\tfdevuan.ext2
+```
+
+  Hardware target: same boot path as desktop-plus, but the first terminal
+  should print `XBOX_DEVUAN_DESKTOP_PLUS_OK` instead of remaining black.
+  xemu userspace proof:
+  `C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-sector512-desktop-plus-terminalfix-userspace-xemu-20260529-151726.png`.
 - Devuan loader-only stability set: use this before further desktop-plus work
   if Xromwell hangs while reading the kernel or initrd. The active rollback
   candidate is now

@@ -501,6 +501,18 @@ Next Devuan tasks:
   Root files: E:\linuxboot.cfg, E:\rakrnl, E:\rainit, E:\rdevuan.ext2
   Append additions: xbox_fatx_loop_readahead_kb=2048 xbox_loop_readahead_kb=2048
   ```
+- Test the TerminalFix package next if desktop-plus reaches X but the initial
+  aterm window remains black. It keeps Xromwell and the baseline kernel/initrd
+  frozen, rebuilds only the desktop-plus root image, and routes Fluxbox
+  terminal startup through small helper scripts:
+
+  ```text
+  C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-sector512-desktop-plus-terminalfix.zip
+  SHA256 75A5BFA2F7E014D48BF4683238AE48A28B54F1FA475D10FF87355407C0BC3F4D
+  Dashboard folder: E:\Apps\XromwellDevuanSector512DesktopPlusTerminalFix\
+  Root files: E:\linuxboot.cfg, E:\tfkrnl, E:\tfinit, E:\tfdevuan.ext2
+  xemu userspace proof C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-sector512-desktop-plus-terminalfix-userspace-xemu-20260529-151726.png
+  ```
 - Continue Devuan persistence work from the new rw shell-smoke package, but do
   not run it on real hardware yet. xemu writes the persistence marker and
   normal-use file, the second boot finds both, and the extracted ext2 image
