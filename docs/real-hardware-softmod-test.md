@@ -45,7 +45,7 @@ Devuan loader-only stability set:
 
 ```text
 C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\devuan-loader-stability-set.zip
-SHA256 AF2E553D50D4C042A6F7C0105D2660E2A2471CEB6989B4B27EF426A117112F77
+SHA256 A8118D401F9D2EDE3C36475A3DB856ABEBBFD402F1B96E0DEB0A30F0BA6C156B
 ```
 
 ## Current Hardware Result
@@ -94,6 +94,11 @@ SHA256 9C0A2362A6E4317DC6BEEB6651E9FD10AD09E029C7CD33D24BF5C0F61DB94D65
   `/devkrnl` read and then failed on `/devinit`; another stopped earlier at
   `Loading /devkrnl...`. Treat this as a real-hardware loader/read stability
   issue and not as a Devuan userspace regression.
+- The loader stability variant `3fa5e65-sector512` booted 4 out of 5 times.
+  The one failed boot stopped after `Loading /devkrnl...` before the progress
+  numbers appeared. The follow-up variant to test next is
+  `xromwell-hddfatx-devuan-loader-ata-readsectors-filesector.zip`, which uses
+  `READ SECTORS` instead of `READ MULTIPLE` for HDD reads.
 
 The May 25 refresh adds:
 
@@ -133,9 +138,10 @@ C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daeda
   a bottom toolbar/taskbar. This package is xemu-proven only so far and uses
   isolated `pluskrnl`, `plusinit`, and `plusdevuan.ext2` files.
 - Devuan loader-only stability set: use this before further desktop-plus work
-  if Xromwell hangs while reading the kernel or initrd. Start with
-  `xromwell-hddfatx-devuan-loader-3fa5e65-sector512.zip`; if it fails, test
-  `xromwell-hddfatx-devuan-loader-3fa5e65-filesector.zip` for read tracing.
+  if Xromwell hangs while reading the kernel or initrd. Start the next round
+  with `xromwell-hddfatx-devuan-loader-ata-readsectors-filesector.zip`; if it
+  fails, compare against `xromwell-hddfatx-devuan-loader-3fa5e65-filesector.zip`
+  and `xromwell-hddfatx-devuan-loader-3fa5e65-sector512.zip`.
 
 ## Backup First
 

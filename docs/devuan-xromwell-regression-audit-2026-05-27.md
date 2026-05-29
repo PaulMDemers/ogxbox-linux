@@ -861,30 +861,43 @@ Only `default.xbe` changes between variants:
 
 ```text
 C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\devuan-loader-stability-set.zip
-SHA256 AF2E553D50D4C042A6F7C0105D2660E2A2471CEB6989B4B27EF426A117112F77
+SHA256 A8118D401F9D2EDE3C36475A3DB856ABEBBFD402F1B96E0DEB0A30F0BA6C156B
+
+xromwell-hddfatx-devuan-loader-ata-readsectors-filesector.zip
+SHA256 78194F6A4350CBB3411587ADC12C6DF11173FA09A70C1F911B2E69D6F125A8C7
 
 xromwell-hddfatx-devuan-loader-3fa5e65-sector512.zip
-SHA256 4239AC33571EFB2A34909EDFCCD9D616F681CC1FEA28C302E139BBFDB774DBE3
+SHA256 72A504289DD249A6FE9E445CCF2367B831AAEDB641789CA04CDBC4207E6CBF31
 
 xromwell-hddfatx-devuan-loader-3fa5e65-filesector.zip
-SHA256 1B468EC012DC1BB8290263E900ACC67BE88750F2035D17CE068DFECB1A71F905
+SHA256 E7CD1726DFA686AD76AFE331A905086791465BF4CC0B7832D1E32F229A25981D
 
 xromwell-hddfatx-devuan-loader-3fa5e65-findsector.zip
-SHA256 DE061DFBC9D47AD613799E4E6253FBF218E2C10F4F4E007E7FB7B2773442C01E
+SHA256 855A0093331D1D10DEC7F98BEC30A4633F5F78142D5AA5141A44702A8212AC58
 
 xromwell-hddfatx-devuan-loader-4dcc618-current.zip
-SHA256 28269DE6E7CBA29E74065817942C29C73099AE1332F45E4AF93293CD45A7067C
+SHA256 E52CB577F9CEA7F9B5C090D85F555D2E3517769722F1CBD6E83C388206B38741
 ```
 
 Recommended hardware order:
 
-1. `3fa5e65-sector512`: first candidate for repeatable boot stability.
-2. `3fa5e65-filesector`: if sector512 still hangs, use this for file-read
+1. `ata-readsectors-filesector`: first follow-up after `3fa5e65-sector512`
+   showed a 4/5 boot rate.
+2. `3fa5e65-sector512`: current best known loader, but not fully repeatable.
+3. `3fa5e65-filesector`: if ATA readsectors still hangs, use this for file-read
    progress output.
-3. `3fa5e65-findsector`: directory lookup diagnostic if config or file finding
+4. `3fa5e65-findsector`: directory lookup diagnostic if config or file finding
    looks suspicious again.
-4. `4dcc618-current`: control variant for reproducing the current
+5. `4dcc618-current`: control variant for reproducing the current
    nondeterministic loader behavior.
 
 Do not rebuild desktop-plus, Devuan rootfs, or kernel/initrd payloads until one
 loader variant boots repeatedly across several cold boots.
+
+Hardware update: `3fa5e65-sector512` booted 4 out of 5 times. The failed run
+stopped after `Loading /devkrnl...` and before the numeric progress output.
+That keeps suspicion on the first HDD read for the kernel file. The new
+`ata-readsectors-filesector` variant is built from the file-sector lineage, but
+changes the HDD ATA command from `READ MULTIPLE` to ordinary `READ SECTORS`;
+the hypothesis is that `READ MULTIPLE` is timing-sensitive on this disk unless
+the drive's multiple mode has been explicitly set.

@@ -14,6 +14,14 @@ $append = 'init=/init noswitchroot debug console=tty0 ignore_loglevel loglevel=7
 
 $variants = @(
     [pscustomobject]@{
+        Id = 'ata-readsectors-filesector'
+        Label = 'cd4bcf1 file-sector loader with ATA READ SECTORS'
+        Xbe = 'artifacts\audit\xromwell-ata-readsectors-loader-xbe\default.xbe'
+        OutDir = 'xromwell-hddfatx-devuan-loader-ata-readsectors-filesector'
+        Dashboard = 'XromwellDevuanLoaderAtaReadSectors'
+        Notes = 'File-sector FATX loader that uses ordinary ATA READ SECTORS instead of READ MULTIPLE for HDD reads. This is the first follow-up after 3fa5e65-sector512 booted 4/5 times but once hung before the kernel progress output.'
+    },
+    [pscustomobject]@{
         Id = '4dcc618-current'
         Label = 'Current 4dcc618 cached/coalesced loader'
         Xbe = 'artifacts\audit\xromwell-4dcc618-restored-devuan-daedalus-i386\default.xbe'
@@ -163,10 +171,11 @@ $manifestLines = @(
     '',
     'Recommended hardware order:',
     '',
-    '1. `3fa5e65-sector512` - first stability candidate.',
-    '2. `3fa5e65-filesector` - best diagnostic if sector512 still hangs during file reads.',
-    '3. `3fa5e65-findsector` - directory lookup diagnostic.',
-    '4. `4dcc618-current` - control package for the nondeterministic current-loader behavior.',
+    '1. `ata-readsectors-filesector` - first follow-up after sector512 showed a 4/5 boot rate.',
+    '2. `3fa5e65-sector512` - current best known loader, but not fully repeatable.',
+    '3. `3fa5e65-filesector` - best diagnostic if ATA readsectors still hangs during file reads.',
+    '4. `3fa5e65-findsector` - directory lookup diagnostic.',
+    '5. `4dcc618-current` - control package for the nondeterministic current-loader behavior.',
     ''
 )
 

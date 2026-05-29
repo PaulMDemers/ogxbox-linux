@@ -87,11 +87,14 @@ Loader-only stability set:
 
 ```text
 C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\devuan-loader-stability-set.zip
-SHA256 AF2E553D50D4C042A6F7C0105D2660E2A2471CEB6989B4B27EF426A117112F77
+SHA256 A8118D401F9D2EDE3C36475A3DB856ABEBBFD402F1B96E0DEB0A30F0BA6C156B
 ```
 
 The stability set uses the exact release-baseline Devuan files in every
 variant: `devkrnl`, `devinit`, `devuan.ext2`, and `linuxboot.cfg`. Only
-`default.xbe` changes. Test `3fa5e65-sector512` first, then `3fa5e65-filesector`
-if it still hangs and we need file-read tracing. Keep desktop/rootfs work frozen
-until one loader is repeatable across several cold boots.
+`default.xbe` changes. `3fa5e65-sector512` booted 4 out of 5 times on hardware;
+the one failure stopped after `Loading /devkrnl...` before progress output. The
+next test is `ata-readsectors-filesector`, which keeps sector-at-a-time FATX
+file reads but switches HDD ATA access from `READ MULTIPLE` to ordinary
+`READ SECTORS`. Keep desktop/rootfs work frozen until one loader is repeatable
+across several cold boots.
