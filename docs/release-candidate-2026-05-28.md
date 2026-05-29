@@ -88,6 +88,17 @@ SHA256 4AA93AE4C37B65F11C2EC0F4ECFFF2AFE263795A3338A1E7C5F6DA86E0741B8E
 xemu userspace proof: C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-sector512-desktop-plus-nodiag-userspace-xemu-20260529-143332.png
 ```
 
+The next runtime-disk A/B package keeps Xromwell frozen and adds only stage1
+read-ahead settings for the FATX loop and ext2 root loop:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-sector512-desktop-plus-nodiag-ra2048.zip
+SHA256 1AF073C14BB608D12598736315F7C0E7F628E9F61CCCDCDC7EC5F31BD72070E5
+Dashboard folder: E:\Apps\XromwellDevuanSector512DesktopPlusNoDiagRA2048\
+Root files: E:\linuxboot.cfg, E:\rakrnl, E:\rainit, E:\rdevuan.ext2
+Append additions: xbox_fatx_loop_readahead_kb=2048 xbox_loop_readahead_kb=2048
+```
+
 Note: the ad-hoc xemu DVD wrapper used for the exact sector512 `default.xbe`
 does not pass the initrd in xemu and panics at `unknown-block(3,1)`, even for
 the sector512 baseline. Treat that as an emulator wrapper limitation, not a

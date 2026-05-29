@@ -1081,3 +1081,18 @@ kernel/initrd bytes, and desktop-plus root image bytes, but uses isolated
 filenames (`ndkrnl`, `ndinit`, `nddevuan.ext2`) and changes the append line to
 `xbox_diag=off`. This tests whether the delayed `xbox-diag` process is
 contending with Fluxbox/aterm startup I/O.
+
+Second runtime A/B package:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-sector512-desktop-plus-nodiag-ra2048.zip
+SHA256 1AF073C14BB608D12598736315F7C0E7F628E9F61CCCDCDC7EC5F31BD72070E5
+Dashboard folder: E:\Apps\XromwellDevuanSector512DesktopPlusNoDiagRA2048\
+Root files: E:\linuxboot.cfg, E:\rakrnl, E:\rainit, E:\rdevuan.ext2
+```
+
+The RA2048 package keeps Xromwell frozen and preserves the same baseline
+kernel/initrd/root image bytes. It changes only isolated root filenames and the
+Linux append line, adding `xbox_fatx_loop_readahead_kb=2048` and
+`xbox_loop_readahead_kb=2048` so stage1 tunes `/dev/loop0` and `/dev/loop1`
+before mounting the FATX E: view and ext2 root image.

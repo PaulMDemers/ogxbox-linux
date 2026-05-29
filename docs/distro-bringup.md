@@ -489,6 +489,18 @@ Next Devuan tasks:
   Root files: E:\linuxboot.cfg, E:\ndkrnl, E:\ndinit, E:\nddevuan.ext2
   xemu userspace proof C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-sector512-desktop-plus-nodiag-userspace-xemu-20260529-143332.png
   ```
+- Test the NoDiag RA2048 A/B package if NoDiag alone is still disk-bound after
+  X starts. It keeps the same sector512 XBE, baseline kernel/initrd bytes, and
+  desktop-plus root image, but adds stage1 read-ahead tuning for both loop
+  devices:
+
+  ```text
+  C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-sector512-desktop-plus-nodiag-ra2048.zip
+  SHA256 1AF073C14BB608D12598736315F7C0E7F628E9F61CCCDCDC7EC5F31BD72070E5
+  Dashboard folder: E:\Apps\XromwellDevuanSector512DesktopPlusNoDiagRA2048\
+  Root files: E:\linuxboot.cfg, E:\rakrnl, E:\rainit, E:\rdevuan.ext2
+  Append additions: xbox_fatx_loop_readahead_kb=2048 xbox_loop_readahead_kb=2048
+  ```
 - Continue Devuan persistence work from the new rw shell-smoke package, but do
   not run it on real hardware yet. xemu writes the persistence marker and
   normal-use file, the second boot finds both, and the extracted ext2 image

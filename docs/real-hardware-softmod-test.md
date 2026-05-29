@@ -189,6 +189,20 @@ Root files: E:\linuxboot.cfg, E:\ndkrnl, E:\ndinit, E:\nddevuan.ext2
   `xbox_diag=off` disables the delayed diagnostic helper that can contend with
   Fluxbox and aterm startup disk reads. The XBE, kernel, initrd, and root image
   bytes match the working sector512 desktop-plus lineage.
+- Devuan desktop-plus NoDiag RA2048 runtime disk A/B:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-sector512-desktop-plus-nodiag-ra2048.zip
+SHA256 1AF073C14BB608D12598736315F7C0E7F628E9F61CCCDCDC7EC5F31BD72070E5
+Dashboard folder: E:\Apps\XromwellDevuanSector512DesktopPlusNoDiagRA2048\
+Root files: E:\linuxboot.cfg, E:\rakrnl, E:\rainit, E:\rdevuan.ext2
+```
+
+  This keeps Xromwell frozen and changes only package-local filenames plus the
+  Linux append line: `xbox_diag=off`,
+  `xbox_fatx_loop_readahead_kb=2048`, and
+  `xbox_loop_readahead_kb=2048`. Test it after the working desktop-plus
+  package and compare terminal first-paint time, mouse stalls, and `xbox-perf`.
 - Devuan loader-only stability set: use this before further desktop-plus work
   if Xromwell hangs while reading the kernel or initrd. The active rollback
   candidate is now
