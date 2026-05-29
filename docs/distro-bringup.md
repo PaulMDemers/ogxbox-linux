@@ -526,6 +526,17 @@ Next Devuan tasks:
   Root files: E:\linuxboot.cfg, E:\flkrnl, E:\flinit, E:\fldevuan.ext2
   xemu userspace proof C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-sector512-desktop-plus-fluxlite-userspace-xemu-20260529-155358.png
   ```
+- Test the Preload package if FluxLite still takes minutes to become
+  responsive. It keeps FluxLite but sequentially reads the Fluxbox binary and
+  shared libraries before execing normal Fluxbox:
+
+  ```text
+  C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-sector512-desktop-plus-preload.zip
+  SHA256 676C0C382582E3B562432F07F96DBF5D1CFF5021464BB4389F727A2B60DE685A
+  Dashboard folder: E:\Apps\XromwellDevuanSector512DesktopPlusPreload\
+  Root files: E:\linuxboot.cfg, E:\plkrnl, E:\plinit, E:\pldevuan.ext2
+  xemu userspace proof C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-sector512-desktop-plus-preload-userspace-xemu-20260529-164926.png
+  ```
 - Continue Devuan persistence work from the new rw shell-smoke package, but do
   not run it on real hardware yet. xemu writes the persistence marker and
   normal-use file, the second boot finds both, and the extracted ext2 image

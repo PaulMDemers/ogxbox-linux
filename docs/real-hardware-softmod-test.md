@@ -230,6 +230,20 @@ Root files: E:\linuxboot.cfg, E:\flkrnl, E:\flinit, E:\fldevuan.ext2
   responsiveness should arrive sooner if Fluxbox style/menu loading was the
   dominant stall. xemu userspace proof:
   `C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-sector512-desktop-plus-fluxlite-userspace-xemu-20260529-155358.png`.
+- Devuan desktop-plus Preload package:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-sector512-desktop-plus-preload.zip
+SHA256 676C0C382582E3B562432F07F96DBF5D1CFF5021464BB4389F727A2B60DE685A
+Dashboard folder: E:\Apps\XromwellDevuanSector512DesktopPlusPreload\
+Root files: E:\linuxboot.cfg, E:\plkrnl, E:\plinit, E:\pldevuan.ext2
+```
+
+  Hardware target: compare against FluxLite. This package intentionally spends
+  a short time sequentially reading the Fluxbox binary and libraries before
+  starting Fluxbox. If the real stall is random demand paging through the
+  loop-mounted FATX root image, toolbar/window chrome should become responsive
+  sooner after that preload.
 - Devuan loader-only stability set: use this before further desktop-plus work
   if Xromwell hangs while reading the kernel or initrd. The active rollback
   candidate is now

@@ -676,6 +676,7 @@ mkdir -p "$HOME"
 TERMINAL_LIGHT=0
 DIAG_MODE=early
 FLUXBOX_LITE=0
+PRELOAD_FLUXBOX=0
 for arg in $(cat /proc/cmdline 2>/dev/null); do
     case "$arg" in
         xbox_terminal_light=1) TERMINAL_LIGHT=1 ;;
@@ -683,6 +684,7 @@ for arg in $(cat /proc/cmdline 2>/dev/null); do
         xbox_diag=off) DIAG_MODE=off ;;
         xbox_diag=early) DIAG_MODE=early ;;
         xbox_fluxbox_lite=1) FLUXBOX_LITE=1 ;;
+        xbox_preload_fluxbox=1) PRELOAD_FLUXBOX=1 ;;
     esac
 done
 
@@ -790,13 +792,35 @@ EOFBSTYLE
         command -v aterm 2>/dev/null || true
         command -v xterm 2>/dev/null || true
     } >/tmp/xbox-plus-session.log 2>&1
+    FLUXBOX_BIN="$(command -v fluxbox)"
+    if [ "$PRELOAD_FLUXBOX" = "1" ]; then
+        preload_file() {
+            src="$1"
+            [ -n "$src" ] && [ -f "$src" ] || return 0
+            dd if="$src" of=/dev/null bs=64k 2>/dev/null || cat "$src" >/dev/null 2>&1 || true
+        }
+        {
+            echo "fluxbox page-cache preload begin"
+            date 2>/dev/null || true
+            preload_file "$FLUXBOX_BIN"
+            if command -v ldd >/dev/null 2>&1; then
+                ldd "$FLUXBOX_BIN" 2>/dev/null | while read -r a b c rest; do
+                    case "$a" in /*) echo "$a"; preload_file "$a" ;; esac
+                    case "$b" in /*) echo "$b"; preload_file "$b" ;; esac
+                    case "$c" in /*) echo "$c"; preload_file "$c" ;; esac
+                done
+            fi
+            date 2>/dev/null || true
+            echo "fluxbox page-cache preload end"
+        } >>/tmp/xbox-plus-session.log 2>&1
+    fi
     if [ "$FLUXBOX_LITE" = "1" ]; then
         ( sleep 3; xterm -geometry 78x20+20+32 -title "Xbox Devuan Plus" -e /usr/local/bin/xbox-plus-proof >/tmp/aterm.log 2>&1 ) &
     else
         xterm -geometry 78x20+20+32 -title "Xbox Devuan Plus" -e /usr/local/bin/xbox-plus-proof >/tmp/aterm.log 2>&1 &
     fi
     start_late_diag
-    exec fluxbox >/tmp/fluxbox.log 2>&1
+    exec "$FLUXBOX_BIN" >/tmp/fluxbox.log 2>&1
 fi
 if [ \( -f /etc/xbox-complete-profile -o -f /etc/xbox-desktop-plus-profile \) ] && command -v jwm >/dev/null 2>&1 && command -v aterm >/dev/null 2>&1; then
     if [ -f /etc/xbox-desktop-plus-profile ]; then

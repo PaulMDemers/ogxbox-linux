@@ -1128,3 +1128,18 @@ This A/B keeps the same loader/kernel/initrd lineage and uses Fluxbox, but adds
 small local Fluxbox style, avoids the heavier packaged style, and delays the
 proof terminal launch for a few seconds so the WM can initialize before aterm
 draws text.
+
+Preload package:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-sector512-desktop-plus-preload.zip
+SHA256 676C0C382582E3B562432F07F96DBF5D1CFF5021464BB4389F727A2B60DE685A
+Dashboard folder: E:\Apps\XromwellDevuanSector512DesktopPlusPreload\
+Root files: E:\linuxboot.cfg, E:\plkrnl, E:\plinit, E:\pldevuan.ext2
+xemu userspace proof: C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-sector512-desktop-plus-preload-userspace-xemu-20260529-164926.png
+```
+
+This A/B keeps FluxLite and adds `xbox_preload_fluxbox=1`. In that mode
+`/usr/local/bin/xbox-xsession` reads the Fluxbox binary and its `ldd` library
+closure to `/dev/null` before execing normal Fluxbox. It does not execute a
+copied binary, avoiding the bus error seen in the discarded tmpfs-exec attempt.

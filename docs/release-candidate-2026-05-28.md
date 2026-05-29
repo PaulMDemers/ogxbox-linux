@@ -128,6 +128,21 @@ Root files: E:\linuxboot.cfg, E:\flkrnl, E:\flinit, E:\fldevuan.ext2
 xemu userspace proof: C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-sector512-desktop-plus-fluxlite-userspace-xemu-20260529-155358.png
 ```
 
+Preload A/B for the same suspected disk-path bottleneck:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-sector512-desktop-plus-preload.zip
+SHA256 676C0C382582E3B562432F07F96DBF5D1CFF5021464BB4389F727A2B60DE685A
+Dashboard folder: E:\Apps\XromwellDevuanSector512DesktopPlusPreload\
+Root files: E:\linuxboot.cfg, E:\plkrnl, E:\plinit, E:\pldevuan.ext2
+xemu userspace proof: C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-sector512-desktop-plus-preload-userspace-xemu-20260529-164926.png
+```
+
+This keeps FluxLite but sequentially reads the Fluxbox binary and shared
+library closure before execing normal Fluxbox. It is a safe test for whether
+random demand paging through the loop-mounted FATX root image is the source of
+the multi-minute responsiveness delay.
+
 Note: the ad-hoc xemu DVD wrapper used for the exact sector512 `default.xbe`
 does not pass the initrd in xemu and panics at `unknown-block(3,1)`, even for
 the sector512 baseline. Treat that as an emulator wrapper limitation, not a
