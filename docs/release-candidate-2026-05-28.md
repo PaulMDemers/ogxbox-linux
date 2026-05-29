@@ -75,3 +75,23 @@ xemu proof: C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-desktop-plus
 
 Do not add desktop-plus to the public release candidate set until it has passed
 real hardware.
+
+May 28 hardware loader note: after desktop-plus testing, the same
+release-baseline bytes also showed nondeterministic Xromwell FATX loader hangs
+on the real Xbox, sometimes stopping at `Loading /devkrnl...` and sometimes
+progressing further before retrying. This means the active problem is now the
+real-hardware Xromwell FATX/IDE read path, not the Devuan rootfs or the
+desktop-plus package contents.
+
+Loader-only stability set:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\devuan-loader-stability-set.zip
+SHA256 AF2E553D50D4C042A6F7C0105D2660E2A2471CEB6989B4B27EF426A117112F77
+```
+
+The stability set uses the exact release-baseline Devuan files in every
+variant: `devkrnl`, `devinit`, `devuan.ext2`, and `linuxboot.cfg`. Only
+`default.xbe` changes. Test `3fa5e65-sector512` first, then `3fa5e65-filesector`
+if it still hangs and we need file-read tracing. Keep desktop/rootfs work frozen
+until one loader is repeatable across several cold boots.

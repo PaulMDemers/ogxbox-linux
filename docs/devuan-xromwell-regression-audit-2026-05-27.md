@@ -835,3 +835,56 @@ Root files: E:\linuxboot.cfg, E:\rwkrnl, E:\rwinit, E:\rwdevuan.ext2
 the only expected overlap. Restore the release-baseline `E-root\` to return to
 the hardware-passed desktop; install the rw smoke `E-root\` only when
 deliberately testing persistence.
+
+## May 28 loader nondeterminism checkpoint
+
+After the desktop-plus package was xemu-proven, hardware testing showed that
+the loader stage was no longer repeatable even with the saved release-baseline
+bytes. The important observation is that rerunning the same binary on the same
+console produced different last visible Xromwell lines: one run stopped at
+`Loading /devkrnl...`, while another progressed through the `/devkrnl` read,
+started `/devinit`, failed, and retried. That points at Xromwell's real-hardware
+FATX/IDE read path or disk state, not at Devuan userspace.
+
+To avoid going backward, the distro payload is now frozen for loader testing.
+The loader stability set uses the exact release-baseline root files in every
+variant:
+
+```text
+devkrnl       D3C812196908F8F2CA96C7863184C59C39982E27A2DD1ED6DFF125D5DA9FCAFE
+devinit       7CADFFDE0B78BA6C263DAD34B69862642A622A9491AD69B9CCFA1B40C0CF6CCB
+devuan.ext2   5F5DCEC72E2B0762ABF8790B5A58D383F51249AEA317394107BF7F804EAF1EB5
+linuxboot.cfg BBC6D53EC8A72D2FCC7954610FFFC12D3AE14AE8F10B16958BD9705D2401C631
+```
+
+Only `default.xbe` changes between variants:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\devuan-loader-stability-set.zip
+SHA256 AF2E553D50D4C042A6F7C0105D2660E2A2471CEB6989B4B27EF426A117112F77
+
+xromwell-hddfatx-devuan-loader-3fa5e65-sector512.zip
+SHA256 4239AC33571EFB2A34909EDFCCD9D616F681CC1FEA28C302E139BBFDB774DBE3
+
+xromwell-hddfatx-devuan-loader-3fa5e65-filesector.zip
+SHA256 1B468EC012DC1BB8290263E900ACC67BE88750F2035D17CE068DFECB1A71F905
+
+xromwell-hddfatx-devuan-loader-3fa5e65-findsector.zip
+SHA256 DE061DFBC9D47AD613799E4E6253FBF218E2C10F4F4E007E7FB7B2773442C01E
+
+xromwell-hddfatx-devuan-loader-4dcc618-current.zip
+SHA256 28269DE6E7CBA29E74065817942C29C73099AE1332F45E4AF93293CD45A7067C
+```
+
+Recommended hardware order:
+
+1. `3fa5e65-sector512`: first candidate for repeatable boot stability.
+2. `3fa5e65-filesector`: if sector512 still hangs, use this for file-read
+   progress output.
+3. `3fa5e65-findsector`: directory lookup diagnostic if config or file finding
+   looks suspicious again.
+4. `4dcc618-current`: control variant for reproducing the current
+   nondeterministic loader behavior.
+
+Do not rebuild desktop-plus, Devuan rootfs, or kernel/initrd payloads until one
+loader variant boots repeatedly across several cold boots.

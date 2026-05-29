@@ -41,6 +41,13 @@ C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daeda
 SHA256 0064F7B12869F4CFF2365CF74BDAFEB9EB87D3D9C7A29537215F85D19A4C30B1
 ```
 
+Devuan loader-only stability set:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\devuan-loader-stability-set.zip
+SHA256 AF2E553D50D4C042A6F7C0105D2660E2A2471CEB6989B4B27EF426A117112F77
+```
+
 ## Current Hardware Result
 
 Tested on a softmodded Xbox on May 25, 2026:
@@ -82,6 +89,12 @@ C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daeda
 SHA256 9C0A2362A6E4317DC6BEEB6651E9FD10AD09E029C7CD33D24BF5C0F61DB94D65
 ```
 
+- Later repeat tests showed nondeterministic Xromwell FATX loader hangs even
+  with the same saved release-baseline bytes. One boot progressed past the
+  `/devkrnl` read and then failed on `/devinit`; another stopped earlier at
+  `Loading /devkrnl...`. Treat this as a real-hardware loader/read stability
+  issue and not as a Devuan userspace regression.
+
 The May 25 refresh adds:
 
 - a FATX contiguous-file read fast path in the 6.18 kernel for the `linuxroot.ext2` loop image
@@ -119,6 +132,10 @@ C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daeda
   `XBOX_DEVUAN_DESKTOP_PLUS_OK`, shows Fluxbox window decorations, and displays
   a bottom toolbar/taskbar. This package is xemu-proven only so far and uses
   isolated `pluskrnl`, `plusinit`, and `plusdevuan.ext2` files.
+- Devuan loader-only stability set: use this before further desktop-plus work
+  if Xromwell hangs while reading the kernel or initrd. Start with
+  `xromwell-hddfatx-devuan-loader-3fa5e65-sector512.zip`; if it fails, test
+  `xromwell-hddfatx-devuan-loader-3fa5e65-filesector.zip` for read tracing.
 
 ## Backup First
 
@@ -356,6 +373,20 @@ E:\pluskrnl
 E:\plusinit
 E:\plusdevuan.ext2
 ```
+
+When switching between Devuan loader stability variants, delete these four
+files from `E:\` and recopy the package's `E-root\` files in this order:
+
+```text
+E:\devkrnl
+E:\devinit
+E:\devuan.ext2
+E:\linuxboot.cfg
+```
+
+Each variant has a separate dashboard folder under `E:\Apps\`, but all variants
+share the same four release-baseline root files. That is intentional: the test
+changes only Xromwell.
 
 Only `linuxboot.cfg` is shared with the release baseline. The plus kernel,
 initrd, and root image intentionally do not overwrite `devkrnl`, `devinit`,
