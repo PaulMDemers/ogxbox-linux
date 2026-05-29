@@ -216,6 +216,20 @@ Root files: E:\linuxboot.cfg, E:\tfkrnl, E:\tfinit, E:\tfdevuan.ext2
   should print `XBOX_DEVUAN_DESKTOP_PLUS_OK` instead of remaining black.
   xemu userspace proof:
   `C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-sector512-desktop-plus-terminalfix-userspace-xemu-20260529-151726.png`.
+- Devuan desktop-plus FluxLite package:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-sector512-desktop-plus-fluxlite.zip
+SHA256 33339B8D01AB3640B62C42C5EB0528CA4BECDB0A12054FC9025CA95C9E8F649D
+Dashboard folder: E:\Apps\XromwellDevuanSector512DesktopPlusFluxLite\
+Root files: E:\linuxboot.cfg, E:\flkrnl, E:\flinit, E:\fldevuan.ext2
+```
+
+  Hardware target: compare against TerminalFix. The terminal should appear
+  with window chrome and toolbar already present, and mouse/pointer
+  responsiveness should arrive sooner if Fluxbox style/menu loading was the
+  dominant stall. xemu userspace proof:
+  `C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-sector512-desktop-plus-fluxlite-userspace-xemu-20260529-155358.png`.
 - Devuan loader-only stability set: use this before further desktop-plus work
   if Xromwell hangs while reading the kernel or initrd. The active rollback
   candidate is now

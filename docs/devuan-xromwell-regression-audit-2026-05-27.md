@@ -1112,3 +1112,19 @@ only the root image. Fluxbox now launches terminal menu entries through the
 `xterm` compatibility wrapper and small `/usr/local/bin/xbox-plus-*` scripts.
 The proof terminal prints `XBOX_DEVUAN_DESKTOP_PLUS_OK` before dropping to an
 interactive shell.
+
+FluxLite package:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-sector512-desktop-plus-fluxlite.zip
+SHA256 33339B8D01AB3640B62C42C5EB0528CA4BECDB0A12054FC9025CA95C9E8F649D
+Dashboard folder: E:\Apps\XromwellDevuanSector512DesktopPlusFluxLite\
+Root files: E:\linuxboot.cfg, E:\flkrnl, E:\flinit, E:\fldevuan.ext2
+xemu userspace proof: C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-sector512-desktop-plus-fluxlite-userspace-xemu-20260529-155358.png
+```
+
+This A/B keeps the same loader/kernel/initrd lineage and uses Fluxbox, but adds
+`xbox_fluxbox_lite=1`. In that mode `/usr/local/bin/xbox-xsession` writes a
+small local Fluxbox style, avoids the heavier packaged style, and delays the
+proof terminal launch for a few seconds so the WM can initialize before aterm
+draws text.

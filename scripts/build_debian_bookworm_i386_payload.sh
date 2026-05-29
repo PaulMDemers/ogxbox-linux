@@ -675,12 +675,14 @@ mkdir -p "$HOME"
 
 TERMINAL_LIGHT=0
 DIAG_MODE=early
+FLUXBOX_LITE=0
 for arg in $(cat /proc/cmdline 2>/dev/null); do
     case "$arg" in
         xbox_terminal_light=1) TERMINAL_LIGHT=1 ;;
         xbox_diag=late) DIAG_MODE=late ;;
         xbox_diag=off) DIAG_MODE=off ;;
         xbox_diag=early) DIAG_MODE=early ;;
+        xbox_fluxbox_lite=1) FLUXBOX_LITE=1 ;;
     esac
 done
 
@@ -746,13 +748,53 @@ session.screen0.slit.autoHide: false
 session.menuFile: ~/.fluxbox/menu
 session.styleFile: /usr/share/fluxbox/styles/Meta
 EOFBINIT
+    if [ "$FLUXBOX_LITE" = "1" ]; then
+        cat > "$HOME/.fluxbox/xbox-lite-style" <<'EOFBSTYLE'
+*.font: fixed
+toolbar: flat
+toolbar.color: #6f859a
+toolbar.label: flat
+toolbar.label.color: #6f859a
+toolbar.windowLabel: flat
+toolbar.windowLabel.color: #6f859a
+toolbar.clock: flat
+toolbar.clock.color: #6f859a
+window.title.focus: flat
+window.title.focus.color: #6f859a
+window.title.unfocus: flat
+window.title.unfocus.color: #596672
+window.label.focus: flat
+window.label.focus.color: #6f859a
+window.label.unfocus: flat
+window.label.unfocus.color: #596672
+window.button.focus: flat
+window.button.focus.color: #6f859a
+window.button.unfocus: flat
+window.button.unfocus.color: #596672
+window.handle.focus: flat
+window.handle.focus.color: #6f859a
+window.handle.unfocus: flat
+window.handle.unfocus.color: #596672
+menu.title: flat
+menu.title.color: #6f859a
+menu.frame: flat
+menu.frame.color: #d8dde8
+menu.hilite: flat
+menu.hilite.color: #6f859a
+EOFBSTYLE
+        sed -i "s#^session.styleFile:.*#session.styleFile: $HOME/.fluxbox/xbox-lite-style#" "$HOME/.fluxbox/init"
+    fi
     {
         echo "launching desktop-plus proof terminal"
         date 2>/dev/null || true
         command -v aterm 2>/dev/null || true
         command -v xterm 2>/dev/null || true
     } >/tmp/xbox-plus-session.log 2>&1
-    xterm -geometry 78x20+20+32 -title "Xbox Devuan Plus" -e /usr/local/bin/xbox-plus-proof >/tmp/aterm.log 2>&1 &
+    if [ "$FLUXBOX_LITE" = "1" ]; then
+        ( sleep 3; xterm -geometry 78x20+20+32 -title "Xbox Devuan Plus" -e /usr/local/bin/xbox-plus-proof >/tmp/aterm.log 2>&1 ) &
+    else
+        xterm -geometry 78x20+20+32 -title "Xbox Devuan Plus" -e /usr/local/bin/xbox-plus-proof >/tmp/aterm.log 2>&1 &
+    fi
     start_late_diag
     exec fluxbox >/tmp/fluxbox.log 2>&1
 fi

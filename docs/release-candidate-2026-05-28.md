@@ -114,6 +114,20 @@ rebuilds the desktop-plus root image so the Fluxbox startup terminal uses
 small `/usr/local/bin/xbox-plus-*` helpers through the `xterm`/`aterm` wrapper.
 In xemu the proof terminal prints `XBOX_DEVUAN_DESKTOP_PLUS_OK` immediately.
 
+Hardware result, May 29, 2026: TerminalFix also boots on real hardware and the
+terminal text appears immediately. The remaining delay is Fluxbox/session
+startup: the text appears before window chrome and before pointer movement is
+responsive. The next A/B keeps Fluxbox but uses a tiny generated style and
+delays the terminal launch so the WM can initialize first:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daedalus-i386-sector512-desktop-plus-fluxlite.zip
+SHA256 33339B8D01AB3640B62C42C5EB0528CA4BECDB0A12054FC9025CA95C9E8F649D
+Dashboard folder: E:\Apps\XromwellDevuanSector512DesktopPlusFluxLite\
+Root files: E:\linuxboot.cfg, E:\flkrnl, E:\flinit, E:\fldevuan.ext2
+xemu userspace proof: C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-sector512-desktop-plus-fluxlite-userspace-xemu-20260529-155358.png
+```
+
 Note: the ad-hoc xemu DVD wrapper used for the exact sector512 `default.xbe`
 does not pass the initrd in xemu and panics at `unknown-block(3,1)`, even for
 the sector512 baseline. Treat that as an emulator wrapper limitation, not a
