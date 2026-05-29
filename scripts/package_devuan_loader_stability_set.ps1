@@ -14,20 +14,20 @@ $append = 'init=/init noswitchroot debug console=tty0 ignore_loglevel loglevel=7
 
 $variants = @(
     [pscustomobject]@{
+        Id = 'idephase-readsectors-filesector'
+        Label = 'file-sector loader with ATA READ SECTORS IDE phase trace'
+        Xbe = 'artifacts\audit\xromwell-idephase-loader-xbe\default.xbe'
+        OutDir = 'xromwell-hddfatx-devuan-loader-idephase-readsectors'
+        Dashboard = 'XromwellDevuanLoaderIdePhase'
+        Notes = 'Diagnostic follow-up after ata-readsectors-filesector hung during the /devkrnl lookup. Prints compact FATX lookup markers plus IDE command/data phase markers so the last visible line identifies the exact stall phase.'
+    },
+    [pscustomobject]@{
         Id = 'ata-readsectors-filesector'
         Label = 'cd4bcf1 file-sector loader with ATA READ SECTORS'
         Xbe = 'artifacts\audit\xromwell-ata-readsectors-loader-xbe\default.xbe'
         OutDir = 'xromwell-hddfatx-devuan-loader-ata-readsectors-filesector'
         Dashboard = 'XromwellDevuanLoaderAtaReadSectors'
         Notes = 'File-sector FATX loader that uses ordinary ATA READ SECTORS instead of READ MULTIPLE for HDD reads. This is the first follow-up after 3fa5e65-sector512 booted 4/5 times but once hung before the kernel progress output.'
-    },
-    [pscustomobject]@{
-        Id = '4dcc618-current'
-        Label = 'Current 4dcc618 cached/coalesced loader'
-        Xbe = 'artifacts\audit\xromwell-4dcc618-restored-devuan-daedalus-i386\default.xbe'
-        OutDir = 'xromwell-hddfatx-devuan-loader-4dcc618-current'
-        Dashboard = 'XromwellDevuanLoader4dcc618'
-        Notes = 'This is the release-baseline Xromwell loader. Use it to confirm the current nondeterministic failure.'
     },
     [pscustomobject]@{
         Id = '3fa5e65-sector512'
@@ -52,6 +52,14 @@ $variants = @(
         OutDir = 'xromwell-hddfatx-devuan-loader-3fa5e65-filesector'
         Dashboard = 'XromwellDevuanLoaderFileSector'
         Notes = 'Diagnostic loader that reads boot files sector-at-a-time and prints file read progress.'
+    },
+    [pscustomobject]@{
+        Id = '4dcc618-current'
+        Label = 'Current 4dcc618 cached/coalesced loader'
+        Xbe = 'artifacts\audit\xromwell-4dcc618-restored-devuan-daedalus-i386\default.xbe'
+        OutDir = 'xromwell-hddfatx-devuan-loader-4dcc618-current'
+        Dashboard = 'XromwellDevuanLoader4dcc618'
+        Notes = 'This is the release-baseline Xromwell loader. Use it to confirm the current nondeterministic failure.'
     }
 )
 
@@ -171,11 +179,12 @@ $manifestLines = @(
     '',
     'Recommended hardware order:',
     '',
-    '1. `ata-readsectors-filesector` - first follow-up after sector512 showed a 4/5 boot rate.',
-    '2. `3fa5e65-sector512` - current best known loader, but not fully repeatable.',
-    '3. `3fa5e65-filesector` - best diagnostic if ATA readsectors still hangs during file reads.',
-    '4. `3fa5e65-findsector` - directory lookup diagnostic.',
-    '5. `4dcc618-current` - control package for the nondeterministic current-loader behavior.',
+    '1. `idephase-readsectors-filesector` - phase trace for the latest /devkrnl lookup hang.',
+    '2. `ata-readsectors-filesector` - first follow-up after sector512 showed a 4/5 boot rate.',
+    '3. `3fa5e65-sector512` - current best known loader, but not fully repeatable.',
+    '4. `3fa5e65-filesector` - best diagnostic if ATA readsectors still hangs during file reads.',
+    '5. `3fa5e65-findsector` - directory lookup diagnostic.',
+    '6. `4dcc618-current` - control package for the nondeterministic current-loader behavior.',
     ''
 )
 

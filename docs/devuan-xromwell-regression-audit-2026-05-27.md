@@ -861,34 +861,39 @@ Only `default.xbe` changes between variants:
 
 ```text
 C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\devuan-loader-stability-set.zip
-SHA256 A8118D401F9D2EDE3C36475A3DB856ABEBBFD402F1B96E0DEB0A30F0BA6C156B
+SHA256 90C111CA9E789BB42B6E05344F03A6AE6BE51AEA6F1175DB2EF63FA9D4196BF1
+
+xromwell-hddfatx-devuan-loader-idephase-readsectors.zip
+SHA256 48073451CAD3ECB50C1C3573EF565D3DCEA61EBE80D99BBA8CB231699532A8F8
 
 xromwell-hddfatx-devuan-loader-ata-readsectors-filesector.zip
-SHA256 78194F6A4350CBB3411587ADC12C6DF11173FA09A70C1F911B2E69D6F125A8C7
+SHA256 790F9B3CAEF1DAA82310B07760E8661ACB61E99B33306A9428E716199FC5E405
 
 xromwell-hddfatx-devuan-loader-3fa5e65-sector512.zip
-SHA256 72A504289DD249A6FE9E445CCF2367B831AAEDB641789CA04CDBC4207E6CBF31
+SHA256 C62F54384BC4338FA6CD1F61CC421D3ED825B4989A977BFEAC7880390C2EA272
 
 xromwell-hddfatx-devuan-loader-3fa5e65-filesector.zip
-SHA256 E7CD1726DFA686AD76AFE331A905086791465BF4CC0B7832D1E32F229A25981D
+SHA256 B52CBFE09831BC8F2E1DCC367B68B9D47BB15A78FD1BF628549E38803D7773CA
 
 xromwell-hddfatx-devuan-loader-3fa5e65-findsector.zip
-SHA256 855A0093331D1D10DEC7F98BEC30A4633F5F78142D5AA5141A44702A8212AC58
+SHA256 EF09F787D7E7B36A6C6F8AE9748A66F7A7461EDE0CEB2009EEA7B19DC200FEA7
 
 xromwell-hddfatx-devuan-loader-4dcc618-current.zip
-SHA256 E52CB577F9CEA7F9B5C090D85F555D2E3517769722F1CBD6E83C388206B38741
+SHA256 9D5A2B11F339C41AB468B82EAE007CB6DF263CCF517AFEF32420D99C36DF5F0D
 ```
 
 Recommended hardware order:
 
-1. `ata-readsectors-filesector`: first follow-up after `3fa5e65-sector512`
+1. `idephase-readsectors-filesector`: phase trace for the latest
+   `/devkrnl` lookup hang.
+2. `ata-readsectors-filesector`: first follow-up after `3fa5e65-sector512`
    showed a 4/5 boot rate.
-2. `3fa5e65-sector512`: current best known loader, but not fully repeatable.
-3. `3fa5e65-filesector`: if ATA readsectors still hangs, use this for file-read
+3. `3fa5e65-sector512`: current best known loader, but not fully repeatable.
+4. `3fa5e65-filesector`: if ATA readsectors still hangs, use this for file-read
    progress output.
-4. `3fa5e65-findsector`: directory lookup diagnostic if config or file finding
+5. `3fa5e65-findsector`: directory lookup diagnostic if config or file finding
    looks suspicious again.
-5. `4dcc618-current`: control variant for reproducing the current
+6. `4dcc618-current`: control variant for reproducing the current
    nondeterministic loader behavior.
 
 Do not rebuild desktop-plus, Devuan rootfs, or kernel/initrd payloads until one
@@ -901,3 +906,24 @@ That keeps suspicion on the first HDD read for the kernel file. The new
 changes the HDD ATA command from `READ MULTIPLE` to ordinary `READ SECTORS`;
 the hypothesis is that `READ MULTIPLE` is timing-sensitive on this disk unless
 the drive's multiple mode has been explicitly set.
+
+Hardware update: `ata-readsectors-filesector` still hangs during the first
+`/devkrnl` lookup on real hardware. The last visible line was:
+
+```text
+FATX: find scan seek=devkrnl c=1
+```
+
+That narrows the current failure to the FATX root-directory lookup or its first
+underlying IDE sector read. The new `idephase-readsectors-filesector` package
+keeps the same frozen Devuan payload and adds compact markers around FATX
+lookup sectors and IDE command/data phases. Useful last-line interpretation:
+
+```text
+IDE#N issue ...       command was issued or is waiting for the device
+IDE#N issue ... ok    command was accepted
+r0                    waiting for or entering first sector data read
+.                     one 512-byte sector completed
+FIND devkrnl c=1      entering root lookup for devkrnl
+FS c=1 o=0            reading the first root-directory sector
+```

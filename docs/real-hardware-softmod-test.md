@@ -45,7 +45,7 @@ Devuan loader-only stability set:
 
 ```text
 C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\devuan-loader-stability-set.zip
-SHA256 A8118D401F9D2EDE3C36475A3DB856ABEBBFD402F1B96E0DEB0A30F0BA6C156B
+SHA256 90C111CA9E789BB42B6E05344F03A6AE6BE51AEA6F1175DB2EF63FA9D4196BF1
 ```
 
 ## Current Hardware Result
@@ -96,9 +96,13 @@ SHA256 9C0A2362A6E4317DC6BEEB6651E9FD10AD09E029C7CD33D24BF5C0F61DB94D65
   issue and not as a Devuan userspace regression.
 - The loader stability variant `3fa5e65-sector512` booted 4 out of 5 times.
   The one failed boot stopped after `Loading /devkrnl...` before the progress
-  numbers appeared. The follow-up variant to test next is
-  `xromwell-hddfatx-devuan-loader-ata-readsectors-filesector.zip`, which uses
-  `READ SECTORS` instead of `READ MULTIPLE` for HDD reads.
+  numbers appeared.
+- The follow-up `ata-readsectors-filesector` variant still hung during the
+  first `/devkrnl` lookup, with the last visible line at
+  `FATX: find scan seek=devkrnl c=1`.
+- The follow-up variant to test next is
+  `xromwell-hddfatx-devuan-loader-idephase-readsectors.zip`, which keeps the
+  frozen Devuan payload and prints compact FATX lookup plus IDE phase markers.
 
 The May 25 refresh adds:
 
@@ -139,9 +143,10 @@ C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-devuan-daeda
   isolated `pluskrnl`, `plusinit`, and `plusdevuan.ext2` files.
 - Devuan loader-only stability set: use this before further desktop-plus work
   if Xromwell hangs while reading the kernel or initrd. Start the next round
-  with `xromwell-hddfatx-devuan-loader-ata-readsectors-filesector.zip`; if it
-  fails, compare against `xromwell-hddfatx-devuan-loader-3fa5e65-filesector.zip`
-  and `xromwell-hddfatx-devuan-loader-3fa5e65-sector512.zip`.
+  with `xromwell-hddfatx-devuan-loader-idephase-readsectors.zip`; if it fails,
+  photograph the final `FIND`, `FS`, or `IDE#` marker before comparing against
+  `xromwell-hddfatx-devuan-loader-3fa5e65-filesector.zip` and
+  `xromwell-hddfatx-devuan-loader-3fa5e65-sector512.zip`.
 
 ## Backup First
 

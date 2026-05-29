@@ -87,14 +87,17 @@ Loader-only stability set:
 
 ```text
 C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\devuan-loader-stability-set.zip
-SHA256 A8118D401F9D2EDE3C36475A3DB856ABEBBFD402F1B96E0DEB0A30F0BA6C156B
+SHA256 90C111CA9E789BB42B6E05344F03A6AE6BE51AEA6F1175DB2EF63FA9D4196BF1
 ```
 
 The stability set uses the exact release-baseline Devuan files in every
 variant: `devkrnl`, `devinit`, `devuan.ext2`, and `linuxboot.cfg`. Only
 `default.xbe` changes. `3fa5e65-sector512` booted 4 out of 5 times on hardware;
 the one failure stopped after `Loading /devkrnl...` before progress output. The
-next test is `ata-readsectors-filesector`, which keeps sector-at-a-time FATX
-file reads but switches HDD ATA access from `READ MULTIPLE` to ordinary
-`READ SECTORS`. Keep desktop/rootfs work frozen until one loader is repeatable
-across several cold boots.
+`ata-readsectors-filesector` follow-up still hung during the first `/devkrnl`
+lookup at `FATX: find scan seek=devkrnl c=1`.
+
+The next test is `idephase-readsectors-filesector`, which keeps the same frozen
+payload and adds compact FATX lookup plus IDE command/data phase markers. Keep
+desktop/rootfs work frozen until one loader is repeatable across several cold
+boots.
