@@ -170,10 +170,19 @@ mkdir -p /dev/pts
 mount -t devpts devpts /dev/pts -o mode=0620,ptmxmode=0666,gid=5 2>/dev/null || true
 mount -t tmpfs -o mode=0755,nosuid,nodev,size=8m tmpfs /run 2>/dev/null || true
 mount -t tmpfs -o mode=1777,nosuid,nodev,size=16m tmpfs /tmp 2>/dev/null || true
+mkdir -p /tmp/root-home /tmp/root-runtime /run/var-lib-dhcp /run/var-log /run/var-tmp
+chmod 700 /tmp/root-home /tmp/root-runtime 2>/dev/null || true
+chmod 1777 /run/var-tmp 2>/dev/null || true
+mkdir -p /var/lib/dhcp /var/log /var/tmp 2>/dev/null || true
+mount -n --bind /run/var-lib-dhcp /var/lib/dhcp 2>/dev/null || true
+mount -n --bind /run/var-log /var/log 2>/dev/null || true
+mount -n --bind /run/var-tmp /var/tmp 2>/dev/null || true
+touch /run/resolv.conf 2>/dev/null || true
+[ -e /etc/resolv.conf ] && mount -n --bind /run/resolv.conf /etc/resolv.conf 2>/dev/null || true
 
 export PATH=/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/sbin:/usr/local/bin
 export TERM=linux
-export HOME=/root
+export HOME=/tmp/root-home
 DESKTOP=0
 PERSIST_SMOKE=0
 SYNC_RO_SMOKE=0
@@ -736,7 +745,7 @@ EOF
 cat > "$ROOT/usr/local/bin/xbox-editor" <<'EOF'
 #!/bin/sh
 export PATH=/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/sbin:/usr/local/bin
-exec xterm -geometry 82x24+28+52 -title "Editor" -e /bin/sh -lc 'cd /root 2>/dev/null || cd /; exec nano'
+exec xterm -geometry 82x24+28+52 -title "Editor" -e /bin/sh -lc 'cd "$HOME" 2>/dev/null || cd /tmp 2>/dev/null || cd /; exec nano'
 EOF
 
 cat > "$ROOT/usr/local/bin/xbox-safe-poweroff" <<'EOF'

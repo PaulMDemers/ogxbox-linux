@@ -798,7 +798,58 @@ default; use the Fluxbox menu and app launcher for the next hardware pass.
 SHA256:
 
 ```text
-7BD0044BA2F82F5061BE177A5351D262D255D087C3EEC6EBDA7FB017731B606F
+BBEEE0008199D1054A715E8989DFC6E506AB716FD8781785C60B781CA2796911
+```
+
+The next preferred full desktop hardware test is the read-only live variant:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\xbox-linux-devuan-desktop-full-live-game-disc.iso
+```
+
+It keeps the same Xromwell/XDVDFS game-disc launch path, but uses a squashfs
+root payload instead of the large ext2 image:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\hdd\xbox-devuan-daedalus-i386-desktop-full.squashfs
+```
+
+Expected benefit: fewer pathological tiny reads and no writable ext2 root image
+on DVD. The image booted to the Fluxbox desktop through Cromwell autocd in xemu:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-desktop-full-live-cromwell-autocd-xemu-240s-20260530-170422.png
+```
+
+The app dependency smoke passed on the built root:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\reports\devuan-desktop-app-smoke.txt
+```
+
+Hardware checklist for this live disc:
+
+1. Boot with only a controller connected.
+2. If Xromwell reports the first CD read failure, press A and retry the CD/HDB
+   option a few times as with the prior working disc.
+3. Confirm the desktop reaches the Fluxbox taskbar and initial terminal.
+4. Plug in keyboard/mouse only after Linux or X is clearly running.
+5. Right-click desktop and test: Terminal, App Launcher, File Manager, Browser,
+   Editor, Paint, Image Viewer, PDF Viewer, Word Processor, Spreadsheet,
+   Network Status, System Status.
+6. For each app, wait at least 60 seconds before marking it failed; note whether
+   the drive is actively seeking or the UI is frozen.
+
+Read-only live ISO SHA256:
+
+```text
+65C35F577F56E483CD03CDD0991CDCFB5E317C0978035B36AE982BB15F090D3D
+```
+
+Squashfs payload SHA256:
+
+```text
+7190B5FB3B8D7A967C3FA55892EDF68893D3AE71004C2D3EA573039D3F12FDDD
 ```
 
 Remove the app folders and the E-root payload files:

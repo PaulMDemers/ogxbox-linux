@@ -31,6 +31,23 @@ therefore leaves `wbar` disabled and uses the Fluxbox right-click menu plus the
 terminal app launcher. Add `xbox_wbar=1` to the kernel append line only when
 testing the dock failure specifically.
 
+The current preferred full-desktop DVD experiment is the read-only live payload:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\xbox-linux-devuan-desktop-full-live-game-disc.iso
+```
+
+This keeps the same XDVDFS `default.xbe` game-disc launch path, but replaces
+the large ext2 root image with:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\hdd\xbox-devuan-daedalus-i386-desktop-full.squashfs
+```
+
+The goal is to avoid the slow and sometimes inconsistent ext2-in-a-file DVD
+read pattern. Linux mounts the squashfs read-only and uses tmpfs/bind mounts for
+runtime state such as `/tmp`, `/run`, DHCP leases, logs, and resolver updates.
+
 A 6.18.33 modern-kernel diagnostic artifact is also available:
 
 ```text
@@ -48,6 +65,15 @@ Build the full desktop variant with:
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\build_devuan_daedalus_i386_desktop_full_payload.ps1
 powershell -ExecutionPolicy Bypass -File .\scripts\build_devuan_daedalus_i386_game_disc_desktop_full.ps1
+```
+
+Build the read-only live full desktop variant with:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\build_devuan_daedalus_i386_desktop_full_payload.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\build_devuan_daedalus_i386_desktop_full_squashfs.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\build_devuan_daedalus_i386_game_disc_desktop_full_live.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\test_devuan_desktop_apps.ps1
 ```
 
 Build the 6.18.33 diagnostic variant with:
@@ -79,6 +105,40 @@ The full desktop game disc has a payload/build sanity check, but the local xemu
 Complex BIOS run stopped at the Xromwell launcher screen instead of accepting
 keyboard input for the menu selection. The ISO still uses the same real-hardware
 game-disc boot path as the FluxLite disc.
+
+The read-only live full desktop disc was also booted through Cromwell autocd in
+xemu to the Fluxbox desktop:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-desktop-full-live-cromwell-autocd-xemu-240s-20260530-170422.png
+```
+
+Re-run that emulator path with:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\run-xemu-devuan-desktop-full-live-cromwell-autocd.ps1
+```
+
+The Complex BIOS game-disc path reached Xromwell's launcher screen in xemu:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-desktop-full-live-game-disc-xemu-180s-20260530-165805.png
+```
+
+Re-run the Complex BIOS game-disc path with:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\run-xemu-devuan-desktop-full-live-game-disc.ps1
+```
+
+The desktop app dependency smoke passed for `xterm`, `aterm`, `fluxbox`, `jwm`,
+`xfe`, `dillo`, `links2`, `mc`, `mtpaint`, `gpicview`, `xpdf`, `wordgrinder`,
+`sc`, `nano`, and the Xbox helper scripts. This proves installed binaries and
+dynamic libraries, not real-hardware GUI responsiveness. Report:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\reports\devuan-desktop-app-smoke.txt
+```
 
 Burn the ISO as an image, not as a data disc.
 
@@ -115,5 +175,17 @@ optical-drive handling is fixed or ported from the old IDE stack (`CONFIG_IDE`,
 The 2026-05-30 full desktop ISO SHA256 is:
 
 ```text
-7BD0044BA2F82F5061BE177A5351D262D255D087C3EEC6EBDA7FB017731B606F
+BBEEE0008199D1054A715E8989DFC6E506AB716FD8781785C60B781CA2796911
+```
+
+The 2026-05-30 read-only live full desktop ISO SHA256 is:
+
+```text
+65C35F577F56E483CD03CDD0991CDCFB5E317C0978035B36AE982BB15F090D3D
+```
+
+The matching squashfs payload SHA256 is:
+
+```text
+7190B5FB3B8D7A967C3FA55892EDF68893D3AE71004C2D3EA573039D3F12FDDD
 ```

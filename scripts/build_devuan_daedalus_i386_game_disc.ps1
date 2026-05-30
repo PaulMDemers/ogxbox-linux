@@ -5,6 +5,9 @@ param(
     [string]$KernelPath = "artifacts\kernels\xbox-linux-5.8.1-rd-gzip-bzImage",
     [string]$InitrdPath = "artifacts\initramfs\xbox-distro-hdd-ext2-stage1.cpio",
     [string]$PayloadPath = "artifacts\hdd\xbox-devuan-daedalus-i386-desktop-plus-fluxlite.ext2",
+    [string]$PayloadDiscName = "devuan.ext2",
+    [string]$RootFsType = "ext2",
+    [string]$AppendExtra = "",
     [string]$Title = "Xbox Linux Devuan FluxLite Game Disc"
 )
 
@@ -35,13 +38,18 @@ New-Item -ItemType Directory -Force -Path (Split-Path -Parent $isoFull) | Out-Nu
 Copy-Item -Force -LiteralPath (Join-Path $repoRoot $XbePath) -Destination (Join-Path $outFull 'default.xbe')
 Copy-Item -Force -LiteralPath (Join-Path $repoRoot $KernelPath) -Destination (Join-Path $outFull 'devkrnl')
 Copy-Item -Force -LiteralPath (Join-Path $repoRoot $InitrdPath) -Destination (Join-Path $outFull 'devinit')
-Copy-Item -Force -LiteralPath (Join-Path $repoRoot $PayloadPath) -Destination (Join-Path $outFull 'devuan.ext2')
+Copy-Item -Force -LiteralPath (Join-Path $repoRoot $PayloadPath) -Destination (Join-Path $outFull $PayloadDiscName)
+
+$append = "init=/init noswitchroot debug console=tty0 ignore_loglevel loglevel=7 xbox_payload_source=iso xbox_payload_file=/$PayloadDiscName xbox_root_fstype=$RootFsType xbox_root_init=/xbox-init xbox_desktop=1 xbox_x_mouse=0 xbox_terminal_light=1 xbox_diag=off xbox_fluxbox_lite=1 xbox_fatx_loop_readahead_kb=2048 xbox_loop_readahead_kb=2048"
+if ($AppendExtra.Trim().Length -gt 0) {
+    $append = "$append $($AppendExtra.Trim())"
+}
 
 $cfg = @"
 title $Title
 kernel devkrnl
 initrd devinit
-append init=/init noswitchroot debug console=tty0 ignore_loglevel loglevel=7 xbox_payload_source=iso xbox_payload_file=/devuan.ext2 xbox_root_init=/xbox-init xbox_desktop=1 xbox_x_mouse=0 xbox_terminal_light=1 xbox_diag=off xbox_fluxbox_lite=1 xbox_fatx_loop_readahead_kb=2048 xbox_loop_readahead_kb=2048
+append $append
 "@
 $cfg | Set-Content -LiteralPath (Join-Path $outFull 'linuxboot.cfg') -Encoding ASCII
 
@@ -58,7 +66,7 @@ default.xbe
 linuxboot.cfg
 devkrnl
 devinit
-devuan.ext2
+$PayloadDiscName
 
 Important: this is different from the normal Cromwell Linux ISO9660 disc. The
 current Cromwell CD loader is known to read ISO9660. This artifact tests whether
@@ -94,7 +102,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 $hashes = [ordered]@{}
-foreach ($file in @('default.xbe', 'linuxboot.cfg', 'devkrnl', 'devinit', 'devuan.ext2')) {
+foreach ($file in @('default.xbe', 'linuxboot.cfg', 'devkrnl', 'devinit', $PayloadDiscName)) {
     $hashes[$file] = (Get-FileHash -LiteralPath (Join-Path $outFull $file) -Algorithm SHA256).Hash
 }
 $manifest = [ordered]@{
