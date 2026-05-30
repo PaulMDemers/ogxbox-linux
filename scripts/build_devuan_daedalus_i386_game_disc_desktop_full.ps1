@@ -12,4 +12,5 @@ $builder = Join-Path $repoRoot 'scripts\build_devuan_daedalus_i386_game_disc.ps1
 & $builder `
     -OutDir $OutDir `
     -OutputIso $OutputIso `
-    -PayloadPath $PayloadPath
+    -PayloadPath $PayloadPath `
+    -Title "Xbox Linux Devuan Full Desktop Game Disc"

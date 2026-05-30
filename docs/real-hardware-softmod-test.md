@@ -788,12 +788,17 @@ C:\Users\Paul\Desktop\xbox_linux\artifacts\xbox-linux-devuan-desktop-full-game-d
 
 It keeps the same 5.8.1 legacy IDE/ATAPI kernel and Xromwell game-disc path as
 the working FluxLite disc, but the payload is larger and includes Fluxbox, a
-dock, an app launcher, browser, file manager, editor, paint/image/PDF tools,
-Midnight Commander, and network/base utilities. Use it after the FluxLite disc
-when testing the "complete desktop" direction. SHA256:
+right-click menu, app launcher, browser, file manager, editor,
+paint/image/PDF tools, Midnight Commander, and network/base utilities. Use it
+after the FluxLite disc when testing the "complete desktop" direction.
+
+Hardware note: the first full desktop disc booted, but the `wbar` dock locked
+the system when the mouse hovered over the icons. Keep the dock disabled by
+default; use the Fluxbox menu and app launcher for the next hardware pass.
+SHA256:
 
 ```text
-6E9CD4D0BE11A41250229BE10412BCFE727381CFDF29A5B424E9358F9459161A
+7BD0044BA2F82F5061BE177A5351D262D255D087C3EEC6EBDA7FB017731B606F
 ```
 
 Remove the app folders and the E-root payload files:

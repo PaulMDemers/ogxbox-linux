@@ -792,6 +792,7 @@ TERMINAL_LIGHT=0
 DIAG_MODE=early
 FLUXBOX_LITE=0
 PRELOAD_FLUXBOX=0
+WBAR_DOCK=0
 for arg in $(cat /proc/cmdline 2>/dev/null); do
     case "$arg" in
         xbox_terminal_light=1) TERMINAL_LIGHT=1 ;;
@@ -800,6 +801,8 @@ for arg in $(cat /proc/cmdline 2>/dev/null); do
         xbox_diag=early) DIAG_MODE=early ;;
         xbox_fluxbox_lite=1) FLUXBOX_LITE=1 ;;
         xbox_preload_fluxbox=1) PRELOAD_FLUXBOX=1 ;;
+        xbox_wbar=1) WBAR_DOCK=1 ;;
+        xbox_wbar=0) WBAR_DOCK=0 ;;
     esac
 done
 
@@ -948,7 +951,7 @@ Right-click the desktop for the Fluxbox menu. The dock at the bottom launches
 the app menu, terminal, file manager, browser, editor, system status, and safe
 shutdown helper.
 EOFDESKTOP
-        if command -v wbar >/dev/null 2>&1; then
+        if [ "$WBAR_DOCK" = "1" ] && command -v wbar >/dev/null 2>&1; then
             cat > "$HOME/.wbar" <<'EOFWBAR'
 i: /usr/local/share/pixmaps/apps.png
 t: Apps

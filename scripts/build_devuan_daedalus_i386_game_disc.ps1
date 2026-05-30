@@ -4,7 +4,8 @@ param(
     [string]$XbePath = "artifacts\softmod\xromwell-dvd-boot\default.xbe",
     [string]$KernelPath = "artifacts\kernels\xbox-linux-5.8.1-rd-gzip-bzImage",
     [string]$InitrdPath = "artifacts\initramfs\xbox-distro-hdd-ext2-stage1.cpio",
-    [string]$PayloadPath = "artifacts\hdd\xbox-devuan-daedalus-i386-desktop-plus-fluxlite.ext2"
+    [string]$PayloadPath = "artifacts\hdd\xbox-devuan-daedalus-i386-desktop-plus-fluxlite.ext2",
+    [string]$Title = "Xbox Linux Devuan FluxLite Game Disc"
 )
 
 $ErrorActionPreference = 'Stop'
@@ -37,7 +38,7 @@ Copy-Item -Force -LiteralPath (Join-Path $repoRoot $InitrdPath) -Destination (Jo
 Copy-Item -Force -LiteralPath (Join-Path $repoRoot $PayloadPath) -Destination (Join-Path $outFull 'devuan.ext2')
 
 $cfg = @"
-title Xbox Linux Devuan FluxLite Game Disc
+title $Title
 kernel devkrnl
 initrd devinit
 append init=/init noswitchroot debug console=tty0 ignore_loglevel loglevel=7 xbox_payload_source=iso xbox_payload_file=/devuan.ext2 xbox_root_init=/xbox-init xbox_desktop=1 xbox_x_mouse=0 xbox_terminal_light=1 xbox_diag=off xbox_fluxbox_lite=1 xbox_fatx_loop_readahead_kb=2048 xbox_loop_readahead_kb=2048
@@ -45,7 +46,7 @@ append init=/init noswitchroot debug console=tty0 ignore_loglevel loglevel=7 xbo
 $cfg | Set-Content -LiteralPath (Join-Path $outFull 'linuxboot.cfg') -Encoding ASCII
 
 $readme = @"
-# Xbox Linux Devuan FluxLite Game Disc
+# $Title
 
 This is an Xbox XDVDFS disc image with default.xbe at the disc root, intended to
 test whether a chipped/BIOS-launched Xbox can start Xromwell directly from a
