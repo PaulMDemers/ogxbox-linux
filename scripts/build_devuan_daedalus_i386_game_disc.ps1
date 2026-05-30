@@ -8,7 +8,8 @@ param(
     [string]$PayloadDiscName = "devuan.ext2",
     [string]$RootFsType = "ext2",
     [string]$AppendExtra = "",
-    [string]$Title = "Xbox Linux Devuan FluxLite Game Disc"
+    [string]$Title = "Xbox Linux Devuan FluxLite Game Disc",
+    [switch]$NoIso9660Overlay
 )
 
 $ErrorActionPreference = 'Stop'
@@ -84,21 +85,23 @@ if ($LASTEXITCODE -ne 0) {
     throw "xdvdfs pack failed"
 }
 
-$extentArgs = @()
-foreach ($line in $packOutput) {
-    if ($line -match 'Added file: ".+\\([^\\"]+)" at sector ([0-9]+)') {
-        $name = $Matches[1]
-        $sector = [int]$Matches[2]
-        $size = (Get-Item -LiteralPath (Join-Path $outFull $name)).Length
-        $extentArgs += @('--extent', "${name}=${sector}:$size")
+if (-not $NoIso9660Overlay) {
+    $extentArgs = @()
+    foreach ($line in $packOutput) {
+        if ($line -match 'Added file: ".+\\([^\\"]+)" at sector ([0-9]+)') {
+            $name = $Matches[1]
+            $sector = [int]$Matches[2]
+            $size = (Get-Item -LiteralPath (Join-Path $outFull $name)).Length
+            $extentArgs += @('--extent', "${name}=${sector}:$size")
+        }
     }
-}
-if (($extentArgs -join ' ') -notmatch 'linuxboot\.cfg') {
-    throw "Could not derive linuxboot.cfg sector from xdvdfs output"
-}
-python (Join-Path $repoRoot 'scripts\add_iso9660_overlay.py') $isoFull @extentArgs
-if ($LASTEXITCODE -ne 0) {
-    throw "ISO9660 overlay failed"
+    if (($extentArgs -join ' ') -notmatch 'linuxboot\.cfg') {
+        throw "Could not derive linuxboot.cfg sector from xdvdfs output"
+    }
+    python (Join-Path $repoRoot 'scripts\add_iso9660_overlay.py') $isoFull @extentArgs
+    if ($LASTEXITCODE -ne 0) {
+        throw "ISO9660 overlay failed"
+    }
 }
 
 $hashes = [ordered]@{}
@@ -108,8 +111,8 @@ foreach ($file in @('default.xbe', 'linuxboot.cfg', 'devkrnl', 'devinit', $Paylo
 $manifest = [ordered]@{
     output_iso = $isoFull
     staging_dir = $outFull
-    format = 'XDVDFS with minimal ISO9660 overlay'
-    purpose = 'Xbox game-disc style Xromwell launch plus Cromwell ISO9660 payload test'
+    format = if ($NoIso9660Overlay) { 'XDVDFS only' } else { 'XDVDFS with minimal ISO9660 overlay' }
+    purpose = if ($NoIso9660Overlay) { 'Xbox game-disc recognition control; Linux ISO payload mount is expected to fail' } else { 'Xbox game-disc style Xromwell launch plus Cromwell ISO9660 payload test' }
     files = $hashes
 }
 $manifest | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $outFull 'manifest.json') -Encoding ASCII

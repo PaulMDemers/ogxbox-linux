@@ -2,7 +2,8 @@ param(
     [string]$OutDir = "build\xbox-linux-devuan-desktop-full-live-game-disc",
     [string]$OutputIso = "artifacts\xbox-linux-devuan-desktop-full-live-game-disc.iso",
     [string]$PayloadPath = "artifacts\hdd\xbox-devuan-daedalus-i386-desktop-full.squashfs",
-    [switch]$RebuildPayload
+    [switch]$RebuildPayload,
+    [switch]$NoIso9660Overlay
 )
 
 $ErrorActionPreference = 'Stop'
@@ -24,4 +25,5 @@ if ($RebuildPayload -or -not (Test-Path -LiteralPath (Join-Path $repoRoot $Paylo
     -PayloadPath $PayloadPath `
     -PayloadDiscName "devuan.squashfs" `
     -RootFsType "squashfs" `
-    -Title "Xbox Linux Devuan Full Desktop Live Game Disc"
+    -Title "Xbox Linux Devuan Full Desktop Live Game Disc" `
+    -NoIso9660Overlay:$NoIso9660Overlay

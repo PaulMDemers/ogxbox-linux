@@ -76,6 +76,15 @@ powershell -ExecutionPolicy Bypass -File .\scripts\build_devuan_daedalus_i386_ga
 powershell -ExecutionPolicy Bypass -File .\scripts\test_devuan_desktop_apps.ps1
 ```
 
+Build the matching XDVDFS-only recognition control with:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\build_devuan_daedalus_i386_game_disc_desktop_full_live.ps1 `
+  -OutDir build\xbox-linux-devuan-desktop-full-live-game-disc-xdvdfs-only `
+  -OutputIso artifacts\xbox-linux-devuan-desktop-full-live-game-disc-xdvdfs-only.iso `
+  -NoIso9660Overlay
+```
+
 Build the 6.18.33 diagnostic variant with:
 
 ```powershell
@@ -93,6 +102,22 @@ Without the ISO9660 overlay, xemu proved that the XBE launches, but Xromwell
 stalls at `Detecting system on CD...` because Cromwell only knows how to read
 ISO9660 for the CD Linux payload path. The hybrid overlay fixes that while
 keeping the game-disc layout intact.
+
+May 30 hardware follow-up: one burned copy of the live hybrid image was reported
+as not recognized by the Xbox dashboard as a game. The current control artifact
+for separating dashboard recognition from Linux payload mounting is:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\xbox-linux-devuan-desktop-full-live-game-disc-xdvdfs-only.iso
+SHA256: B540455882157F6B6F631CF1078D634E12DBDFDFCC278CB7F39C8A4A0918FE16
+```
+
+Expected behavior for that control: the dashboard/BIOS should treat it more like
+a plain Xbox game disc and launch `default.xbe`, but the Linux boot should stop
+at `Detecting system on CD...` until the payload path can read XDVDFS directly
+or a separate non-conflicting ISO payload area is added. If this control is also
+not recognized as a game, the problem is below the Linux/overlay layer: burn
+mode/media/dashboard recognition rather than the hybrid ISO9660 overlay.
 
 xemu proof:
 
@@ -123,6 +148,8 @@ The Complex BIOS game-disc path reached Xromwell's launcher screen in xemu:
 
 ```text
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-desktop-full-live-game-disc-xemu-180s-20260530-165805.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-live-hybrid-complex-recognition-20260530-190707.png
+C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-live-xdvdfs-only-scripted-complex-20260530-191232.png
 ```
 
 Re-run the Complex BIOS game-disc path with:
