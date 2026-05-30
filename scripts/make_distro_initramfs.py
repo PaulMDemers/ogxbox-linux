@@ -72,15 +72,93 @@ tune_readahead() {
     fi
 }
 
-if [ "$PAYLOAD_SOURCE" = "iso" ]; then
-    if [ -z "$PAYLOAD_DISK" ]; then
-        for dev in /dev/hdb /dev/hdc /dev/sr0 /dev/cdrom /dev/dvd; do
-            if [ -b "$dev" ] || [ -e "$dev" ]; then
-                PAYLOAD_DISK="$dev"
-                break
-            fi
-        done
+ensure_block_node() {
+    dev="$1"
+    name="${dev#/dev/}"
+    [ "$name" != "$dev" ] || return 1
+    [ -b "$dev" ] && return 0
+    [ -r "/sys/block/$name/dev" ] || return 1
+    majmin="$(cat "/sys/block/$name/dev" 2>/dev/null)"
+    major="${majmin%:*}"
+    minor="${majmin#*:}"
+    case "$major:$minor" in
+        *[!0-9:]*|:|*:|"") return 1 ;;
+    esac
+    /bin/busybox mknod "$dev" b "$major" "$minor" 2>/dev/null || true
+    [ -b "$dev" ]
+}
+
+show_block_devices() {
+    echo "block device inventory:"
+    for sysdev in /sys/block/*; do
+        [ -e "$sysdev" ] || continue
+        name="$(basename "$sysdev")"
+        majmin="$(cat "$sysdev/dev" 2>/dev/null)"
+        removable="$(cat "$sysdev/removable" 2>/dev/null)"
+        dtype="$(cat "$sysdev/device/type" 2>/dev/null)"
+        echo "  $name dev=$majmin removable=$removable type=$dtype"
+    done
+}
+
+try_mount_iso() {
+    dev="$1"
+    [ -n "$dev" ] || return 1
+    ensure_block_node "$dev" || true
+    [ -b "$dev" ] || [ -e "$dev" ] || return 1
+    /bin/busybox umount /mnt/xboxe 2>/dev/null || true
+    echo "Trying ISO payload source from $dev"
+    if /bin/busybox mount -t iso9660 -o ro "$dev" /mnt/xboxe 2>/tmp/iso-mount.err; then
+        if [ -f "/mnt/xboxe$PAYLOAD_FILE" ]; then
+            PAYLOAD_DISK="$dev"
+            return 0
+        fi
+        upper="$(echo "$PAYLOAD_FILE" | tr 'a-z' 'A-Z')"
+        if [ -f "/mnt/xboxe$upper" ]; then
+            PAYLOAD_DISK="$dev"
+            return 0
+        fi
+        echo "ISO mounted from $dev but payload $PAYLOAD_FILE was not present"
+        /bin/busybox umount /mnt/xboxe 2>/dev/null || true
     fi
+    return 1
+}
+
+find_iso_payload_disk() {
+    show_block_devices
+    candidates="$PAYLOAD_DISK"
+
+    for sysdev in /sys/block/*; do
+        [ -e "$sysdev" ] || continue
+        name="$(basename "$sysdev")"
+        dtype="$(cat "$sysdev/device/type" 2>/dev/null)"
+        removable="$(cat "$sysdev/removable" 2>/dev/null)"
+        case "$name:$dtype:$removable" in
+            hd*:5:*|sr*:5:*|scd*:5:*|*:5:*|sr*:*:*|scd*:*:*|hd[b-z]:*:*|*:1)
+                candidates="$candidates /dev/$name"
+                ;;
+        esac
+    done
+
+    candidates="$candidates /dev/hdc /dev/hdd /dev/hdb /dev/sr0 /dev/scd0 /dev/cdrom /dev/dvd"
+    tried=" "
+    for dev in $candidates; do
+        case "$tried" in
+            *" $dev "*) continue ;;
+        esac
+        tried="$tried$dev "
+        if try_mount_iso "$dev"; then
+            echo "Mounted ISO payload source from $PAYLOAD_DISK"
+            return 0
+        fi
+    done
+
+    echo "ISO mount failed for all discovered candidates"
+    cat /tmp/iso-mount.err 2>/dev/null || true
+    return 1
+}
+
+if [ "$PAYLOAD_SOURCE" = "iso" ]; then
+    :
 else
     if [ -z "$PAYLOAD_DISK" ]; then
         for dev in /dev/hda /dev/sda /dev/vda /dev/xvda; do
@@ -92,12 +170,8 @@ else
     fi
 fi
 
-if [ -z "$PAYLOAD_DISK" ]; then
-    if [ "$PAYLOAD_SOURCE" = "iso" ]; then
-        PAYLOAD_DISK=/dev/hdb
-    else
-        PAYLOAD_DISK=/dev/hda
-    fi
+if [ -z "$PAYLOAD_DISK" ] && [ "$PAYLOAD_SOURCE" != "iso" ]; then
+    PAYLOAD_DISK=/dev/hda
 fi
 
 for i in 0 1; do
@@ -105,19 +179,16 @@ for i in 0 1; do
 done
 
 /bin/busybox mkdir -p /mnt/xboxe /mnt/root
-for i in 1 2 3 4 5; do
-    [ -e "$PAYLOAD_DISK" ] && break
-    /bin/busybox sleep 1
-done
 
 if [ "$PAYLOAD_SOURCE" = "iso" ]; then
-    echo "Mounting ISO payload source from $PAYLOAD_DISK"
-    if ! /bin/busybox mount -t iso9660 -o ro "$PAYLOAD_DISK" /mnt/xboxe 2>/tmp/iso-mount.err; then
-        echo "ISO mount failed:"
-        cat /tmp/iso-mount.err 2>/dev/null || true
+    if ! find_iso_payload_disk; then
         exec setsid cttyhack sh
     fi
 else
+    for i in 1 2 3 4 5; do
+        [ -e "$PAYLOAD_DISK" ] && break
+        /bin/busybox sleep 1
+    done
     echo "Mounting Xbox E FATX from $PAYLOAD_DISK at offset $E_PARTITION_OFFSET"
     if ! /bin/busybox losetup -o "$E_PARTITION_OFFSET" /dev/loop0 "$PAYLOAD_DISK" 2>/tmp/fatx-losetup.err; then
         echo "FATX losetup failed:"
@@ -250,8 +321,10 @@ def build():
         "proc",
         "sys",
         "tmp",
+        "sbin",
         "usr",
         "usr/bin",
+        "usr/sbin",
     ]:
         add_dir(buf, d, ino)
         ino += 1
