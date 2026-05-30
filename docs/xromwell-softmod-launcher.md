@@ -32,4 +32,21 @@ run\screenshots\xromwell-modern-clean-xbe-launch-20260524-222321.png
 
 For a softmodded Xbox, copy the folder contents so the dashboard sees `default.xbe` as an app. The intended Linux path is to launch Xromwell from HDD, then boot an ISO9660 Linux disc such as `artifacts\cromwell-tinycore11-stage6-xfbdev-desktop-6.18.33.iso`.
 
+For DVD-R Linux tests, use the dedicated clean-built softmod package:
+
+```text
+artifacts\softmod\xromwell-dvd-boot\default.xbe
+artifacts\softmod\xromwell-dvd-boot.zip
+```
+
+Copy it as its own app, for example:
+
+```text
+E:\Apps\XromwellDVD\default.xbe
+```
+
+Do not use any `xromwell-hddfatx-*` package with a burned Linux ISO. Those
+launchers are intentionally built with `XBOX_LINUX_AUTOBOOT_FATX` and will try
+`AUTOBOOT FATX (E:)` even when a valid Linux ISO is in the DVD drive.
+
 Current emulator status: xemu proves the rebuilt XBE launches under the retail/Complex BIOS. A QMP DVD swap from the XBE disc to the Tiny Core Linux ISO reaches Xromwell's CD detection path, but it currently stalls at `Detecting system on CD...`; treat full XBE-to-Linux boot as pending real-hardware or better HDD-launched XBE testing.

@@ -3,7 +3,8 @@ param(
     [string]$OutRom = "artifacts\cromwell-hddfatx-autoboot-modernhdr-initrd32_1024.bin",
     [string]$OutXbeDir = "build\xromwell-hddfatx-autoboot-disc",
     [string]$OutIso = "artifacts\xromwell-hddfatx-autoboot-initrd32.iso",
-    [string]$ExtraCromCflags = "-DXBOX_LINUX_AUTOBOOT_FATX -DFATX_PROGRESS"
+    [string]$ExtraCromCflags = "-DXBOX_LINUX_AUTOBOOT_FATX -DFATX_PROGRESS",
+    [switch]$NoClean
 )
 
 $ErrorActionPreference = 'Stop'
@@ -25,6 +26,10 @@ $cromwellWsl = (Resolve-Path -LiteralPath $cromwell).Path -replace '\\', '/'
 if ($cromwellWsl -match '^([A-Za-z]):/(.*)$') {
     $drive = $Matches[1].ToLowerInvariant()
     $cromwellWsl = "/mnt/$drive/$($Matches[2])"
+}
+
+if (-not $NoClean) {
+    wsl --cd $cromwellWsl bash -lc 'make clean'
 }
 
 $makeCommand = "make all EXTRA_CROM_CFLAGS='$ExtraCromCflags'"

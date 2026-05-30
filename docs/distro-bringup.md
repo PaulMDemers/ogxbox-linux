@@ -535,6 +535,16 @@ Next Devuan tasks:
   C:\Users\Paul\Desktop\xbox_linux\artifacts\cromwell-devuan-daedalus-i386-desktop-plus-fluxlite.iso
   xemu ISO proof C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-desktop-plus-fluxlite-iso-rebuilt-xemu-20260529-190705.png
   ```
+  On softmodded hardware, launch that burned disc with the non-FATX DVD
+  launcher package:
+
+  ```text
+  C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-dvd-boot.zip
+  Dashboard folder: E:\Apps\XromwellDVD\
+  ```
+
+  Do not use any `xromwell-hddfatx-*` launcher for this disc path. Those XBE
+  builds intentionally prefer `AUTOBOOT FATX (E:)`.
 - Test the Preload package if FluxLite still takes minutes to become
   responsive. It keeps FluxLite but sequentially reads the Fluxbox binary and
   shared libraries before execing normal Fluxbox:

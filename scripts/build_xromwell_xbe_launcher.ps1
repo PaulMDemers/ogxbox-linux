@@ -1,7 +1,9 @@
 param(
     [string]$CromwellPath = "sources\cromwell-xboxdev",
     [string]$OutDir = "build\xromwell-modern-disc",
-    [string]$OutIso = "artifacts\xromwell-modern-initrd32.iso"
+    [string]$OutIso = "artifacts\xromwell-modern-initrd32.iso",
+    [string]$ExtraCromCflags = "",
+    [switch]$NoClean
 )
 
 $ErrorActionPreference = 'Stop'
@@ -24,7 +26,17 @@ if ($cromwellWsl -match '^([A-Za-z]):/(.*)$') {
     $drive = $Matches[1].ToLowerInvariant()
     $cromwellWsl = "/mnt/$drive/$($Matches[2])"
 }
-wsl --cd $cromwellWsl bash -lc 'make all'
+
+if (-not $NoClean) {
+    wsl --cd $cromwellWsl bash -lc 'make clean'
+}
+
+$makeCommand = if ($ExtraCromCflags) {
+    "make all EXTRA_CROM_CFLAGS='$ExtraCromCflags'"
+} else {
+    "make all EXTRA_CROM_CFLAGS=''"
+}
+wsl --cd $cromwellWsl bash -lc $makeCommand
 
 if (-not (Test-Path -LiteralPath $xbe)) {
     throw "Cromwell build did not produce: $xbe"
