@@ -35,6 +35,18 @@ Use this launcher with a burned Cromwell/Linux ISO in the DVD drive. This is not
 the HDD-FATX autoboot launcher; it is intentionally built without
 XBOX_LINUX_AUTOBOOT_FATX so it should not force AUTOBOOT FATX (E:).
 
+Before testing DVD boot, remove any old root-level Linux FATX boot files from
+E:\, especially:
+
+E:\linuxboot.cfg
+E:\*krnl
+E:\*init
+E:\*devuan.ext2
+
+The dashboard app folder can stay. The important part is that E:\linuxboot.cfg
+must not exist, because Xromwell may select the old FATX profile before trying
+the DVD.
+
 Current DVD test ISO:
 
 C:\Users\Paul\Desktop\xbox_linux\artifacts\cromwell-devuan-daedalus-i386-desktop-plus-fluxlite.iso

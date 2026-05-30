@@ -545,6 +545,16 @@ Next Devuan tasks:
 
   Do not use any `xromwell-hddfatx-*` launcher for this disc path. Those XBE
   builds intentionally prefer `AUTOBOOT FATX (E:)`.
+
+  Before launching the DVD app, remove old root-level FATX boot files from E:
+  (`E:\linuxboot.cfg`, `E:\*krnl`, `E:\*init`, `E:\*devuan.ext2`). In xemu, an
+  HDD-launched Xromwell DVD test selected the stale `E:\linuxboot.cfg` first
+  and loaded `/lpkrnl`; after cleaning E-root, the same XBE plus inserted
+  FluxLite ISO reached the desktop and proof terminal:
+
+  ```text
+  C:\Users\Paul\Desktop\xbox_linux\run\screenshots\xromwell-dvd-hddlaunch-cleanE-65s-20260529-211158.png
+  ```
 - Test the Preload package if FluxLite still takes minutes to become
   responsive. It keeps FluxLite but sequentially reads the Fluxbox binary and
   shared libraries before execing normal Fluxbox:

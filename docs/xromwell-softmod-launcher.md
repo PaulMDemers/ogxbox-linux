@@ -49,4 +49,9 @@ Do not use any `xromwell-hddfatx-*` package with a burned Linux ISO. Those
 launchers are intentionally built with `XBOX_LINUX_AUTOBOOT_FATX` and will try
 `AUTOBOOT FATX (E:)` even when a valid Linux ISO is in the DVD drive.
 
+Also remove old root-level FATX Linux boot files before testing a DVD. In
+particular, `E:\linuxboot.cfg` must not exist. If it is still present, Xromwell
+can select the old E-drive Linux profile and load `E:\*krnl` instead of reading
+the inserted ISO. The dashboard app folder under `E:\Apps\...` can remain.
+
 Current emulator status: xemu proves the rebuilt XBE launches under the retail/Complex BIOS. A QMP DVD swap from the XBE disc to the Tiny Core Linux ISO reaches Xromwell's CD detection path, but it currently stalls at `Detecting system on CD...`; treat full XBE-to-Linux boot as pending real-hardware or better HDD-launched XBE testing.
