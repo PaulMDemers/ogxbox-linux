@@ -54,6 +54,12 @@ Burn the ISO as an image, not as a data disc.
 
 ## Real Hardware Notes
 
+Boot the DVD with only a controller connected at first. On real hardware,
+Xromwell did not consistently see the DVD drive when a keyboard and mouse were
+plugged into the controller ports during firmware/Xromwell startup. With only a
+controller connected, the same disc was detected and booted. Plug keyboard and
+mouse in after Linux has started or after the desktop is up.
+
 The first real DVD-R boot found Xromwell after a manual retry, but the 6.18.33
 kernel could not expose a usable optical block device to stage1. It reported
 `Can't open blockdev` for the likely CD/DVD nodes and never mounted the ISO
@@ -70,7 +76,8 @@ shell. It also creates static fallback nodes for old IDE optical names such as
 devtmpfs nodes xemu does.
 
 Real hardware result: the 6.18.33 diagnostic disc reaches stage1 but cannot
-mount the disc payload. The 5.8.1 legacy-IDE disc boots successfully. For the
-DVD/game-disc release path, use the legacy-IDE default until the newer kernel's
-Xbox optical-drive handling is fixed or ported from the old IDE stack
-(`CONFIG_IDE`, `CONFIG_BLK_DEV_IDECD`, `CONFIG_BLK_DEV_AMD74XX`).
+mount the disc payload. It is known-failing for DVD boot on the original Xbox
+right now. The 5.8.1 legacy-IDE disc boots successfully. For the DVD/game-disc
+release path, use the legacy-IDE default until the newer kernel's Xbox
+optical-drive handling is fixed or ported from the old IDE stack (`CONFIG_IDE`,
+`CONFIG_BLK_DEV_IDECD`, `CONFIG_BLK_DEV_AMD74XX`).

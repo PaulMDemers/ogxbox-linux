@@ -761,6 +761,25 @@ C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-xterm-aterm-wrapper-2026
 
 ## Cleanup
 
+## DVD Game Disc Checkpoint
+
+For DVD-R game-disc boot, use:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\xbox-linux-devuan-fluxlite-game-disc.iso
+```
+
+This artifact uses the 5.8.1 legacy IDE/ATAPI kernel and has booted successfully
+from real Xbox DVD hardware. Start the console with only a controller connected;
+keyboard and mouse in the controller ports can prevent Xromwell from detecting
+the optical drive during early startup. Connect keyboard/mouse after Linux or X
+has started.
+
+The 6.18.33 diagnostic game-disc artifact reaches stage1 but fails to mount the
+disc payload because Linux cannot open a usable CD/DVD block device on real
+hardware. Treat that as a modern-kernel optical-drive bug, not as a release
+candidate.
+
 Remove the app folders and the E-root payload files:
 
 ```text
