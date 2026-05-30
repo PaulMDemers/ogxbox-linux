@@ -2,7 +2,7 @@ param(
     [string]$OutDir = "build\xbox-linux-devuan-fluxlite-game-disc",
     [string]$OutputIso = "artifacts\xbox-linux-devuan-fluxlite-game-disc.iso",
     [string]$XbePath = "artifacts\softmod\xromwell-dvd-boot\default.xbe",
-    [string]$KernelPath = "artifacts\kernels\xbox-linux-6.18.33-fatx-tinycore-bzImage",
+    [string]$KernelPath = "artifacts\kernels\xbox-linux-5.8.1-rd-gzip-bzImage",
     [string]$InitrdPath = "artifacts\initramfs\xbox-distro-hdd-ext2-stage1.cpio",
     [string]$PayloadPath = "artifacts\hdd\xbox-devuan-daedalus-i386-desktop-plus-fluxlite.ext2"
 )

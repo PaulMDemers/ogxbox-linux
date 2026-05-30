@@ -4,16 +4,19 @@ This path builds an Xbox-style XDVDFS disc image that has `default.xbe` at the
 disc root, so a chipped Xbox or BIOS that boots game discs can launch Xromwell
 directly from DVD-R.
 
-The current artifact is:
+The current recommended real-hardware artifact is:
 
 ```text
 C:\Users\Paul\Desktop\xbox_linux\artifacts\xbox-linux-devuan-fluxlite-game-disc.iso
 ```
 
-A legacy-IDE test artifact is also available:
+It uses the 5.8.1 legacy IDE/ATAPI kernel because that is the path validated on
+real Xbox DVD hardware.
+
+A 6.18.33 modern-kernel diagnostic artifact is also available:
 
 ```text
-C:\Users\Paul\Desktop\xbox_linux\artifacts\xbox-linux-devuan-fluxlite-game-disc-legacy-ide.iso
+C:\Users\Paul\Desktop\xbox_linux\artifacts\xbox-linux-devuan-fluxlite-game-disc-modern-diagnostic.iso
 ```
 
 Build it with:
@@ -22,10 +25,10 @@ Build it with:
 powershell -ExecutionPolicy Bypass -File .\scripts\build_devuan_daedalus_i386_game_disc.ps1
 ```
 
-Build the legacy-IDE variant with:
+Build the 6.18.33 diagnostic variant with:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\build_devuan_daedalus_i386_game_disc_legacy_ide.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\build_devuan_daedalus_i386_game_disc_modern_diagnostic.ps1
 ```
 
 The disc is intentionally hybrid:
@@ -51,15 +54,14 @@ Burn the ISO as an image, not as a data disc.
 
 ## Real Hardware Notes
 
-The first real DVD-R boot found Xromwell after a manual retry, but stage1 then
-dropped to a shell because it assumed the optical drive would appear as
-`/dev/hdb`. The rebuilt initramfs now inventories `/sys/block`, creates missing
-block device nodes when devtmpfs/mdev did not create them, and tries each likely
-optical device until it mounts the ISO that actually contains `/devuan.ext2`.
+The first real DVD-R boot found Xromwell after a manual retry, but the 6.18.33
+kernel could not expose a usable optical block device to stage1. It reported
+`Can't open blockdev` for the likely CD/DVD nodes and never mounted the ISO
+payload.
 
 If Xromwell initially reports a CD sector read failure, pressing A to retry is
 still the expected workaround for this build. That is a separate Xromwell
-optical-readiness issue from the Linux `/dev/hdb` assumption.
+optical-readiness issue from Linux's DVD block-device handling.
 
 The `game-disc` initramfs now prints a block-device inventory, `/proc/partitions`,
 optional CD-ROM info, and each failed ISO mount attempt before dropping to a
@@ -67,7 +69,8 @@ shell. It also creates static fallback nodes for old IDE optical names such as
 `/dev/hdb` and `/dev/hdc`, because real hardware may not populate the same
 devtmpfs nodes xemu does.
 
-If the 6.18.33 disc still cannot mount the ISO payload on real hardware, test
-the `legacy-ide` ISO next. It keeps the same game-disc layout and Devuan
-payload, but swaps `devkrnl` to the older 5.8.1 kernel with legacy IDE/ATAPI
-CD-ROM support (`CONFIG_IDE`, `CONFIG_BLK_DEV_IDECD`, `CONFIG_BLK_DEV_AMD74XX`).
+Real hardware result: the 6.18.33 diagnostic disc reaches stage1 but cannot
+mount the disc payload. The 5.8.1 legacy-IDE disc boots successfully. For the
+DVD/game-disc release path, use the legacy-IDE default until the newer kernel's
+Xbox optical-drive handling is fixed or ported from the old IDE stack
+(`CONFIG_IDE`, `CONFIG_BLK_DEV_IDECD`, `CONFIG_BLK_DEV_AMD74XX`).
