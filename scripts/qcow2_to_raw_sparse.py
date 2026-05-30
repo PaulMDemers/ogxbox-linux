@@ -9,14 +9,17 @@ and no backing file dependency.
 from __future__ import annotations
 
 import argparse
+import ctypes
 import os
 import struct
+import sys
 from pathlib import Path
 
 
 QCOW_MAGIC = 0x514649FB
 QCOW_OFLAG_COMPRESSED = 1 << 62
 QCOW_OFFSET_MASK = 0x00FFFFFFFFFFFE00
+FSCTL_SET_SPARSE = 0x000900C4
 
 
 def read_at(fp, offset: int, size: int) -> bytes:
@@ -80,6 +83,30 @@ def parse_header(fp) -> dict[str, int]:
     }
 
 
+def mark_sparse(fp) -> None:
+    if sys.platform != "win32":
+        return
+
+    try:
+        import msvcrt
+
+        handle = msvcrt.get_osfhandle(fp.fileno())
+        returned = ctypes.c_ulong()
+        ctypes.windll.kernel32.DeviceIoControl(
+            ctypes.c_void_p(handle),
+            FSCTL_SET_SPARSE,
+            None,
+            0,
+            None,
+            0,
+            ctypes.byref(returned),
+            None,
+        )
+    except Exception:
+        # Sparse marking is an optimization; conversion still works without it.
+        return
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("input", type=Path)
@@ -103,6 +130,7 @@ def main() -> int:
         l1_entries = struct.unpack(f">{header['l1_size']}Q", l1_data)
 
         with args.output.open("w+b") as dst:
+            mark_sparse(dst)
             dst.truncate(header["virtual_size"])
 
             for l1_index, l1_entry in enumerate(l1_entries):

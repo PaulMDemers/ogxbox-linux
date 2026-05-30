@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
 import math
 import struct
 from dataclasses import dataclass
@@ -22,6 +24,32 @@ ATTR_ARCHIVE = 0x20
 ATTR_DIRECTORY = 0x10
 FREE_CLUSTER = 0x00000000
 END_OF_CHAIN = 0xFFFFFFFF
+KNOWN_BOOT_ROOT_FILES = (
+    "linuxboot.cfg",
+    "vmlinuz",
+    "initramf",
+    "devkrnl",
+    "devinit",
+    "devuan.ext2",
+    "xkrnl",
+    "xinit",
+    "xdevuan.ext2",
+    "pluskrnl",
+    "plusinit",
+    "plusdevuan.ext2",
+    "plkrnl",
+    "plinit",
+    "pldevuan.ext2",
+    "tfkrnl",
+    "tfinit",
+    "tfdevuan.ext2",
+    "rakrnl",
+    "rainit",
+    "rdevuan.ext2",
+    "ndkrnl",
+    "ndinit",
+    "nddevuan.ext2",
+)
 
 
 @dataclass
@@ -53,6 +81,11 @@ class FatxWriteResult:
     cluster_count: int
     disk_offset: int
     contiguous: bool
+    sha256: str
+    readback_sha256: str
+    first_sector: int
+    last_sector: int
+    chain_sample: list[int]
 
 
 def read_at(fp, offset: int, size: int) -> bytes:
@@ -115,6 +148,10 @@ def write_fat_entry(fp, part: FatxPartition, cluster_id: int, value: int) -> Non
     write_at(fp, part.fat_entry_offset(cluster_id), data)
 
 
+def end_of_chain_value(part: FatxPartition) -> int:
+    return 0xFFFFFFFF if part.entry_size == 4 else 0xFFFF
+
+
 def read_cluster(fp, part: FatxPartition, cluster_id: int) -> bytes:
     return read_at(fp, part.cluster_offset(cluster_id), part.cluster_size)
 
@@ -158,8 +195,27 @@ def free_chain(fp, part: FatxPartition, start_cluster: int) -> None:
         cluster_id = next_cluster
 
 
+def cluster_chain(fp, part: FatxPartition, start_cluster: int) -> list[int]:
+    chain: list[int] = []
+    cluster_id = start_cluster
+    seen: set[int] = set()
+    while cluster_id not in seen and 1 <= cluster_id < part.cluster_count:
+        seen.add(cluster_id)
+        chain.append(cluster_id)
+        next_cluster = read_fat_entry(fp, part, cluster_id)
+        if next_cluster in (0xFFFFFFFF, 0xFFFFFFF8, 0xFFFF, 0xFFF8, 0):
+            break
+        cluster_id = next_cluster
+    return chain
+
+
 def remove_root_file(fp, part: FatxPartition, name: str) -> None:
     remove_directory_entry(fp, part, ROOT_CLUSTER, name)
+
+
+def clean_known_boot_files(fp, part: FatxPartition) -> None:
+    for name in KNOWN_BOOT_ROOT_FILES:
+        remove_root_file(fp, part, name)
 
 
 def remove_directory_entry(fp, part: FatxPartition, directory_cluster: int, name: str) -> None:
@@ -216,6 +272,38 @@ def allocate_contiguous_clusters(fp, part: FatxPartition, count: int) -> list[in
             run_length = 0
 
     raise RuntimeError(f"not enough contiguous free FATX clusters: need {count}")
+
+
+def allocate_fragmented_clusters(fp, part: FatxPartition, count: int, stride: int = 2) -> list[int]:
+    free_clusters: list[int] = []
+    for cluster_id in range(2, part.cluster_count):
+        if read_fat_entry(fp, part, cluster_id) == FREE_CLUSTER:
+            free_clusters.append(cluster_id)
+
+    if len(free_clusters) < count:
+        raise RuntimeError(f"not enough free FATX clusters: need {count}, got {len(free_clusters)}")
+
+    clusters: list[int] = []
+    cursor = 0
+    while len(clusters) < count and cursor < len(free_clusters):
+        clusters.append(free_clusters[cursor])
+        cursor += max(2, stride)
+
+    if len(clusters) < count:
+        used = set(clusters)
+        for cluster_id in free_clusters:
+            if cluster_id not in used:
+                clusters.append(cluster_id)
+                if len(clusters) == count:
+                    break
+
+    if len(clusters) != count:
+        raise RuntimeError(f"not enough fragmented free FATX clusters: need {count}, got {len(clusters)}")
+
+    for index, cluster_id in enumerate(clusters):
+        next_value = clusters[index + 1] if index + 1 < len(clusters) else end_of_chain_value(part)
+        write_fat_entry(fp, part, cluster_id, next_value)
+    return clusters
 
 
 def find_root_slot(root: bytearray) -> int:
@@ -298,16 +386,50 @@ def resolve_parent_directory(fp, part: FatxPartition, path: str) -> tuple[int, s
     return directory_cluster, parts[-1]
 
 
-def write_root_file(fp, part: FatxPartition, name: str, data: bytes, *, contiguous: bool = False) -> FatxWriteResult:
-    return write_path_file(fp, part, name, data, contiguous=contiguous)
+def read_path_file(fp, part: FatxPartition, path: str) -> bytes:
+    parts = split_fatx_path(path)
+    directory_cluster = ROOT_CLUSTER
+    entry: bytearray | None = None
+    for name in parts:
+        entry = find_entry(fp, part, directory_cluster, name)
+        if entry is None:
+            raise FileNotFoundError(path)
+        if name != parts[-1]:
+            if not (entry[1] & ATTR_DIRECTORY):
+                raise RuntimeError(f"{name!r} exists and is not a directory")
+            directory_cluster = struct.unpack_from("<I", entry, 0x2C)[0]
+
+    if entry is None or (entry[1] & ATTR_DIRECTORY):
+        raise FileNotFoundError(path)
+
+    start_cluster = struct.unpack_from("<I", entry, 0x2C)[0]
+    size = struct.unpack_from("<I", entry, 0x30)[0]
+    remaining = size
+    data = bytearray()
+    for cluster_id in cluster_chain(fp, part, start_cluster):
+        chunk = read_cluster(fp, part, cluster_id)
+        take = min(remaining, len(chunk))
+        data.extend(chunk[:take])
+        remaining -= take
+        if remaining == 0:
+            break
+    if remaining:
+        raise EOFError(f"FATX chain for {path} ended with {remaining} bytes left")
+    return bytes(data)
 
 
-def write_path_file(fp, part: FatxPartition, path: str, data: bytes, *, contiguous: bool = False) -> FatxWriteResult:
+def write_root_file(fp, part: FatxPartition, name: str, data: bytes, *, layout: str = "normal") -> FatxWriteResult:
+    return write_path_file(fp, part, name, data, layout=layout)
+
+
+def write_path_file(fp, part: FatxPartition, path: str, data: bytes, *, layout: str = "normal") -> FatxWriteResult:
     directory_cluster, name = resolve_parent_directory(fp, part, path)
     remove_directory_entry(fp, part, directory_cluster, name)
     cluster_count = max(1, math.ceil(len(data) / part.cluster_size))
-    if contiguous:
+    if layout == "contiguous":
         clusters = allocate_contiguous_clusters(fp, part, cluster_count)
+    elif layout == "fragmented":
+        clusters = allocate_fragmented_clusters(fp, part, cluster_count)
     else:
         clusters = allocate_clusters(fp, part, cluster_count)
     for index, cluster_id in enumerate(clusters):
@@ -315,6 +437,9 @@ def write_path_file(fp, part: FatxPartition, path: str, data: bytes, *, contiguo
         write_cluster(fp, part, cluster_id, chunk)
 
     add_directory_entry(fp, part, directory_cluster, name, ATTR_ARCHIVE, clusters[0], len(data))
+    readback = read_path_file(fp, part, path)
+    first_sector = part.cluster_offset(clusters[0]) // 512
+    last_sector = (part.cluster_offset(clusters[-1]) + part.cluster_size - 1) // 512
     return FatxWriteResult(
         name=path,
         size=len(data),
@@ -322,6 +447,11 @@ def write_path_file(fp, part: FatxPartition, path: str, data: bytes, *, contiguo
         cluster_count=len(clusters),
         disk_offset=part.cluster_offset(clusters[0]),
         contiguous=all(clusters[index] + 1 == clusters[index + 1] for index in range(len(clusters) - 1)),
+        sha256=hashlib.sha256(data).hexdigest(),
+        readback_sha256=hashlib.sha256(readback).hexdigest(),
+        first_sector=first_sector,
+        last_sector=last_sector,
+        chain_sample=clusters[:64],
     )
 
 
@@ -355,6 +485,20 @@ def main() -> int:
     parser.add_argument("--payload", type=Path)
     parser.add_argument("--payload-name", default="linuxroot.ext2")
     parser.add_argument("--append-payload-info", action="store_true")
+    parser.add_argument(
+        "--boot-layout",
+        choices=("normal", "contiguous", "fragmented"),
+        default="normal",
+        help="cluster allocation layout for linuxboot.cfg, kernel, and initrd",
+    )
+    parser.add_argument(
+        "--payload-layout",
+        choices=("normal", "contiguous", "fragmented"),
+        default="contiguous",
+        help="cluster allocation layout for the optional payload file",
+    )
+    parser.add_argument("--manifest", type=Path)
+    parser.add_argument("--clean-known-boot", action="store_true")
     parser.add_argument("--list", action="store_true")
     args = parser.parse_args()
 
@@ -364,15 +508,32 @@ def main() -> int:
     with args.raw_image.open("r+b") as fp:
         part = open_partition(fp, args.raw_image, args.partition)
         append = args.append
+        manifest = {
+            "raw_image": str(args.raw_image),
+            "partition": args.partition.upper(),
+            "cluster_size": part.cluster_size,
+            "cluster_count": part.cluster_count,
+            "entry_size": part.entry_size,
+            "fat_size": part.fat_size,
+            "cluster1_offset": part.cluster1_offset,
+            "boot_layout": args.boot_layout,
+            "payload_layout": args.payload_layout,
+            "files": [],
+        }
+
+        if args.clean_known_boot:
+            clean_known_boot_files(fp, part)
+            print("cleaned known root-level Linux boot files")
 
         if args.payload:
-            payload_result = write_root_file(fp, part, args.payload_name, args.payload.read_bytes(), contiguous=True)
-            if not payload_result.contiguous:
+            payload_result = write_root_file(fp, part, args.payload_name, args.payload.read_bytes(), layout=args.payload_layout)
+            if args.payload_layout == "contiguous" and not payload_result.contiguous:
                 raise RuntimeError(f"/{args.payload_name} was not allocated contiguously")
+            manifest["files"].append(payload_result.__dict__)
             print(
                 f"wrote /{args.payload_name}: {payload_result.size} bytes "
                 f"cluster={payload_result.start_cluster} clusters={payload_result.cluster_count} "
-                f"offset={payload_result.disk_offset}"
+                f"offset={payload_result.disk_offset} contiguous={payload_result.contiguous}"
             )
             if args.append_payload_info:
                 append = (
@@ -399,12 +560,22 @@ def main() -> int:
             files[args.initrd_name] = args.initrd.read_bytes()
 
         for name, data in files.items():
-            result = write_root_file(fp, part, name, data)
-            print(f"wrote /{name}: {result.size} bytes")
+            result = write_root_file(fp, part, name, data, layout=args.boot_layout)
+            manifest["files"].append(result.__dict__)
+            print(
+                f"wrote /{name}: {result.size} bytes "
+                f"cluster={result.start_cluster} clusters={result.cluster_count} "
+                f"contiguous={result.contiguous} sha256={result.sha256[:16]}"
+            )
 
         print(f"\n{args.partition.upper()}: root directory:")
         for line in list_root(fp, part):
             print(line)
+
+        if args.manifest:
+            args.manifest.parent.mkdir(parents=True, exist_ok=True)
+            args.manifest.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+            print(f"\nmanifest={args.manifest}")
 
     return 0
 

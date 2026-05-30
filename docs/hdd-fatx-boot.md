@@ -178,6 +178,32 @@ C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-tinycore-fat
 C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-tinycore-lean.zip
 ```
 
+## FATX Layout Test HDD Images
+
+To test whether Xromwell failures are caused by FATX fragmentation or by the
+early IDE read path, generate controlled HDD images from the same base image:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\generate_fatx_layout_test_images.ps1 -Force
+```
+
+That writes:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\run\hdd\fatx-layout-tests\xbox_hdd_layout_tiny.raw
+C:\Users\Paul\Desktop\xbox_linux\run\hdd\fatx-layout-tests\xbox_hdd_layout_contig.raw
+C:\Users\Paul\Desktop\xbox_linux\run\hdd\fatx-layout-tests\xbox_hdd_layout_fragmented.raw
+```
+
+Each image starts from the configured base HDD image, removes known root-level
+Linux boot files from E:, stages a fresh boot set, and emits a JSON manifest
+beside the image. The manifests include FATX cluster size, start cluster,
+cluster count, physical sector range, contiguity, SHA256, read-back SHA256, and
+a cluster-chain sample for each staged file.
+
+Use `-Layout tiny`, `-Layout contig`, or `-Layout fragmented` to generate one
+image at a time if disk space is tight.
+
 Run the current xemu HDD test:
 
 ```powershell
