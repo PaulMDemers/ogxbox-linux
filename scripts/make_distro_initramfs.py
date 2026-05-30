@@ -77,8 +77,20 @@ ensure_block_node() {
     name="${dev#/dev/}"
     [ "$name" != "$dev" ] || return 1
     [ -b "$dev" ] && return 0
-    [ -r "/sys/block/$name/dev" ] || return 1
-    majmin="$(cat "/sys/block/$name/dev" 2>/dev/null)"
+    majmin=
+    if [ -r "/sys/block/$name/dev" ]; then
+        majmin="$(cat "/sys/block/$name/dev" 2>/dev/null)"
+    else
+        case "$name" in
+            hda) majmin="3:0" ;;
+            hdb) majmin="3:64" ;;
+            hdc) majmin="22:0" ;;
+            hdd) majmin="22:64" ;;
+            sr0|scd0) majmin="11:0" ;;
+            sr1|scd1) majmin="11:1" ;;
+        esac
+    fi
+    [ -n "$majmin" ] || return 1
     major="${majmin%:*}"
     minor="${majmin#*:}"
     case "$major:$minor" in
@@ -98,6 +110,12 @@ show_block_devices() {
         dtype="$(cat "$sysdev/device/type" 2>/dev/null)"
         echo "  $name dev=$majmin removable=$removable type=$dtype"
     done
+    echo "proc partitions:"
+    cat /proc/partitions 2>/dev/null || true
+    if [ -r /proc/sys/dev/cdrom/info ]; then
+        echo "cdrom info:"
+        cat /proc/sys/dev/cdrom/info 2>/dev/null || true
+    fi
 }
 
 try_mount_iso() {
@@ -120,6 +138,8 @@ try_mount_iso() {
         echo "ISO mounted from $dev but payload $PAYLOAD_FILE was not present"
         /bin/busybox umount /mnt/xboxe 2>/dev/null || true
     fi
+    echo "  mount failed for $dev:"
+    cat /tmp/iso-mount.err 2>/dev/null || true
     return 1
 }
 
@@ -139,7 +159,7 @@ find_iso_payload_disk() {
         esac
     done
 
-    candidates="$candidates /dev/hdc /dev/hdd /dev/hdb /dev/sr0 /dev/scd0 /dev/cdrom /dev/dvd"
+    candidates="$candidates /dev/hdb /dev/hdc /dev/hdd /dev/sr0 /dev/sr1 /dev/scd0 /dev/scd1 /dev/cdrom /dev/dvd /dev/hda"
     tried=" "
     for dev in $candidates; do
         case "$tried" in
@@ -154,6 +174,8 @@ find_iso_payload_disk() {
 
     echo "ISO mount failed for all discovered candidates"
     cat /tmp/iso-mount.err 2>/dev/null || true
+    echo "recent kernel messages:"
+    dmesg | tail -80 2>/dev/null || true
     return 1
 }
 
