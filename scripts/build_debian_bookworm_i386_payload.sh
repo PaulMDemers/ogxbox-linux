@@ -116,6 +116,11 @@ if [ "$DESKTOP_PLUS" = "1" ]; then
 else
     rm -f "$ROOT/etc/xbox-desktop-plus-profile"
 fi
+if [ "$COMPLETE" = "1" ] && [ "$DESKTOP_PLUS" = "1" ]; then
+    touch "$ROOT/etc/xbox-desktop-full-profile"
+else
+    rm -f "$ROOT/etc/xbox-desktop-full-profile"
+fi
 
 cat > "$ROOT/etc/hostname" <<'EOF'
 xbox-debian
@@ -637,7 +642,117 @@ cd "$HOME" 2>/dev/null || cd /
 cat /tmp/xbox-network-up.txt 2>/dev/null || printf 'network log not present yet\n'
 exec /bin/sh -i
 EOF
-chmod 755 "$ROOT/usr/local/bin/xbox-terminal" "$ROOT/usr/local/bin/xterm" "$ROOT/usr/local/bin/xbox-plus-shell" "$ROOT/usr/local/bin/xbox-plus-proof" "$ROOT/usr/local/bin/xbox-plus-perf" "$ROOT/usr/local/bin/xbox-plus-network"
+
+cat > "$ROOT/usr/local/bin/xbox-desktop-info" <<'EOF'
+#!/bin/sh
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/sbin:/usr/local/bin
+exec xterm -geometry 82x24+24+48 -title "Xbox System" -e /bin/sh -lc '
+echo XBOX_DEVUAN_DESKTOP_FULL_INFO
+echo
+cat /etc/os-release 2>/dev/null | sed -n "1,5p"
+echo
+echo network:
+ip addr show dev eth0 2>/dev/null || true
+grep -E "XBOX_NETWORK_(DHCP_OK|DHCP_FAILED|NO_ETH0)" /tmp/xbox-network-up.txt 2>/dev/null || true
+echo
+echo memory:
+grep -E "MemTotal|MemFree|MemAvailable|Buffers|Cached|SwapTotal|SwapFree" /proc/meminfo 2>/dev/null
+echo
+echo storage:
+df -h /
+echo
+echo useful commands:
+echo "  xbox-perf"
+echo "  xbox-network-up"
+echo "  xbox-sync-ro"
+echo "  apt update"
+echo
+exec /bin/sh -i'
+EOF
+
+cat > "$ROOT/usr/local/bin/xbox-app-launcher" <<'EOF'
+#!/bin/sh
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/sbin:/usr/local/bin
+clear
+while :; do
+    cat <<'EOM'
+Xbox Devuan app launcher
+
+1  Terminal
+2  File manager
+3  Browser
+4  Editor
+5  Paint
+6  PDF viewer
+7  Network status
+8  System status
+9  Safe sync/remount read-only
+q  Quit
+
+EOM
+    printf 'choice> '
+    read ans || exit 0
+    case "$ans" in
+        1) exec /bin/sh -i ;;
+        2) command -v mc >/dev/null 2>&1 && mc || ls -la / ;;
+        3) command -v links2 >/dev/null 2>&1 && links2 || printf 'links2 not installed\n' ;;
+        4) command -v nano >/dev/null 2>&1 && nano || vi ;;
+        5) command -v mtpaint >/dev/null 2>&1 && mtpaint >/tmp/mtpaint.log 2>&1 & ;;
+        6) command -v xpdf >/dev/null 2>&1 && xpdf >/tmp/xpdf.log 2>&1 & ;;
+        7) xbox-plus-network ;;
+        8) xbox-plus-perf ;;
+        9) xbox-sync-ro; printf '\nPress Enter to continue'; read _ ;;
+        q|Q) exit 0 ;;
+    esac
+done
+EOF
+
+cat > "$ROOT/usr/local/bin/xbox-open-files" <<'EOF'
+#!/bin/sh
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/sbin:/usr/local/bin
+export LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/lib
+if [ -n "${DISPLAY:-}" ] && command -v xfe >/dev/null 2>&1; then
+    exec xfe
+fi
+if command -v mc >/dev/null 2>&1; then
+    exec xterm -geometry 82x24+28+52 -title "Files" -e mc
+fi
+exec xterm -geometry 82x24+28+52 -title "Files" -e /bin/sh -lc 'ls -la /; exec /bin/sh -i'
+EOF
+
+cat > "$ROOT/usr/local/bin/xbox-browser" <<'EOF'
+#!/bin/sh
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/sbin:/usr/local/bin
+export LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/lib
+if [ -n "${DISPLAY:-}" ] && command -v dillo >/dev/null 2>&1; then
+    exec dillo about:splash
+fi
+if command -v links2 >/dev/null 2>&1; then
+    exec xterm -geometry 82x24+28+52 -title "Browser" -e links2
+fi
+exec xterm -geometry 82x24+28+52 -title "Browser" -e /bin/sh -lc 'echo no browser installed; exec /bin/sh -i'
+EOF
+
+cat > "$ROOT/usr/local/bin/xbox-editor" <<'EOF'
+#!/bin/sh
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/sbin:/usr/local/bin
+exec xterm -geometry 82x24+28+52 -title "Editor" -e /bin/sh -lc 'cd /root 2>/dev/null || cd /; exec nano'
+EOF
+
+cat > "$ROOT/usr/local/bin/xbox-safe-poweroff" <<'EOF'
+#!/bin/sh
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/sbin:/usr/local/bin
+exec xterm -geometry 82x18+28+52 -title "Safe Shutdown" -e /bin/sh -lc '
+echo "Syncing filesystem and attempting read-only remount..."
+echo
+xbox-sync-ro
+echo
+echo "If the remount succeeded, it is safer to power off or reset."
+echo "Press Enter to close this window."
+read _
+'
+EOF
+chmod 755 "$ROOT/usr/local/bin/xbox-terminal" "$ROOT/usr/local/bin/xterm" "$ROOT/usr/local/bin/xbox-plus-shell" "$ROOT/usr/local/bin/xbox-plus-proof" "$ROOT/usr/local/bin/xbox-plus-perf" "$ROOT/usr/local/bin/xbox-plus-network" "$ROOT/usr/local/bin/xbox-desktop-info" "$ROOT/usr/local/bin/xbox-app-launcher" "$ROOT/usr/local/bin/xbox-open-files" "$ROOT/usr/local/bin/xbox-browser" "$ROOT/usr/local/bin/xbox-editor" "$ROOT/usr/local/bin/xbox-safe-poweroff"
 
 cat > "$ROOT/etc/X11/xbox-xorg.conf" <<'EOF'
 Section "ServerFlags"
@@ -731,7 +846,38 @@ fi
 xsetroot -solid '#1f3f4f' 2>/dev/null || true
 if [ -f /etc/xbox-desktop-plus-profile ] && command -v fluxbox >/dev/null 2>&1 && command -v aterm >/dev/null 2>&1; then
     mkdir -p "$HOME/.fluxbox"
-    cat > "$HOME/.fluxbox/menu" <<'EOFBMENU'
+    if [ -f /etc/xbox-desktop-full-profile ]; then
+        cat > "$HOME/.fluxbox/menu" <<'EOFBMENU'
+[begin] (Xbox Devuan)
+  [exec] (Terminal) {xterm -e /usr/local/bin/xbox-plus-shell}
+  [exec] (App Launcher) {xterm -geometry 82x24+32+56 -title "Apps" -e /usr/local/bin/xbox-app-launcher}
+  [submenu] (Applications)
+    [exec] (File Manager) {/usr/local/bin/xbox-open-files}
+    [exec] (Browser) {/usr/local/bin/xbox-browser}
+    [exec] (Editor) {/usr/local/bin/xbox-editor}
+    [exec] (Paint) {mtpaint}
+    [exec] (Image Viewer) {gpicview}
+    [exec] (PDF Viewer) {xpdf}
+    [exec] (Word Processor) {xterm -geometry 82x24+32+56 -title "WordGrinder" -e wordgrinder}
+    [exec] (Spreadsheet) {xterm -geometry 82x24+32+56 -title "SC" -e sc}
+  [end]
+  [submenu] (System)
+    [exec] (System Status) {/usr/local/bin/xbox-desktop-info}
+    [exec] (System Monitor) {xterm -e /usr/local/bin/xbox-plus-perf}
+    [exec] (Network Status) {xterm -e /usr/local/bin/xbox-plus-network}
+    [exec] (Safe Shutdown) {/usr/local/bin/xbox-safe-poweroff}
+  [end]
+  [submenu] (Shells)
+    [exec] (Root Shell) {xterm -e /bin/sh -i}
+    [exec] (Midnight Commander) {xterm -geometry 82x24+32+56 -title "Files" -e mc}
+    [exec] (Links Browser) {xterm -geometry 82x24+32+56 -title "Links2" -e links2}
+  [end]
+  [restart] (Restart Fluxbox)
+  [exit] (Exit X)
+[end]
+EOFBMENU
+    else
+        cat > "$HOME/.fluxbox/menu" <<'EOFBMENU'
 [begin] (Xbox Devuan)
   [exec] (Terminal) {xterm -e /usr/local/bin/xbox-plus-shell}
   [exec] (System Monitor) {xterm -e /usr/local/bin/xbox-plus-perf}
@@ -741,6 +887,7 @@ if [ -f /etc/xbox-desktop-plus-profile ] && command -v fluxbox >/dev/null 2>&1 &
   [exit] (Exit X)
 [end]
 EOFBMENU
+    fi
     cat > "$HOME/.fluxbox/init" <<'EOFBINIT'
 session.screen0.toolbar.visible: true
 session.screen0.toolbar.placement: BottomCenter
@@ -792,6 +939,48 @@ EOFBSTYLE
         command -v aterm 2>/dev/null || true
         command -v xterm 2>/dev/null || true
     } >/tmp/xbox-plus-session.log 2>&1
+    if [ -f /etc/xbox-desktop-full-profile ]; then
+        mkdir -p "$HOME/Desktop"
+        cat > "$HOME/Desktop/README.txt" <<'EOFDESKTOP'
+Xbox Devuan full desktop
+
+Right-click the desktop for the Fluxbox menu. The dock at the bottom launches
+the app menu, terminal, file manager, browser, editor, system status, and safe
+shutdown helper.
+EOFDESKTOP
+        if command -v wbar >/dev/null 2>&1; then
+            cat > "$HOME/.wbar" <<'EOFWBAR'
+i: /usr/local/share/pixmaps/apps.png
+t: Apps
+c: xterm -geometry 82x24+32+56 -title Apps -e /usr/local/bin/xbox-app-launcher
+
+i: /usr/local/share/pixmaps/aterm.png
+t: Terminal
+c: xterm -e /usr/local/bin/xbox-plus-shell
+
+i: /usr/local/share/pixmaps/core.png
+t: Files
+c: /usr/local/bin/xbox-open-files
+
+i: /usr/local/share/pixmaps/flrun.png
+t: Browser
+c: /usr/local/bin/xbox-browser
+
+i: /usr/local/share/pixmaps/editor.png
+t: Editor
+c: /usr/local/bin/xbox-editor
+
+i: /usr/local/share/pixmaps/cpanel.png
+t: System
+c: /usr/local/bin/xbox-desktop-info
+
+i: /usr/local/share/pixmaps/exittc.png
+t: Safe Shutdown
+c: /usr/local/bin/xbox-safe-poweroff
+EOFWBAR
+            ( sleep 5; wbar -config "$HOME/.wbar" -above-desk -pos bottom -isize 32 -idist 8 -zoomf 1.15 >/tmp/wbar.log 2>&1 ) &
+        fi
+    fi
     FLUXBOX_BIN="$(command -v fluxbox)"
     if [ "$PRELOAD_FLUXBOX" = "1" ]; then
         preload_file() {

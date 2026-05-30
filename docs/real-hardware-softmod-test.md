@@ -780,6 +780,22 @@ disc payload because Linux cannot open a usable CD/DVD block device on real
 hardware. Treat that as a modern-kernel optical-drive bug, not as a release
 candidate.
 
+An expanded Devuan desktop disc is staged at:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\xbox-linux-devuan-desktop-full-game-disc.iso
+```
+
+It keeps the same 5.8.1 legacy IDE/ATAPI kernel and Xromwell game-disc path as
+the working FluxLite disc, but the payload is larger and includes Fluxbox, a
+dock, an app launcher, browser, file manager, editor, paint/image/PDF tools,
+Midnight Commander, and network/base utilities. Use it after the FluxLite disc
+when testing the "complete desktop" direction. SHA256:
+
+```text
+6E9CD4D0BE11A41250229BE10412BCFE727381CFDF29A5B424E9358F9459161A
+```
+
 Remove the app folders and the E-root payload files:
 
 ```text

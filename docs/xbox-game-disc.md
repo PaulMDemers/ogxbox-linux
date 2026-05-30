@@ -13,6 +13,18 @@ C:\Users\Paul\Desktop\xbox_linux\artifacts\xbox-linux-devuan-fluxlite-game-disc.
 It uses the 5.8.1 legacy IDE/ATAPI kernel because that is the path validated on
 real Xbox DVD hardware.
 
+A larger "full desktop" experiment is available separately:
+
+```text
+C:\Users\Paul\Desktop\xbox_linux\artifacts\xbox-linux-devuan-desktop-full-game-disc.iso
+```
+
+This variant keeps the same 5.8.1 DVD boot chain, but swaps in a larger Devuan
+root filesystem with Fluxbox, a dock, an app launcher, file manager, browser,
+editor, paint/image/PDF tools, Midnight Commander, networking tools, and the
+safe sync/remount helper. It is meant for "boot the disc and land in a usable
+desktop" testing, not as the tiny release baseline.
+
 A 6.18.33 modern-kernel diagnostic artifact is also available:
 
 ```text
@@ -23,6 +35,13 @@ Build it with:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\build_devuan_daedalus_i386_game_disc.ps1
+```
+
+Build the full desktop variant with:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\build_devuan_daedalus_i386_desktop_full_payload.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\build_devuan_daedalus_i386_game_disc_desktop_full.ps1
 ```
 
 Build the 6.18.33 diagnostic variant with:
@@ -49,6 +68,11 @@ xemu proof:
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-game-disc-iso-probe-fix-155s-20260530-121753.png
 C:\Users\Paul\Desktop\xbox_linux\run\screenshots\devuan-game-disc-diagnostic-late-desktop-20260530-132955.png
 ```
+
+The full desktop game disc has a payload/build sanity check, but the local xemu
+Complex BIOS run stopped at the Xromwell launcher screen instead of accepting
+keyboard input for the menu selection. The ISO still uses the same real-hardware
+game-disc boot path as the FluxLite disc.
 
 Burn the ISO as an image, not as a data disc.
 
@@ -81,3 +105,9 @@ right now. The 5.8.1 legacy-IDE disc boots successfully. For the DVD/game-disc
 release path, use the legacy-IDE default until the newer kernel's Xbox
 optical-drive handling is fixed or ported from the old IDE stack (`CONFIG_IDE`,
 `CONFIG_BLK_DEV_IDECD`, `CONFIG_BLK_DEV_AMD74XX`).
+
+The 2026-05-30 full desktop ISO SHA256 is:
+
+```text
+6E9CD4D0BE11A41250229BE10412BCFE727381CFDF29A5B424E9358F9459161A
+```
