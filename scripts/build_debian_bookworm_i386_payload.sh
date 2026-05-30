@@ -688,14 +688,17 @@ while :; do
 Xbox Devuan app launcher
 
 1  Terminal
-2  File manager
-3  Browser
+2  File manager (MC)
+3  Browser (Links2)
 4  Editor
 5  Paint
-6  PDF viewer
-7  Network status
-8  System status
-9  Safe sync/remount read-only
+6  Image viewer
+7  PDF viewer
+8  Dillo browser
+9  Xfe file manager
+n  Network status
+s  System status
+r  Safe sync/remount read-only
 q  Quit
 
 EOM
@@ -703,43 +706,132 @@ EOM
     read ans || exit 0
     case "$ans" in
         1) exec /bin/sh -i ;;
-        2) command -v mc >/dev/null 2>&1 && mc || ls -la / ;;
-        3) command -v links2 >/dev/null 2>&1 && links2 || printf 'links2 not installed\n' ;;
-        4) command -v nano >/dev/null 2>&1 && nano || vi ;;
-        5) command -v mtpaint >/dev/null 2>&1 && mtpaint >/tmp/mtpaint.log 2>&1 & ;;
-        6) command -v xpdf >/dev/null 2>&1 && xpdf >/tmp/xpdf.log 2>&1 & ;;
-        7) xbox-plus-network ;;
-        8) xbox-plus-perf ;;
-        9) xbox-sync-ro; printf '\nPress Enter to continue'; read _ ;;
+        2) xbox-launch-app mc ;;
+        3) xbox-launch-app links2 ;;
+        4) xbox-launch-app editor ;;
+        5) xbox-launch-app mtpaint ;;
+        6) xbox-launch-app gpicview ;;
+        7) xbox-launch-app xpdf ;;
+        8) xbox-launch-app dillo ;;
+        9) xbox-launch-app xfe ;;
+        n|N) xbox-plus-network ;;
+        s|S) xbox-plus-perf ;;
+        r|R) xbox-sync-ro; printf '\nPress Enter to continue'; read _ ;;
         q|Q) exit 0 ;;
     esac
 done
+EOF
+
+cat > "$ROOT/usr/local/bin/xbox-launch-app" <<'EOF'
+#!/bin/sh
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/sbin:/usr/local/bin
+export LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/lib
+export HOME="${HOME:-/tmp/root-home}"
+export DISPLAY="${DISPLAY:-:0}"
+export TERM="${TERM:-xterm}"
+mkdir -p "$HOME" /tmp/xbox-app-logs
+cd "$HOME" 2>/dev/null || cd /tmp 2>/dev/null || cd /
+
+APP="${1:-}"
+LOG="/tmp/xbox-app-logs/${APP:-unknown}.log"
+
+log_header() {
+    {
+        echo "== xbox app launch =="
+        date 2>/dev/null || true
+        echo "app=$APP"
+        echo "display=$DISPLAY"
+        echo "home=$HOME"
+        echo "pwd=$(pwd)"
+        echo
+        grep -E 'MemTotal|MemFree|MemAvailable|Buffers|Cached|SwapTotal|SwapFree' /proc/meminfo 2>/dev/null || true
+        echo
+        df -h / 2>/dev/null || true
+        echo
+    } >"$LOG"
+}
+
+missing() {
+    echo "Missing command: $1" | tee -a "$LOG"
+    echo
+    echo "Press Enter to return."
+    read _ || true
+}
+
+run_foreground() {
+    cmd="$1"
+    shift
+    if ! command -v "$cmd" >/dev/null 2>&1; then
+        missing "$cmd"
+        return
+    fi
+    log_header
+    echo "Running $cmd in this terminal. Log: $LOG"
+    echo
+    exec "$cmd" "$@"
+}
+
+run_gui() {
+    cmd="$1"
+    shift
+    if ! command -v "$cmd" >/dev/null 2>&1; then
+        missing "$cmd"
+        return
+    fi
+    log_header
+    echo "Launching $cmd on $DISPLAY"
+    echo "Log: $LOG"
+    echo
+    nice -n 5 "$cmd" "$@" >>"$LOG" 2>&1 &
+    pid=$!
+    echo "pid=$pid" | tee -a "$LOG"
+    sleep 5
+    if kill -0 "$pid" 2>/dev/null; then
+        echo "XBOX_APP_RUNNING $APP pid=$pid" | tee -a "$LOG"
+    else
+        echo "XBOX_APP_EXITED $APP" | tee -a "$LOG"
+        tail -30 "$LOG" 2>/dev/null || true
+    fi
+    echo
+    echo "If the desktop is still responsive, leave this window open while testing."
+    echo "To inspect logs later: cat $LOG"
+    echo "Press Enter to return to a shell."
+    read _ || true
+    exec /bin/sh -i
+}
+
+case "$APP" in
+    terminal|shell) exec /bin/sh -i ;;
+    mc|files) run_foreground mc ;;
+    links2|browser-text) run_foreground links2 ;;
+    editor|nano) run_foreground nano ;;
+    wordgrinder|word) run_foreground wordgrinder ;;
+    sc|spreadsheet) run_foreground sc ;;
+    xfe) run_gui xfe ;;
+    dillo|browser) run_gui dillo about:splash ;;
+    mtpaint|paint) run_gui mtpaint ;;
+    gpicview|image) run_gui gpicview ;;
+    xpdf|pdf) run_gui xpdf ;;
+    *)
+        echo "Known app ids: terminal mc links2 editor xfe dillo mtpaint gpicview xpdf wordgrinder sc"
+        echo "Press Enter to return."
+        read _ || true
+        ;;
+esac
 EOF
 
 cat > "$ROOT/usr/local/bin/xbox-open-files" <<'EOF'
 #!/bin/sh
 export PATH=/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/sbin:/usr/local/bin
 export LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/lib
-if [ -n "${DISPLAY:-}" ] && command -v xfe >/dev/null 2>&1; then
-    exec xfe
-fi
-if command -v mc >/dev/null 2>&1; then
-    exec xterm -geometry 82x24+28+52 -title "Files" -e mc
-fi
-exec xterm -geometry 82x24+28+52 -title "Files" -e /bin/sh -lc 'ls -la /; exec /bin/sh -i'
+exec xterm -geometry 82x24+28+52 -title "Files" -e /usr/local/bin/xbox-launch-app mc
 EOF
 
 cat > "$ROOT/usr/local/bin/xbox-browser" <<'EOF'
 #!/bin/sh
 export PATH=/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/sbin:/usr/local/bin
 export LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/lib
-if [ -n "${DISPLAY:-}" ] && command -v dillo >/dev/null 2>&1; then
-    exec dillo about:splash
-fi
-if command -v links2 >/dev/null 2>&1; then
-    exec xterm -geometry 82x24+28+52 -title "Browser" -e links2
-fi
-exec xterm -geometry 82x24+28+52 -title "Browser" -e /bin/sh -lc 'echo no browser installed; exec /bin/sh -i'
+exec xterm -geometry 82x24+28+52 -title "Browser" -e /usr/local/bin/xbox-launch-app links2
 EOF
 
 cat > "$ROOT/usr/local/bin/xbox-editor" <<'EOF'
@@ -761,7 +853,7 @@ echo "Press Enter to close this window."
 read _
 '
 EOF
-chmod 755 "$ROOT/usr/local/bin/xbox-terminal" "$ROOT/usr/local/bin/xterm" "$ROOT/usr/local/bin/xbox-plus-shell" "$ROOT/usr/local/bin/xbox-plus-proof" "$ROOT/usr/local/bin/xbox-plus-perf" "$ROOT/usr/local/bin/xbox-plus-network" "$ROOT/usr/local/bin/xbox-desktop-info" "$ROOT/usr/local/bin/xbox-app-launcher" "$ROOT/usr/local/bin/xbox-open-files" "$ROOT/usr/local/bin/xbox-browser" "$ROOT/usr/local/bin/xbox-editor" "$ROOT/usr/local/bin/xbox-safe-poweroff"
+chmod 755 "$ROOT/usr/local/bin/xbox-terminal" "$ROOT/usr/local/bin/xterm" "$ROOT/usr/local/bin/xbox-plus-shell" "$ROOT/usr/local/bin/xbox-plus-proof" "$ROOT/usr/local/bin/xbox-plus-perf" "$ROOT/usr/local/bin/xbox-plus-network" "$ROOT/usr/local/bin/xbox-desktop-info" "$ROOT/usr/local/bin/xbox-app-launcher" "$ROOT/usr/local/bin/xbox-launch-app" "$ROOT/usr/local/bin/xbox-open-files" "$ROOT/usr/local/bin/xbox-browser" "$ROOT/usr/local/bin/xbox-editor" "$ROOT/usr/local/bin/xbox-safe-poweroff"
 
 cat > "$ROOT/etc/X11/xbox-xorg.conf" <<'EOF'
 Section "ServerFlags"
@@ -844,15 +936,15 @@ EORC
 
 if [ -f /etc/xbox-complete-profile ]; then
     sed -i '/<Program label="System Monitor">/a\
-    <Program label="Dillo Browser">dillo</Program>\
-    <Program label="Links2 Browser">xterm -e links2</Program>\
-    <Program label="Xfe File Manager">xfe</Program>\
-    <Program label="Midnight Commander">xterm -e mc</Program>\
-    <Program label="mtPaint">mtpaint</Program>\
-    <Program label="Image Viewer">gpicview</Program>\
-    <Program label="PDF Viewer">xpdf</Program>\
-    <Program label="WordGrinder">xterm -e wordgrinder</Program>\
-    <Program label="SC Spreadsheet">xterm -e sc</Program>' "$HOME/.jwmrc"
+    <Program label="Dillo Browser">xterm -e xbox-launch-app dillo</Program>\
+    <Program label="Links2 Browser">xterm -e xbox-launch-app links2</Program>\
+    <Program label="Xfe File Manager">xterm -e xbox-launch-app xfe</Program>\
+    <Program label="Midnight Commander">xterm -e xbox-launch-app mc</Program>\
+    <Program label="mtPaint">xterm -e xbox-launch-app mtpaint</Program>\
+    <Program label="Image Viewer">xterm -e xbox-launch-app gpicview</Program>\
+    <Program label="PDF Viewer">xterm -e xbox-launch-app xpdf</Program>\
+    <Program label="WordGrinder">xterm -e xbox-launch-app wordgrinder</Program>\
+    <Program label="SC Spreadsheet">xterm -e xbox-launch-app sc</Program>' "$HOME/.jwmrc"
 fi
 
 xsetroot -solid '#1f3f4f' 2>/dev/null || true
@@ -864,14 +956,16 @@ if [ -f /etc/xbox-desktop-plus-profile ] && command -v fluxbox >/dev/null 2>&1 &
   [exec] (Terminal) {xterm -e /usr/local/bin/xbox-plus-shell}
   [exec] (App Launcher) {xterm -geometry 82x24+32+56 -title "Apps" -e /usr/local/bin/xbox-app-launcher}
   [submenu] (Applications)
-    [exec] (File Manager) {/usr/local/bin/xbox-open-files}
-    [exec] (Browser) {/usr/local/bin/xbox-browser}
+    [exec] (File Manager) {xterm -geometry 82x24+32+56 -title "Files" -e /usr/local/bin/xbox-launch-app mc}
+    [exec] (Browser) {xterm -geometry 82x24+32+56 -title "Browser" -e /usr/local/bin/xbox-launch-app links2}
     [exec] (Editor) {/usr/local/bin/xbox-editor}
-    [exec] (Paint) {mtpaint}
-    [exec] (Image Viewer) {gpicview}
-    [exec] (PDF Viewer) {xpdf}
-    [exec] (Word Processor) {xterm -geometry 82x24+32+56 -title "WordGrinder" -e wordgrinder}
-    [exec] (Spreadsheet) {xterm -geometry 82x24+32+56 -title "SC" -e sc}
+    [exec] (Paint) {xterm -geometry 82x24+32+56 -title "Launch Paint" -e /usr/local/bin/xbox-launch-app mtpaint}
+    [exec] (Image Viewer) {xterm -geometry 82x24+32+56 -title "Launch Image Viewer" -e /usr/local/bin/xbox-launch-app gpicview}
+    [exec] (PDF Viewer) {xterm -geometry 82x24+32+56 -title "Launch PDF Viewer" -e /usr/local/bin/xbox-launch-app xpdf}
+    [exec] (Word Processor) {xterm -geometry 82x24+32+56 -title "WordGrinder" -e /usr/local/bin/xbox-launch-app wordgrinder}
+    [exec] (Spreadsheet) {xterm -geometry 82x24+32+56 -title "SC" -e /usr/local/bin/xbox-launch-app sc}
+    [exec] (Dillo Browser) {xterm -geometry 82x24+32+56 -title "Launch Dillo" -e /usr/local/bin/xbox-launch-app dillo}
+    [exec] (Xfe File Manager) {xterm -geometry 82x24+32+56 -title "Launch Xfe" -e /usr/local/bin/xbox-launch-app xfe}
   [end]
   [submenu] (System)
     [exec] (System Status) {/usr/local/bin/xbox-desktop-info}

@@ -840,16 +840,23 @@ Hardware checklist for this live disc:
 6. For each app, wait at least 60 seconds before marking it failed; note whether
    the drive is actively seeking or the UI is frozen.
 
+First live-disc hardware result: Fluxbox, the initial terminal, and opening a
+second terminal worked. Launching one raw `Applications` menu app froze the
+session after brief DVD activity. The next rebuild wraps every application menu
+entry in `/usr/local/bin/xbox-launch-app`; stable defaults use `mc`, `links2`,
+and `nano`, and GUI apps write `/tmp/xbox-app-logs/<app>.log` while reporting
+their PID/exit state in the launcher terminal.
+
 Read-only live ISO SHA256:
 
 ```text
-65C35F577F56E483CD03CDD0991CDCFB5E317C0978035B36AE982BB15F090D3D
+DA42F2A464D972C6453C2ADDBC49363C54BAF690ADAB9F13BCDBB58B5B9D739D
 ```
 
 Squashfs payload SHA256:
 
 ```text
-7190B5FB3B8D7A967C3FA55892EDF68893D3AE71004C2D3EA573039D3F12FDDD
+A71349C870D61D03452DB065B02495E6D831ABA7597F45C757BABE48674B0320
 ```
 
 Remove the app folders and the E-root payload files:

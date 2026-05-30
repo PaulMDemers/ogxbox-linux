@@ -140,6 +140,15 @@ dynamic libraries, not real-hardware GUI responsiveness. Report:
 C:\Users\Paul\Desktop\xbox_linux\artifacts\reports\devuan-desktop-app-smoke.txt
 ```
 
+After the first live-disc hardware pass, Fluxbox and extra terminals worked but
+launching a raw app from `Applications` froze the session. The current rebuild
+routes all menu/app-launcher entries through `/usr/local/bin/xbox-launch-app`.
+Stable defaults now use terminal-backed apps (`mc`, `links2`, `nano`), while GUI
+apps are launched from a small terminal wrapper that records
+`/tmp/xbox-app-logs/<app>.log` and reports whether the process is still alive.
+This should tell us which app wedges the session instead of losing the whole
+trail.
+
 Burn the ISO as an image, not as a data disc.
 
 ## Real Hardware Notes
@@ -181,11 +190,11 @@ BBEEE0008199D1054A715E8989DFC6E506AB716FD8781785C60B781CA2796911
 The 2026-05-30 read-only live full desktop ISO SHA256 is:
 
 ```text
-65C35F577F56E483CD03CDD0991CDCFB5E317C0978035B36AE982BB15F090D3D
+DA42F2A464D972C6453C2ADDBC49363C54BAF690ADAB9F13BCDBB58B5B9D739D
 ```
 
 The matching squashfs payload SHA256 is:
 
 ```text
-7190B5FB3B8D7A967C3FA55892EDF68893D3AE71004C2D3EA573039D3F12FDDD
+A71349C870D61D03452DB065B02495E6D831ABA7597F45C757BABE48674B0320
 ```

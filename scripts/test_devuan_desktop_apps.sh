@@ -44,7 +44,7 @@ mkdir -p "$(dirname "$REPORT")"
         echo
     done
     echo "== helper scripts =="
-    for helper in xbox-app-launcher xbox-open-files xbox-browser xbox-editor xbox-desktop-info xbox-safe-poweroff xbox-plus-shell xbox-plus-proof xbox-network-up; do
+    for helper in xbox-app-launcher xbox-launch-app xbox-open-files xbox-browser xbox-editor xbox-desktop-info xbox-safe-poweroff xbox-plus-shell xbox-plus-proof xbox-network-up; do
         printf '%s: ' "$helper"
         if chroot "$ROOT" /bin/sh -lc "command -v $helper" >/dev/null 2>&1; then
             echo OK
