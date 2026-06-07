@@ -84,23 +84,21 @@ Latest real-hardware disc tests:
   naming before giving up.
 - A later 6.18 hardware retry proved the expanded probe still did not expose a
   usable optical device and produced too much fallback mount noise before
-  dropping to the BusyBox shell. The 6.18 Tiny Core game ISO now uses an
-  XZ-compressed self-contained Tiny Core initramfs instead, so once Xromwell
-  loads `zinitrd` the kernel does not need to mount the DVD again to reach
-  `core.gz` and the desktop extensions.
+  dropping to the BusyBox shell. A self-contained 6.18 Tiny Core initramfs was
+  tested to avoid the optical mount path, but the large handoff payload did not
+  reliably reach Linux.
 - The first self-contained 6.18 game ISO put the large `initramf` before
   `default.xbe` in the XDVDFS root and real hardware reported `tray empty`.
   A nested `boot\initramf` layout then reached Xromwell handoff but Linux did
   not see the initrd and panicked at `unknown-block(3,1)`.
+- A root-level compressed `zinitrd` under 16 MiB produced the same symptom, so
+  the current 6.18 game ISO is back on the proven small-initrd plus disc-payload
+  strategy.
 - The current 6.18 game ISO keeps the kernel and initrd at the XDVDFS root for
   Linux handoff, but names them `akrn` and `zinitrd`. With those names,
   `default.xbe` packs first in the root directory while Xromwell still has
-  root-level boot payload files to load.
-- The current 6.18 game initramfs omits `Xorg-fonts.tcz` only for the game-disc
-  build, reducing the compressed handoff payload from about 16.2 MiB to
-  15,351,456 bytes. This is intended to stay below the suspected 16 MiB
-  Xromwell/Cromwell initrd handoff boundary. The full Tiny Core XBE payload is
-  unchanged.
+  root-level boot payload files to load. `core.gz` and `tcz\*.tcz` are included
+  as disc payload files, like the working 5.8 Tiny Core game ISO.
 
 Xemu input automation against the Xromwell menu is not currently a reliable
 boot proof: a recent run locked up when sending `A`. Prefer real hardware for

@@ -357,7 +357,7 @@ New-CromwellIso 'devuan-daedalus-terminal-5.8.1' 'devuan-daedalus-i386-terminal'
 New-CromwellIso 'devuan-daedalus-terminal-6.18.33' 'devuan-daedalus-i386-terminal' 'artifacts\kernels\xbox-linux-6.18.33-fatx-tinycore-bzImage' 'artifacts\initramfs\xbox-distro-hdd-ext2-stage1.cpio' 'artifacts\hdd\xbox-devuan-daedalus-i386.ext2' '' '6.18.33-fatx-tinycore'
 
 New-GameDisc 'tinycore11-desktop-5.8.1-game' 'Tiny Core 11 Desktop 5.8.1 Game Disc' 'artifacts\kernels\xbox-linux-5.8.1-noxpad-bzImage' 'vmlinuz' 'artifacts\initramfs\xbox-tinycore-stage6-xfbdev-desktop.cpio' 'initramf' $tcAppend $tcDiscPayload '5.8.1-noxpad' '' 268435456 '_pad'
-New-GameDisc 'tinycore11-desktop-6.18.33-game' 'Tiny Core 11 Desktop 6.18.33 Game Disc' 'artifacts\kernels\xbox-linux-6.18.33-fatx-tinycore-bzImage' 'akrn' 'artifacts\initramfs\xbox-tinycore-hdd-stage6-xfbdev-desktop-game.cpio.xz' 'zinitrd' $tcAppend @() '6.18.33-fatx-tinycore' '' 268435456 '_pad'
+New-GameDisc 'tinycore11-desktop-6.18.33-game' 'Tiny Core 11 Desktop 6.18.33 Game Disc' 'artifacts\kernels\xbox-linux-6.18.33-fatx-tinycore-bzImage' 'akrn' 'artifacts\initramfs\xbox-tinycore-stage6-xfbdev-desktop.cpio' 'zinitrd' $tcAppend $tcDiscPayload '6.18.33-fatx-tinycore' '' 268435456 '_pad'
 New-GameDisc 'devuan-daedalus-terminal-5.8.1-game' 'Devuan Daedalus Terminal 5.8.1 Game Disc' 'artifacts\kernels\xbox-linux-5.8.1-rd-gzip-bzImage' 'devkrnl' 'artifacts\initramfs\xbox-distro-hdd-ext2-stage1.cpio' 'devinit' $devTermAppendIso @(@{ source = 'artifacts\hdd\xbox-devuan-daedalus-i386.ext2'; name = 'devuan.ext2' }) '5.8.1-rd-gzip'
 New-GameDisc 'devuan-daedalus-terminal-6.18.33-game' 'Devuan Daedalus Terminal 6.18.33 Game Disc' 'artifacts\kernels\xbox-linux-6.18.33-fatx-tinycore-bzImage' 'devkrnl' 'artifacts\initramfs\xbox-distro-hdd-ext2-stage1.cpio' 'devinit' $devTermAppendIso @(@{ source = 'artifacts\hdd\xbox-devuan-daedalus-i386.ext2'; name = 'devuan.ext2' }) '6.18.33-fatx-tinycore'
 New-GameDisc 'devuan-daedalus-desktop-live-5.8.1-game' 'Devuan Daedalus Live Desktop 5.8.1 Game Disc' 'artifacts\kernels\xbox-linux-5.8.1-rd-gzip-bzImage' 'devkrnl' 'artifacts\initramfs\xbox-distro-hdd-ext2-stage1.cpio' 'devinit' $devLiveAppendIso @(@{ source = 'artifacts\hdd\xbox-devuan-daedalus-i386-desktop-full.squashfs'; name = 'devuan.squashfs' }) '5.8.1-rd-gzip'
@@ -377,7 +377,7 @@ $manifest = [ordered]@{
     notes = @(
         "Game ISOs are XDVDFS with a minimal ISO9660 overlay for Xromwell.",
         "Tiny Core 5.8 game ISO uses the small CD-payload stage6 initramfs, keeps default.xbe, linuxboot.cfg, vmlinuz, initramf, core.gz, and tcz extensions at the disc root, and pads the image to improve real-drive recognition.",
-        "Tiny Core 6.18 game ISO uses an XZ-compressed self-contained Tiny Core initramfs because 6.18 reaches /init on hardware but does not currently expose a usable optical block device for the post-kernel payload mount.",
+        "Tiny Core 6.18 game ISO uses the small stage6 initramfs plus the same disc payload layout as 5.8, but keeps the kernel/initrd root files named akrn/zinitrd so Xromwell still has root-level boot payloads while avoiding the large-initrd handoff failure.",
         "Tiny Core XBE packages are self-contained initramfs packages.",
         "Devuan 5.8 XBE packages are disc-assisted because this 5.8 line does not include the 6.18 FATX payload-file mount path.",
         "Devuan 6.18 XBE packages include E-root payload files for FATX file-backed boot."
