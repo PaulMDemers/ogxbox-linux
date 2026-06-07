@@ -95,10 +95,12 @@ Latest real-hardware disc tests:
   the current 6.18 game ISO is back on the proven small-initrd plus disc-payload
   strategy.
 - The current 6.18 game ISO keeps the kernel and initrd at the XDVDFS root for
-  Linux handoff, but names them `akrn` and `zinitrd`. With those names,
-  `default.xbe` packs first in the root directory while Xromwell still has
-  root-level boot payload files to load. `core.gz` and `tcz\*.tcz` are included
-  as disc payload files, like the working 5.8 Tiny Core game ISO.
+  Linux handoff, but names them `akrn` and `zinitrd`. The first small-initrd
+  6.18 retry put `core.gz` and `tcz\*.tcz` back at the root, pushed
+  `default.xbe` late in the XDVDFS image, and hardware reported `Tray: Empty`.
+  The current retry moves those Tiny Core payload files under `tc\`, bringing
+  `default.xbe` back to the early sectors while the initramfs binds either root
+  payloads or `tc\` payloads to `/mnt/cd` after mounting the disc.
 
 Xemu input automation against the Xromwell menu is not currently a reliable
 boot proof: a recent run locked up when sending `A`. Prefer real hardware for

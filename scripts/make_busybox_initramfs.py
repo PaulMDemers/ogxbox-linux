@@ -717,7 +717,7 @@ if [ ! -f /mnt/cd/core.gz ]; then
 fi
 """
 
-TINYCORE_CD_MOUNT_ROBUST = b"""mkdir -p /mnt/cd /mnt/tcroot
+TINYCORE_CD_MOUNT_ROBUST = b"""mkdir -p /mnt/cd /mnt/iso /mnt/tcroot
 
 ensure_block_node() {
     dev="$1"
@@ -775,15 +775,29 @@ try_mount_tinycore_disc() {
     ensure_block_node "$dev" || true
     [ -b "$dev" ] || [ -e "$dev" ] || return 1
     umount /mnt/cd 2>/dev/null || true
+    umount /mnt/iso 2>/dev/null || true
     echo "Trying CD mount: $dev"
-    if mount -t iso9660 -o ro "$dev" /mnt/cd 2>/tmp/tc-iso-mount.err; then
-        if [ -f /mnt/cd/core.gz ]; then
-            echo "Mounted Tiny Core disc from $dev"
+    if mount -t iso9660 -o ro "$dev" /mnt/iso 2>/tmp/tc-iso-mount.err; then
+        payload_dir=
+        if [ -f /mnt/iso/core.gz ]; then
+            payload_dir=/mnt/iso
+        elif [ -f /mnt/iso/tc/core.gz ]; then
+            payload_dir=/mnt/iso/tc
+        fi
+        if [ -n "$payload_dir" ]; then
+            if mount --bind "$payload_dir" /mnt/cd 2>/tmp/tc-bind-mount.err; then
+                echo "Mounted Tiny Core disc from $dev using $payload_dir"
+            else
+                echo "Bind mount of $payload_dir failed:"
+                cat /tmp/tc-bind-mount.err 2>/dev/null || true
+                umount /mnt/iso 2>/dev/null || true
+                return 1
+            fi
             return 0
         fi
-        echo "Mounted $dev but /core.gz was not present"
-        ls -la /mnt/cd 2>/dev/null || true
-        umount /mnt/cd 2>/dev/null || true
+        echo "Mounted $dev but neither /core.gz nor /tc/core.gz was present"
+        ls -la /mnt/iso /mnt/iso/tc 2>/dev/null || true
+        umount /mnt/iso 2>/dev/null || true
     else
         echo "  mount failed for $dev:"
         cat /tmp/tc-iso-mount.err 2>/dev/null || true
