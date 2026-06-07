@@ -86,13 +86,16 @@ Latest real-hardware disc tests:
   usable optical device and produced too much fallback mount noise before
   dropping to the BusyBox shell. The 6.18 Tiny Core game ISO now uses an
   XZ-compressed self-contained Tiny Core initramfs instead, so once Xromwell
-  loads `boot\initramf` the kernel does not need to mount the DVD again to
-  reach `core.gz` and the desktop extensions.
+  loads `zinitrd` the kernel does not need to mount the DVD again to reach
+  `core.gz` and the desktop extensions.
 - The first self-contained 6.18 game ISO put the large `initramf` before
   `default.xbe` in the XDVDFS root and real hardware reported `tray empty`.
-  The current 6.18 game ISO keeps the XDVDFS root small
-  (`default.xbe`, `linuxboot.cfg`, `_pad`, `boot`) and stores the kernel plus
-  initramfs under `boot\`.
+  A nested `boot\initramf` layout then reached Xromwell handoff but Linux did
+  not see the initrd and panicked at `unknown-block(3,1)`.
+- The current 6.18 game ISO keeps the kernel and initrd at the XDVDFS root for
+  Linux handoff, but names them `akrn` and `zinitrd`. With those names,
+  `default.xbe` packs first in the root directory while Xromwell still has
+  root-level boot payload files to load.
 - The current 6.18 game initramfs omits `Xorg-fonts.tcz` only for the game-disc
   build, reducing the compressed handoff payload from about 16.2 MiB to
   15,351,456 bytes. This is intended to stay below the suspected 16 MiB
