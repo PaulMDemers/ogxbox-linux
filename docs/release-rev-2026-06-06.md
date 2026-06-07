@@ -61,6 +61,29 @@ inserted so stage1 can mount the payload from ISO9660.
 
 The rev builder completed successfully on June 6, 2026.
 
+## Hardware Status
+
+Latest real-hardware disc tests:
+
+- `game-isos\devuan-daedalus-desktop-live-5.8.1-game.iso` boots to the
+  desktop and is the current release baseline.
+- The 5.8.1 desktop still needs launcher polish: terminal windows open, but
+  the app menu can show white text on a white background and non-terminal apps
+  do not yet launch cleanly.
+- `game-isos\devuan-daedalus-desktop-live-6.18.33-game.iso` is still
+  experimental. It presents as a desktop build, but the current hardware result
+  reaches the terminal path rather than the desktop.
+- Earlier Tiny Core game ISOs were not recognized as game discs on hardware.
+  This rev rebuilds the Tiny Core game ISOs with `default.xbe` and
+  `linuxboot.cfg` at the XDVDFS root, kernel/initramfs under `boot\`, and
+  padding to bring the disc image near the size class of the working Devuan game
+  discs.
+
+Xemu input automation against the Xromwell menu is not currently a reliable
+boot proof: a recent run locked up when sending `A`. Prefer real hardware for
+game-disc visibility tests and use xemu only for no-input smoke checks until we
+have a safer controller automation path.
+
 Structural verification passed:
 
 - every `game-isos\*.iso` reports `Valid: true` through `tools\xdvdfs\xdvdfs.exe info`
