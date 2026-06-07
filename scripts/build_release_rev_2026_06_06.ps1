@@ -296,8 +296,8 @@ if ($LASTEXITCODE -ne 0) {
     throw "BusyBox/Tiny Core initramfs rebuild failed"
 }
 
-$tcSelfContained = Join-Path $repoRoot 'artifacts\initramfs\xbox-tinycore-hdd-stage6-xfbdev-desktop.cpio'
-$tcSelfContainedXz = Join-Path $repoRoot 'artifacts\initramfs\xbox-tinycore-hdd-stage6-xfbdev-desktop.cpio.xz'
+$tcSelfContained = Join-Path $repoRoot 'artifacts\initramfs\xbox-tinycore-hdd-stage6-xfbdev-desktop-game.cpio'
+$tcSelfContainedXz = Join-Path $repoRoot 'artifacts\initramfs\xbox-tinycore-hdd-stage6-xfbdev-desktop-game.cpio.xz'
 $xz = (Get-Command xz.exe -ErrorAction SilentlyContinue)
 $xzPath = $null
 if (-not $xz) {
@@ -314,7 +314,7 @@ if (-not $xzPath) {
 if (Test-Path -LiteralPath $tcSelfContainedXz) {
     Remove-Item -LiteralPath $tcSelfContainedXz -Force
 }
-$tcXzTemp = Join-Path (Split-Path -Parent $tcSelfContained) 'xbox-tinycore-hdd-stage6-xfbdev-desktop-for-xz.cpio'
+$tcXzTemp = Join-Path (Split-Path -Parent $tcSelfContained) 'xbox-tinycore-hdd-stage6-xfbdev-desktop-game-for-xz.cpio'
 Copy-Item -LiteralPath $tcSelfContained -Destination $tcXzTemp -Force
 & $xzPath -f -9 --check=crc32 $tcXzTemp
 if ($LASTEXITCODE -ne 0) {
@@ -357,7 +357,7 @@ New-CromwellIso 'devuan-daedalus-terminal-5.8.1' 'devuan-daedalus-i386-terminal'
 New-CromwellIso 'devuan-daedalus-terminal-6.18.33' 'devuan-daedalus-i386-terminal' 'artifacts\kernels\xbox-linux-6.18.33-fatx-tinycore-bzImage' 'artifacts\initramfs\xbox-distro-hdd-ext2-stage1.cpio' 'artifacts\hdd\xbox-devuan-daedalus-i386.ext2' '' '6.18.33-fatx-tinycore'
 
 New-GameDisc 'tinycore11-desktop-5.8.1-game' 'Tiny Core 11 Desktop 5.8.1 Game Disc' 'artifacts\kernels\xbox-linux-5.8.1-noxpad-bzImage' 'vmlinuz' 'artifacts\initramfs\xbox-tinycore-stage6-xfbdev-desktop.cpio' 'initramf' $tcAppend $tcDiscPayload '5.8.1-noxpad' '' 268435456 '_pad'
-New-GameDisc 'tinycore11-desktop-6.18.33-game' 'Tiny Core 11 Desktop 6.18.33 Game Disc' 'artifacts\kernels\xbox-linux-6.18.33-fatx-tinycore-bzImage' 'vmlinuz' 'artifacts\initramfs\xbox-tinycore-hdd-stage6-xfbdev-desktop.cpio.xz' 'initramf' $tcAppend @() '6.18.33-fatx-tinycore' '' 268435456 '_pad'
+New-GameDisc 'tinycore11-desktop-6.18.33-game' 'Tiny Core 11 Desktop 6.18.33 Game Disc' 'artifacts\kernels\xbox-linux-6.18.33-fatx-tinycore-bzImage' 'vmlinuz' 'artifacts\initramfs\xbox-tinycore-hdd-stage6-xfbdev-desktop-game.cpio.xz' 'initramf' $tcAppend @() '6.18.33-fatx-tinycore' 'boot' 268435456 '_pad'
 New-GameDisc 'devuan-daedalus-terminal-5.8.1-game' 'Devuan Daedalus Terminal 5.8.1 Game Disc' 'artifacts\kernels\xbox-linux-5.8.1-rd-gzip-bzImage' 'devkrnl' 'artifacts\initramfs\xbox-distro-hdd-ext2-stage1.cpio' 'devinit' $devTermAppendIso @(@{ source = 'artifacts\hdd\xbox-devuan-daedalus-i386.ext2'; name = 'devuan.ext2' }) '5.8.1-rd-gzip'
 New-GameDisc 'devuan-daedalus-terminal-6.18.33-game' 'Devuan Daedalus Terminal 6.18.33 Game Disc' 'artifacts\kernels\xbox-linux-6.18.33-fatx-tinycore-bzImage' 'devkrnl' 'artifacts\initramfs\xbox-distro-hdd-ext2-stage1.cpio' 'devinit' $devTermAppendIso @(@{ source = 'artifacts\hdd\xbox-devuan-daedalus-i386.ext2'; name = 'devuan.ext2' }) '6.18.33-fatx-tinycore'
 New-GameDisc 'devuan-daedalus-desktop-live-5.8.1-game' 'Devuan Daedalus Live Desktop 5.8.1 Game Disc' 'artifacts\kernels\xbox-linux-5.8.1-rd-gzip-bzImage' 'devkrnl' 'artifacts\initramfs\xbox-distro-hdd-ext2-stage1.cpio' 'devinit' $devLiveAppendIso @(@{ source = 'artifacts\hdd\xbox-devuan-daedalus-i386-desktop-full.squashfs'; name = 'devuan.squashfs' }) '5.8.1-rd-gzip'

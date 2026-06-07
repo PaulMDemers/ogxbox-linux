@@ -73,19 +73,6 @@ Latest real-hardware disc tests:
 - `game-isos\devuan-daedalus-desktop-live-6.18.33-game.iso` is still
   experimental. It presents as a desktop build, but the current hardware result
   reaches the terminal path rather than the desktop.
-- Earlier Tiny Core game ISOs were not recognized as game discs on hardware.
-  This rev rebuilds the Tiny Core game ISOs with `default.xbe` and
-  `linuxboot.cfg` at the XDVDFS root, kernel/initramfs at the root, and
-  padding to bring the disc image near the size class of the working Devuan game
-  discs.
-- A nested `boot\initramf` Tiny Core game-disc layout did get through Xromwell,
-  but the kernel panicked with `VFS: Unable to mount root fs on
-  unknown-block(3,1)`. That points to Xromwell not handing off the nested initrd
-  correctly, so the active Tiny Core game layout keeps `initramf` root-level.
-- A root-level 18 MB self-contained Tiny Core initramfs also reached the same
-  panic, so the active Tiny Core game layout now uses the proven small stage6
-  CD-payload initramfs and includes `core.gz` plus the desktop `tcz\` extension
-  set on the game disc.
 - Real hardware then confirmed `tinycore11-desktop-5.8.1-game.iso` boots to the
   Tiny Core desktop. There is still a noticeable pause before the wallpaper
   appears, but the image is functionally back in the good set.
@@ -99,8 +86,18 @@ Latest real-hardware disc tests:
   usable optical device and produced too much fallback mount noise before
   dropping to the BusyBox shell. The 6.18 Tiny Core game ISO now uses an
   XZ-compressed self-contained Tiny Core initramfs instead, so once Xromwell
-  loads `initramf` the kernel does not need to mount the DVD again to reach
-  `core.gz` and the desktop extensions.
+  loads `boot\initramf` the kernel does not need to mount the DVD again to
+  reach `core.gz` and the desktop extensions.
+- The first self-contained 6.18 game ISO put the large `initramf` before
+  `default.xbe` in the XDVDFS root and real hardware reported `tray empty`.
+  The current 6.18 game ISO keeps the XDVDFS root small
+  (`default.xbe`, `linuxboot.cfg`, `_pad`, `boot`) and stores the kernel plus
+  initramfs under `boot\`.
+- The current 6.18 game initramfs omits `Xorg-fonts.tcz` only for the game-disc
+  build, reducing the compressed handoff payload from about 16.2 MiB to
+  15,351,456 bytes. This is intended to stay below the suspected 16 MiB
+  Xromwell/Cromwell initrd handoff boundary. The full Tiny Core XBE payload is
+  unchanged.
 
 Xemu input automation against the Xromwell menu is not currently a reliable
 boot proof: a recent run locked up when sending `A`. Prefer real hardware for

@@ -17,6 +17,7 @@ OUT_TINYCORE_STAGE4 = ROOT / "artifacts" / "initramfs" / "xbox-tinycore-stage4.c
 OUT_TINYCORE_STAGE5 = ROOT / "artifacts" / "initramfs" / "xbox-tinycore-stage5-desktop-probe.cpio"
 OUT_TINYCORE_STAGE6 = ROOT / "artifacts" / "initramfs" / "xbox-tinycore-stage6-xfbdev-desktop.cpio"
 OUT_TINYCORE_HDD_STAGE6 = ROOT / "artifacts" / "initramfs" / "xbox-tinycore-hdd-stage6-xfbdev-desktop.cpio"
+OUT_TINYCORE_HDD_STAGE6_GAME = ROOT / "artifacts" / "initramfs" / "xbox-tinycore-hdd-stage6-xfbdev-desktop-game.cpio"
 OUT_TINYCORE_HDD_EXT2_STAGE7 = ROOT / "artifacts" / "initramfs" / "xbox-tinycore-hdd-ext2-stage7-xfbdev-desktop.cpio"
 
 CONSOLE_INIT = b"""#!/bin/busybox sh
@@ -1084,14 +1085,29 @@ def main():
     tc_root = ROOT / "downloads" / "tinycore" / "11.x" / "x86"
     tcz_dir = tc_root / "tcz"
     tcz_order = tcz_dir / "desktop-load-order.txt"
+    tcz_names = [
+        name.strip()
+        for name in tcz_order.read_text(encoding="ascii").splitlines()
+        if name.strip()
+    ]
     tinycore_hdd_entries = [
         ("tc/core.gz", (tc_root / "core.gz").read_bytes(), 0o644),
         ("tc/tcz/desktop-load-order.txt", tcz_order.read_bytes(), 0o644),
     ]
     tinycore_hdd_entries.extend(
         (f"tc/tcz/{name}", (tcz_dir / name).read_bytes(), 0o644)
-        for name in tcz_order.read_text(encoding="ascii").splitlines()
-        if name.strip()
+        for name in tcz_names
+    )
+
+    game_tcz_names = [name for name in tcz_names if name != "Xorg-fonts.tcz"]
+    game_tcz_order = ("\n".join(game_tcz_names) + "\n").encode("ascii")
+    tinycore_hdd_game_entries = [
+        ("tc/core.gz", (tc_root / "core.gz").read_bytes(), 0o644),
+        ("tc/tcz/desktop-load-order.txt", game_tcz_order, 0o644),
+    ]
+    tinycore_hdd_game_entries.extend(
+        (f"tc/tcz/{name}", (tcz_dir / name).read_bytes(), 0o644)
+        for name in game_tcz_names
     )
 
     OUT.write_bytes(build((SRC / "init").read_bytes()))
@@ -1104,6 +1120,7 @@ def main():
     OUT_TINYCORE_STAGE5.write_bytes(build(TINYCORE_STAGE5_INIT))
     OUT_TINYCORE_STAGE6.write_bytes(build(TINYCORE_STAGE6_INIT))
     OUT_TINYCORE_HDD_STAGE6.write_bytes(build(TINYCORE_HDD_STAGE6_INIT, tinycore_hdd_entries))
+    OUT_TINYCORE_HDD_STAGE6_GAME.write_bytes(build(TINYCORE_HDD_STAGE6_INIT, tinycore_hdd_game_entries))
     OUT_TINYCORE_HDD_EXT2_STAGE7.write_bytes(build(TINYCORE_HDD_EXT2_STAGE7_INIT))
     print(OUT)
     print(OUT_CONSOLE)
@@ -1115,6 +1132,7 @@ def main():
     print(OUT_TINYCORE_STAGE5)
     print(OUT_TINYCORE_STAGE6)
     print(OUT_TINYCORE_HDD_STAGE6)
+    print(OUT_TINYCORE_HDD_STAGE6_GAME)
     print(OUT_TINYCORE_HDD_EXT2_STAGE7)
 
 
