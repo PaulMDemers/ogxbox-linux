@@ -699,11 +699,7 @@ echo "Desktop launcher returned; falling back to shell"
 exec setsid cttyhack sh
 """
 
-TINYCORE_HDD_STAGE6_INIT = TINYCORE_STAGE6_INIT.replace(
-    b'echo "*** Xbox Tiny Core stage6 Xfbdev desktop attempt ***"',
-    b'echo "*** Xbox Tiny Core HDD self-contained Xfbdev desktop attempt ***"',
-).replace(
-    b"""mkdir -p /mnt/cd /mnt/tcroot
+TINYCORE_CD_MOUNT_SIMPLE = b"""mkdir -p /mnt/cd /mnt/tcroot
 for dev in /dev/hdb /dev/hdc /dev/sr0 /dev/cdrom /dev/dvd; do
     if [ -e "$dev" ]; then
         echo "Trying CD mount: $dev"
@@ -718,7 +714,132 @@ if [ ! -f /mnt/cd/core.gz ]; then
     echo "Tiny Core core.gz was not found on /mnt/cd"
     exec setsid cttyhack sh
 fi
-""",
+"""
+
+TINYCORE_CD_MOUNT_ROBUST = b"""mkdir -p /mnt/cd /mnt/tcroot
+
+ensure_block_node() {
+    dev="$1"
+    name="${dev#/dev/}"
+    [ "$name" != "$dev" ] || return 1
+    [ -b "$dev" ] && return 0
+    majmin=
+    if [ -r "/sys/block/$name/dev" ]; then
+        majmin="$(cat "/sys/block/$name/dev" 2>/dev/null)"
+    else
+        case "$name" in
+            hda) majmin="3:0" ;;
+            hdb) majmin="3:64" ;;
+            hdc) majmin="22:0" ;;
+            hdd) majmin="22:64" ;;
+            sr0|scd0) majmin="11:0" ;;
+            sr1|scd1) majmin="11:1" ;;
+        esac
+    fi
+    [ -n "$majmin" ] || return 1
+    major="${majmin%:*}"
+    minor="${majmin#*:}"
+    case "$major:$minor" in
+        *[!0-9:]*|:|*:|"") return 1 ;;
+    esac
+    mknod "$dev" b "$major" "$minor" 2>/dev/null || true
+    [ -b "$dev" ]
+}
+
+show_block_devices() {
+    echo "block device inventory:"
+    for sysdev in /sys/block/*; do
+        [ -e "$sysdev" ] || continue
+        name="$(basename "$sysdev")"
+        majmin="$(cat "$sysdev/dev" 2>/dev/null)"
+        removable="$(cat "$sysdev/removable" 2>/dev/null)"
+        dtype="$(cat "$sysdev/device/type" 2>/dev/null)"
+        echo "  $name dev=$majmin removable=$removable type=$dtype"
+    done
+    echo "proc partitions:"
+    cat /proc/partitions 2>/dev/null || true
+    if [ -r /proc/sys/dev/cdrom/info ]; then
+        echo "cdrom info:"
+        cat /proc/sys/dev/cdrom/info 2>/dev/null || true
+    fi
+}
+
+try_mount_tinycore_disc() {
+    dev="$1"
+    [ -n "$dev" ] || return 1
+    ensure_block_node "$dev" || true
+    [ -b "$dev" ] || [ -e "$dev" ] || return 1
+    umount /mnt/cd 2>/dev/null || true
+    echo "Trying CD mount: $dev"
+    if mount -t iso9660 -o ro "$dev" /mnt/cd 2>/tmp/tc-iso-mount.err; then
+        if [ -f /mnt/cd/core.gz ]; then
+            echo "Mounted Tiny Core disc from $dev"
+            return 0
+        fi
+        echo "Mounted $dev but /core.gz was not present"
+        ls -la /mnt/cd 2>/dev/null || true
+        umount /mnt/cd 2>/dev/null || true
+    else
+        echo "  mount failed for $dev:"
+        cat /tmp/tc-iso-mount.err 2>/dev/null || true
+    fi
+    return 1
+}
+
+find_tinycore_disc() {
+    show_block_devices
+    candidates=
+    for sysdev in /sys/block/*; do
+        [ -e "$sysdev" ] || continue
+        name="$(basename "$sysdev")"
+        dtype="$(cat "$sysdev/device/type" 2>/dev/null)"
+        removable="$(cat "$sysdev/removable" 2>/dev/null)"
+        case "$name:$dtype:$removable" in
+            hd*:5:*|sr*:5:*|scd*:5:*|*:5:*|sr*:*:*|scd*:*:*|hd[b-z]:*:*|sd*:1)
+                candidates="$candidates /dev/$name"
+                ;;
+        esac
+    done
+    candidates="$candidates /dev/hdb /dev/hdc /dev/hdd /dev/sr0 /dev/sr1 /dev/scd0 /dev/scd1 /dev/sda /dev/sdb /dev/cdrom /dev/dvd"
+    tried=" "
+    for dev in $candidates; do
+        case "$tried" in
+            *" $dev "*) continue ;;
+        esac
+        tried="$tried$dev "
+        if try_mount_tinycore_disc "$dev"; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+for i in 1 2 3 4 5 6 7 8; do
+    echo "Tiny Core disc probe attempt $i"
+    if find_tinycore_disc; then
+        break
+    fi
+    sleep 1
+done
+
+if [ ! -f /mnt/cd/core.gz ]; then
+    echo "Tiny Core core.gz was not found on /mnt/cd"
+    echo "recent kernel messages:"
+    dmesg | tail -80 2>/dev/null || true
+    exec setsid cttyhack sh
+fi
+"""
+
+TINYCORE_STAGE6_INIT = TINYCORE_STAGE6_INIT.replace(
+    TINYCORE_CD_MOUNT_SIMPLE,
+    TINYCORE_CD_MOUNT_ROBUST,
+)
+
+TINYCORE_HDD_STAGE6_INIT = TINYCORE_STAGE6_INIT.replace(
+    b'echo "*** Xbox Tiny Core stage6 Xfbdev desktop attempt ***"',
+    b'echo "*** Xbox Tiny Core HDD self-contained Xfbdev desktop attempt ***"',
+).replace(
+    TINYCORE_CD_MOUNT_ROBUST,
     b"""mkdir -p /tc/tcz /mnt/cd /mnt/tcroot
 echo "Using embedded Tiny Core payload from initramfs /tc"
 ls -la /tc /tc/tcz 2>/dev/null || true
@@ -743,17 +864,7 @@ TINYCORE_HDD_EXT2_STAGE7_INIT = TINYCORE_STAGE6_INIT.replace(
     b'echo "*** Xbox Tiny Core stage6 Xfbdev desktop attempt ***"',
     b'echo "*** Xbox Tiny Core HDD ext2 payload Xfbdev desktop attempt ***"',
 ).replace(
-    b"""mkdir -p /mnt/cd /mnt/tcroot
-for dev in /dev/hdb /dev/hdc /dev/sr0 /dev/cdrom /dev/dvd; do
-    if [ -e "$dev" ]; then
-        echo "Trying CD mount: $dev"
-        if mount -t iso9660 -o ro "$dev" /mnt/cd 2>/dev/null; then
-            echo "Mounted $dev on /mnt/cd"
-            break
-        fi
-    fi
-done
-""",
+    TINYCORE_CD_MOUNT_ROBUST,
     b"""mkdir -p /mnt/cd /mnt/tcroot /mnt/xboxe
 PAYLOAD_OFFSET=
 PAYLOAD_FILE=/linuxroot.ext2

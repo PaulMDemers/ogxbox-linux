@@ -86,6 +86,15 @@ Latest real-hardware disc tests:
   panic, so the active Tiny Core game layout now uses the proven small stage6
   CD-payload initramfs and includes `core.gz` plus the desktop `tcz\` extension
   set on the game disc.
+- Real hardware then confirmed `tinycore11-desktop-5.8.1-game.iso` boots to the
+  Tiny Core desktop. There is still a noticeable pause before the wallpaper
+  appears, but the image is functionally back in the good set.
+- Real hardware showed `tinycore11-desktop-6.18.33-game.iso` reaches `/init`,
+  but the Tiny Core stage could not find `core.gz` on `/mnt/cd`. That is a
+  Linux-side CD device discovery problem, not an Xromwell handoff panic. The
+  stage6 initramfs now creates missing block device nodes from `/sys/block`,
+  retries the ISO mount path, and probes both legacy IDE and libata/SCSI CD
+  naming before giving up.
 
 Xemu input automation against the Xromwell menu is not currently a reliable
 boot proof: a recent run locked up when sending `A`. Prefer real hardware for
