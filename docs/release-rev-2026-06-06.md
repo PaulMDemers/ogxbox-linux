@@ -95,6 +95,12 @@ Latest real-hardware disc tests:
   stage6 initramfs now creates missing block device nodes from `/sys/block`,
   retries the ISO mount path, and probes both legacy IDE and libata/SCSI CD
   naming before giving up.
+- A later 6.18 hardware retry proved the expanded probe still did not expose a
+  usable optical device and produced too much fallback mount noise before
+  dropping to the BusyBox shell. The 6.18 Tiny Core game ISO now uses an
+  XZ-compressed self-contained Tiny Core initramfs instead, so once Xromwell
+  loads `initramf` the kernel does not need to mount the DVD again to reach
+  `core.gz` and the desktop extensions.
 
 Xemu input automation against the Xromwell menu is not currently a reliable
 boot proof: a recent run locked up when sending `A`. Prefer real hardware for

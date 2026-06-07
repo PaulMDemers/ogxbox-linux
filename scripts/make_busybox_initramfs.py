@@ -767,6 +767,10 @@ show_block_devices() {
 try_mount_tinycore_disc() {
     dev="$1"
     [ -n "$dev" ] || return 1
+    name="${dev#/dev/}"
+    if [ "$name" != "$dev" ] && [ ! -e "$dev" ] && [ ! -r "/sys/block/$name/dev" ]; then
+        return 1
+    fi
     ensure_block_node "$dev" || true
     [ -b "$dev" ] || [ -e "$dev" ] || return 1
     umount /mnt/cd 2>/dev/null || true
