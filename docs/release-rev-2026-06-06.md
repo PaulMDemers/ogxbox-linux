@@ -82,6 +82,10 @@ Latest real-hardware disc tests:
   but the kernel panicked with `VFS: Unable to mount root fs on
   unknown-block(3,1)`. That points to Xromwell not handing off the nested initrd
   correctly, so the active Tiny Core game layout keeps `initramf` root-level.
+- A root-level 18 MB self-contained Tiny Core initramfs also reached the same
+  panic, so the active Tiny Core game layout now uses the proven small stage6
+  CD-payload initramfs and includes `core.gz` plus the desktop `tcz\` extension
+  set on the game disc.
 
 Xemu input automation against the Xromwell menu is not currently a reliable
 boot proof: a recent run locked up when sending `A`. Prefer real hardware for
