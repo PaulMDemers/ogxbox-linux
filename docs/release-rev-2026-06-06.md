@@ -75,9 +75,13 @@ Latest real-hardware disc tests:
   reaches the terminal path rather than the desktop.
 - Earlier Tiny Core game ISOs were not recognized as game discs on hardware.
   This rev rebuilds the Tiny Core game ISOs with `default.xbe` and
-  `linuxboot.cfg` at the XDVDFS root, kernel/initramfs under `boot\`, and
+  `linuxboot.cfg` at the XDVDFS root, kernel/initramfs at the root, and
   padding to bring the disc image near the size class of the working Devuan game
   discs.
+- A nested `boot\initramf` Tiny Core game-disc layout did get through Xromwell,
+  but the kernel panicked with `VFS: Unable to mount root fs on
+  unknown-block(3,1)`. That points to Xromwell not handing off the nested initrd
+  correctly, so the active Tiny Core game layout keeps `initramf` root-level.
 
 Xemu input automation against the Xromwell menu is not currently a reliable
 boot proof: a recent run locked up when sending `A`. Prefer real hardware for

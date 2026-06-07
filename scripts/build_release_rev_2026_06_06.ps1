@@ -65,7 +65,8 @@ function New-GameDisc(
     [array]$ExtraFiles,
     [string]$KernelLabel,
     [string]$BootDir = '',
-    [int64]$MinimumBytes = 0
+    [int64]$MinimumBytes = 0,
+    [string]$PadDir = ''
 ) {
     $stage = Join-Path $buildRoot "game-$Name"
     $iso = Join-Path $gameOut "$Name.iso"
@@ -86,23 +87,12 @@ function New-GameDisc(
     Copy-Required $KernelPath (Join-Path $bootStage $KernelName)
     Copy-Required $InitrdPath (Join-Path $bootStage $InitrdName)
     foreach ($extra in $ExtraFiles) {
-        Copy-Required $extra.source (Join-Path $stage $extra.name)
-    }
-
-    if ($MinimumBytes -gt 0) {
-        $payloadBytes = (Get-ChildItem -LiteralPath $stage -Recurse -File | Measure-Object -Property Length -Sum).Sum
-        if ($payloadBytes -lt $MinimumBytes) {
-            $padBytes = $MinimumBytes - $payloadBytes
-            $padPath = Join-Path $bootStage 'pad.bin'
-            $fs = [IO.File]::Create($padPath)
-            try {
-                if ($padBytes -gt 0) {
-                    $fs.SetLength($padBytes)
-                }
-            } finally {
-                $fs.Dispose()
-            }
+        $extraDest = Join-Path $stage $extra.name
+        $extraParent = Split-Path -Parent $extraDest
+        if ($extraParent) {
+            New-Item -ItemType Directory -Force -Path $extraParent | Out-Null
         }
+        Copy-Required $extra.source $extraDest
     }
 
     $kernelConfigPath = if ($bootPrefix) { "$bootPrefix/$KernelName" } else { $KernelName }
@@ -114,6 +104,27 @@ kernel $kernelConfigPath
 initrd $initrdConfigPath
 append $Append
 "@ | Set-Content -LiteralPath (Join-Path $stage 'linuxboot.cfg') -Encoding ASCII
+
+    if ($MinimumBytes -gt 0) {
+        $payloadBytes = (Get-ChildItem -LiteralPath $stage -Recurse -File | Measure-Object -Property Length -Sum).Sum
+        if ($payloadBytes -lt $MinimumBytes) {
+            $padBytes = $MinimumBytes - $payloadBytes
+            $padStage = $bootStage
+            if ($PadDir) {
+                $padStage = Join-Path $stage ($PadDir.Trim('/').Trim('\').Replace('/', [IO.Path]::DirectorySeparatorChar))
+                New-Item -ItemType Directory -Force -Path $padStage | Out-Null
+            }
+            $padPath = Join-Path $padStage 'pad.bin'
+            $fs = [IO.File]::Create($padPath)
+            try {
+                if ($padBytes -gt 0) {
+                    $fs.SetLength($padBytes)
+                }
+            } finally {
+                $fs.Dispose()
+            }
+        }
+    }
 
     $stageFiles = @{}
     $stagePrefix = ([IO.Path]::GetFullPath($stage).TrimEnd('\') + '\')
@@ -296,8 +307,8 @@ New-CromwellIso 'tinycore11-desktop-6.18.33' 'tinycore-stage6-xfbdev-desktop-nox
 New-CromwellIso 'devuan-daedalus-terminal-5.8.1' 'devuan-daedalus-i386-terminal' 'artifacts\kernels\xbox-linux-5.8.1-rd-gzip-bzImage' 'artifacts\initramfs\xbox-distro-hdd-ext2-stage1.cpio' 'artifacts\hdd\xbox-devuan-daedalus-i386.ext2' '' '5.8.1-rd-gzip'
 New-CromwellIso 'devuan-daedalus-terminal-6.18.33' 'devuan-daedalus-i386-terminal' 'artifacts\kernels\xbox-linux-6.18.33-fatx-tinycore-bzImage' 'artifacts\initramfs\xbox-distro-hdd-ext2-stage1.cpio' 'artifacts\hdd\xbox-devuan-daedalus-i386.ext2' '' '6.18.33-fatx-tinycore'
 
-New-GameDisc 'tinycore11-desktop-5.8.1-game' 'Tiny Core 11 Desktop 5.8.1 Game Disc' 'artifacts\kernels\xbox-linux-5.8.1-noxpad-bzImage' 'vmlinuz' 'artifacts\initramfs\xbox-tinycore-hdd-stage6-xfbdev-desktop.cpio' 'initramf' $tcAppend @() '5.8.1-noxpad' 'boot' 268435456
-New-GameDisc 'tinycore11-desktop-6.18.33-game' 'Tiny Core 11 Desktop 6.18.33 Game Disc' 'artifacts\kernels\xbox-linux-6.18.33-fatx-tinycore-bzImage' 'vmlinuz' 'artifacts\initramfs\xbox-tinycore-hdd-stage6-xfbdev-desktop.cpio' 'initramf' $tcAppend @() '6.18.33-fatx-tinycore' 'boot' 268435456
+New-GameDisc 'tinycore11-desktop-5.8.1-game' 'Tiny Core 11 Desktop 5.8.1 Game Disc' 'artifacts\kernels\xbox-linux-5.8.1-noxpad-bzImage' 'vmlinuz' 'artifacts\initramfs\xbox-tinycore-hdd-stage6-xfbdev-desktop.cpio' 'initramf' $tcAppend @() '5.8.1-noxpad' '' 268435456 '_pad'
+New-GameDisc 'tinycore11-desktop-6.18.33-game' 'Tiny Core 11 Desktop 6.18.33 Game Disc' 'artifacts\kernels\xbox-linux-6.18.33-fatx-tinycore-bzImage' 'vmlinuz' 'artifacts\initramfs\xbox-tinycore-hdd-stage6-xfbdev-desktop.cpio' 'initramf' $tcAppend @() '6.18.33-fatx-tinycore' '' 268435456 '_pad'
 New-GameDisc 'devuan-daedalus-terminal-5.8.1-game' 'Devuan Daedalus Terminal 5.8.1 Game Disc' 'artifacts\kernels\xbox-linux-5.8.1-rd-gzip-bzImage' 'devkrnl' 'artifacts\initramfs\xbox-distro-hdd-ext2-stage1.cpio' 'devinit' $devTermAppendIso @(@{ source = 'artifacts\hdd\xbox-devuan-daedalus-i386.ext2'; name = 'devuan.ext2' }) '5.8.1-rd-gzip'
 New-GameDisc 'devuan-daedalus-terminal-6.18.33-game' 'Devuan Daedalus Terminal 6.18.33 Game Disc' 'artifacts\kernels\xbox-linux-6.18.33-fatx-tinycore-bzImage' 'devkrnl' 'artifacts\initramfs\xbox-distro-hdd-ext2-stage1.cpio' 'devinit' $devTermAppendIso @(@{ source = 'artifacts\hdd\xbox-devuan-daedalus-i386.ext2'; name = 'devuan.ext2' }) '6.18.33-fatx-tinycore'
 New-GameDisc 'devuan-daedalus-desktop-live-5.8.1-game' 'Devuan Daedalus Live Desktop 5.8.1 Game Disc' 'artifacts\kernels\xbox-linux-5.8.1-rd-gzip-bzImage' 'devkrnl' 'artifacts\initramfs\xbox-distro-hdd-ext2-stage1.cpio' 'devinit' $devLiveAppendIso @(@{ source = 'artifacts\hdd\xbox-devuan-daedalus-i386-desktop-full.squashfs'; name = 'devuan.squashfs' }) '5.8.1-rd-gzip'
@@ -316,7 +327,7 @@ $manifest = [ordered]@{
     root = $outFull
     notes = @(
         "Game ISOs are XDVDFS with a minimal ISO9660 overlay for Xromwell.",
-        "Tiny Core game ISOs keep default.xbe and linuxboot.cfg at the disc root, place heavy boot files under boot/, and pad the image to improve real-drive recognition.",
+        "Tiny Core game ISOs keep default.xbe, linuxboot.cfg, vmlinuz, and initramf at the disc root, and pad the image to improve real-drive recognition.",
         "Tiny Core XBE packages are self-contained initramfs packages.",
         "Devuan 5.8 XBE packages are disc-assisted because this 5.8 line does not include the 6.18 FATX payload-file mount path.",
         "Devuan 6.18 XBE packages include E-root payload files for FATX file-backed boot."
