@@ -86,6 +86,57 @@ panel.
 
 ## Next Work
 
-Profile squashfs decompression, loop/FATX readahead, and executable page-fault
-behavior with this fixed candidate. Package expansion should wait until Dillo
-and mtPaint reach usable windows within a reasonable and repeatable bound.
+The first storage profile is complete. Package expansion should still wait
+until Dillo and mtPaint reach usable windows within a reasonable and
+repeatable bound.
+
+## Storage Profile
+
+The exact ABI-fixed candidate was booted from its existing staged, contiguous
+FATX image. The active read-ahead values were:
+
+```text
+hda   1024 KiB
+loop0 2048 KiB (FATX-backed payload file)
+loop1 2048 KiB (SquashFS)
+```
+
+After dropping Linux page caches before every sample, 1 MiB reads from five
+locations in `/dev/loop1` took:
+
+```text
+0 MiB offset:   1168 ms
+64 MiB offset:  1383 ms
+128 MiB offset: 1385 ms
+192 MiB offset: 1317 ms
+256 MiB offset: 1360 ms
+```
+
+The uniform times make a fragmented tail or slow image region unlikely. The
+payload file is contiguous, and the packaged 5.8 FATX driver has the contiguous
+cluster fast path from source commit `22fbdf0ede3c`.
+
+Cold sequential reads of representative executables plus their `ldd` library
+closures took 68.7 seconds for Dillo, 62.4 seconds for mtPaint, and 18.5
+seconds for Xfe. These costs match the observed black or incompletely painted
+windows and identify scattered SquashFS cold reads as the next useful target.
+
+Reproduce the guest measurements with:
+
+```powershell
+.\scripts\profile_devuan_5_8_storage.ps1
+```
+
+## Rejected Fluxbox Preload
+
+`scripts/new_devuan_5_8_performance_candidate.ps1` creates a config-only
+candidate that adds `xbox_preload_fluxbox=1`. Its kernel, initramfs, XBE, and
+SquashFS payload remain byte-identical to the audited candidate.
+
+The baseline reached a usable shell at 115 seconds and fully painted Fluxbox
+at 209 seconds. The preload candidate reached those points at 178 and 252
+seconds. Preloading moved the same cold-read work ahead of the shell and made
+the fully settled desktop 43 seconds slower, so it must not be promoted.
+
+The next candidate should test SquashFS hot-file ordering or block layout while
+keeping the proven loader and FATX path unchanged.

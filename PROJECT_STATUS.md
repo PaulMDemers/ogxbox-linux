@@ -91,6 +91,7 @@ hardware-tested Devuan ZIP. A dry run is the cleanup script's default.
 - **Devuan 5.8 non-disc:** terminal and desktop boot on xemu and real hardware. This is the stable base for further work.
 - **Devuan 5.8 cold boots:** the protected terminal package passed 3/3 fresh xemu boots, reaching Linux text at 45 seconds and the proof shell in 80-86 seconds. The protected desktop passed 3/3, reaching Linux in 45-46 seconds, X in 85-86 seconds, and a populated terminal in 91-97 seconds. One of two earlier exploratory desktop boots stalled while Xromwell loaded the initramfs, so loader reliability remains worth watching despite the clean measured batches. See `docs/devuan-5.8-cold-boot-reliability.md`.
 - **Devuan 5.8 desktop candidate:** an isolated candidate now removes the Tiny Core `/usr/local/lib` override from distro application launches. Its exact squashfs passes relocation checks for the representative desktop applications. A fresh xemu boot reached the proof terminal before Fluxbox was usable, settled to a complete desktop at about 208 seconds, and mapped Dillo in under 90 seconds. mtPaint no longer crashes on the prior FreeType ABI mismatch, but still had not mapped after more than three minutes. See `docs/devuan-5.8-desktop-candidate.md`.
+- **Devuan 5.8 storage profile:** the candidate's active read-ahead is `hda=1024 KiB`, FATX `loop0=2048 KiB`, and SquashFS `loop1=2048 KiB`. Five uncached 1 MiB reads across `loop1` were uniform at 1.17-1.39 seconds, while cold executable/library closure reads took 68.7 seconds for Dillo, 62.4 seconds for mtPaint, and 18.5 seconds for Xfe. A config-only Fluxbox preload candidate regressed desktop settle time from 209 to 252 seconds and is rejected. The evidence points to expensive scattered cold SquashFS reads, not a slow region or per-read FATX chain walk.
 - **Linux 5.8 FATX:** read-only FATX is sufficient to locate and loop-mount distro payload files from E:.
 - **Linux 6.18:** Xbox bringup works in several paths, but the release sweep still has unresolved optical/root-mount and desktop behavior. Commit `829b71ab17ed` adds the xemu-validated existing-file-only FATX write path. Commit `502b7bb738cf` is the clean read-only rollback point. Real-hardware write testing remains opt-in and experimental.
 - **Tiny Core:** 5.8 hardware boots have succeeded; 6.18 testing produced a mix of mount failures, panics, terminal-only boots, and optical tray detection failures. Neither should supersede the Devuan baseline yet.
@@ -132,10 +133,24 @@ baseline:
 .\scripts\audit_devuan_desktop_payload.ps1
 ```
 
+Profile the running candidate through its focused terminal, using full-window
+xemu captures:
+
+```powershell
+.\scripts\profile_devuan_5_8_storage.ps1
+```
+
+Reproduce the rejected config-only Fluxbox preload experiment without changing
+the audited candidate:
+
+```powershell
+.\scripts\new_devuan_5_8_performance_candidate.ps1
+```
+
 ## Next Audit Priorities
 
 1. Keep normal packages on read-only FATX; test `829b71ab17ed` write support only through explicit persistence-smoke packages until hardware safety is established.
 2. Keep the persistent Xromwell dynamic launcher separate; add dry-run coverage only after its default raw-HDD fixture is regenerated.
-3. Profile the candidate's squashfs/page-fault path before adding more desktop packages; app startup remains I/O-bound even after the ABI fix.
+3. Build the next performance experiment around SquashFS hot-file ordering or block layout. Whole-program preloading only moved the same cold-read cost earlier and made boot slower.
 4. Promote desktop changes only through isolated candidates derived from the validated 5.8 package.
 5. Repeat the cold-boot batch on future loader, kernel, initramfs, or payload candidates before hardware testing.
