@@ -47,8 +47,9 @@ terminal and desktop packages.
 - A disposable xemu FATX HDD boot reached the Devuan terminal proof shell.
 - A second xemu boot reopened the desktop SquashFS and reached X with a
   populated terminal window.
-- The historical launcher and distro payloads have real-hardware evidence.
-- The new FATX-enabled 5.8.1 kernel still needs repeated real-Xbox boot tests.
+- The non-disc terminal package booted successfully on a real Xbox.
+- The non-disc desktop package booted successfully on a real Xbox and reached
+  the desktop.
 
 Proof screenshots:
 
@@ -57,9 +58,16 @@ run\screenshots\devuan58-fatx-nondisc-smoke-20260802-122730.png
 run\screenshots\devuan58-fatx-nondisc-desktop-smoke-20260802-123040.png
 ```
 
-## Next Test
+## Hardware-Tested Baseline
 
-Test the terminal ZIP first. Perform five cold boots from E: with no disc in the
-drive, then repeat with the desktop ZIP. Record whether Xromwell reaches Linux,
-whether stage one mounts FATX, desktop startup time, and any intermittent read
-failures.
+The following exact ZIPs are the first confirmed non-disc Devuan 5.8.1
+real-hardware baseline:
+
+```text
+D6A314145B1523CD9701362E81B4ECB453463375C4F461B352A758121F6349C4  devuan-daedalus-terminal-5.8.1-xbe.zip
+CB01ED5C384E7B2E6B0A16C74D7C2FFECE609A50D95C6577C1A926A2279CE7D6  devuan-daedalus-desktop-live-5.8.1-xbe.zip
+```
+
+Do not replace these files in place after future kernel, initramfs, payload, or
+Xromwell changes. New builds should use a new output directory and undergo a
+fresh hardware test.
