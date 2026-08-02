@@ -42,6 +42,8 @@
 .vscode/
 Thumbs.db
 Desktop.ini
+__pycache__/
+*.pyc
 
 # Stray shell-output files from bringup experiments
 /%ln*

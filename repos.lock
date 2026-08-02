@@ -11,28 +11,30 @@
       "origin": "https://github.com/PaulMDemers/xbox-linux.git",
       "upstream": "https://github.com/haxar/xbox-linux.git",
       "stable": "https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git",
-      "branch": "xbox-5.8.1-bringup",
-      "head": "cc89bd62a",
+      "branch": "xbox-6.18.y-bringup",
+      "head": "502b7bb738cf",
+      "legacyBranch": "xbox-5.8.1-bringup",
+      "legacyHead": "cc89bd62acde",
+      "fatxWorktreePath": "sources/haxar-xbox-linux-5.8-fatx",
       "fatxBranch": "codex/xbox-5.8.1-fatx",
-      "fatxHead": "22fbdf0ede3c",
-      "modernBranch": "xbox-6.18.y-bringup",
-      "modernHead": "46679a4860b1",
-      "modernBuildPath": "/home/paul/ogxbox/linux-6.18-xbox"
+      "fatxHead": "22fbdf0ede3c"
     },
     {
       "name": "cromwell",
       "path": "sources/cromwell-xboxdev",
       "origin": "https://github.com/PaulMDemers/cromwell.git",
       "upstream": "https://github.com/XboxDev/cromwell.git",
-      "branch": "xbox-linux-fast-atapi-autoboot",
-      "head": "4dcc618"
+      "branch": "codex/ide-phase-trace-loader",
+      "head": "f37dd3b3a37e",
+      "hardwareBaseline": "3fa5e65-sector512",
+      "hardwareBaselineXbeSha256": "81B3A6850627A8BEC6FA0D92BB4652400DB3EC863072EAA7351BB159DED0BAFD"
     },
     {
       "name": "xbox-linux-initramfs",
       "path": "sources/xbox-linux-initramfs",
       "origin": "https://github.com/PaulMDemers/xbox-linux-initramfs.git",
       "upstream": "https://github.com/XboxDev/xbox-linux-initramfs.git",
-      "branch": "xbox-linux-bringup",
+      "branch": "master",
       "head": "026eaf3"
     },
     {
@@ -40,7 +42,7 @@
       "path": "sources/xemu",
       "origin": "https://github.com/PaulMDemers/xemu.git",
       "upstream": "https://github.com/xemu-project/xemu.git",
-      "branch": "master",
+      "branch": "xbox-linux-bringup",
       "head": "e72e76bd1f"
     }
   ]
