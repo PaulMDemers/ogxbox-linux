@@ -19,8 +19,18 @@ xbox-6.18.y-bringup
 Current remote tip:
 
 ```text
-993a98a6c642 fs: add read-only FATX support
+829b71ab17ed fatx: allow overwriting existing file data
 ```
+
+The clean read-only rollback point is:
+
+```text
+502b7bb738cf x86: add Tiny Core Xbox memory defconfig
+```
+
+The write-support commit is intentionally limited to overwriting blocks inside
+existing files. It passed the documented two-boot xemu persistence smoke, but
+normal real-hardware packages should continue mounting FATX read-only.
 
 Initial commits:
 
