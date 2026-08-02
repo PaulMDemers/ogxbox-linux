@@ -10,8 +10,9 @@ refer to them directly.
 
 | Family | Count | Status |
 |---|---:|---|
-| Shared wrappers | 37 | Migrated to `scripts\invoke_xemu.ps1` and smoke tested |
-| Dynamic TOML/media | 3 | Generate per-run HDD/DVD configuration; keep separate for now |
+| Shared static wrappers | 37 | Migrated to `scripts\invoke_xemu.ps1` and smoke tested |
+| Shared temporary-media wrappers | 2 | Migrated to `scripts\invoke_xemu_temporary_media.ps1` and smoke tested |
+| Persistent dynamic media | 1 | Xromwell HDD/FATX diagnostic launcher; intentionally separate |
 | Base/retail/NXDK | 4 | General emulator and non-Linux development entry points |
 
 ## Shared Launcher
@@ -58,18 +59,42 @@ Verify all of them without launching xemu:
 The smoke test checks exact argument order for every wrapper and confirms that
 additional xemu arguments are forwarded intact.
 
+## Temporary Media Launcher
+
+`scripts\invoke_xemu_temporary_media.ps1` represents the lifecycle shared by
+the two Devuan live-disc launchers. It creates a uniquely named TOML under the
+user temporary directory, records the selected BIOS, EEPROM, HDD, and DVD,
+delegates command construction and validation to `scripts\invoke_xemu.ps1`,
+and removes the TOML in a `finally` block.
+
+| Launcher | Generated config | Lifecycle |
+|---|---|---|
+| `run-xemu-devuan-desktop-full-live-cromwell-autocd.ps1` | `xemu-devuan-live-autocd-<guid>.toml` | Temporary; always removed |
+| `run-xemu-devuan-desktop-full-live-game-disc.ps1` | `xemu-devuan-live-<guid>.toml` | Temporary; always removed |
+| `run-xemu-xromwell-hddfatx-autoboot.ps1` | `run\xemu-xromwell-hddfatx-autoboot.toml` | Persistent diagnostic state; preserved |
+
+Verify the temporary wrappers against their real local dependencies without
+launching xemu:
+
+```powershell
+.\scripts\test_dynamic_xemu_launchers.ps1
+```
+
+The test checks exact arguments and required paths, generated TOML contents,
+trailing argument forwarding, and removal of every temporary config.
+
 ## Migration Rules
 
 1. Do not delete or rename a historical root launcher.
 2. Migrate one behaviorally uniform family at a time.
 3. Add each migrated wrapper to the dry-run smoke matrix.
-4. Keep launchers that generate TOML or manage temporary media separate until
-   their lifecycle behavior is represented in the shared API.
+4. Keep persistent diagnostic configs separate unless their retained state is
+   deliberately represented in a shared API.
 5. Do not change the validated Devuan package, BIOS, HDD, or media artifacts as
    part of launcher cleanup.
 
-The three dynamic-media launchers are the only remaining Linux-specific
-outliers. They generate temporary TOML and manage HDD/DVD lifecycle, so they
-should be audited as a separate family rather than forced into the static
-wrapper API. The four base emulator/retail/NXDK launchers remain intentionally
+The one remaining Linux-specific outlier is the Xromwell HDD/FATX launcher. It
+accepts alternate HDD/DVD media and leaves a fixed ignored TOML in `run\` for
+diagnosis; moving it into the temporary-media helper would change that useful
+lifecycle. The four base emulator/retail/NXDK launchers remain intentionally
 simple and do not need migration.

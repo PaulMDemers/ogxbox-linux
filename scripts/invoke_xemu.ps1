@@ -113,7 +113,7 @@ if ($DryRun) {
         Arguments = [string[]]$launchArguments
         RequiredPaths = [string[]]$allRequired
     }
-    exit 0
+    return
 }
 
 & $resolvedXemu @launchArguments
