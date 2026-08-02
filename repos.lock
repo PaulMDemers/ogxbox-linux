@@ -13,6 +13,8 @@
       "stable": "https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git",
       "branch": "xbox-5.8.1-bringup",
       "head": "cc89bd62a",
+      "fatxBranch": "codex/xbox-5.8.1-fatx",
+      "fatxHead": "22fbdf0ede3c",
       "modernBranch": "xbox-6.18.y-bringup",
       "modernHead": "46679a4860b1",
       "modernBuildPath": "/home/paul/ogxbox/linux-6.18-xbox"
