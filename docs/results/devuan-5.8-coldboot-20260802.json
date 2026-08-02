@@ -1,0 +1,26 @@
+{
+  "date": "2026-08-02",
+  "environment": "xemu v0.8.135, fresh process per run, snapshot disposable FATX HDD",
+  "terminal": {
+    "sourceResult": "run/boot-reliability/20260802-163928/summary.json",
+    "passes": 3,
+    "runs": 3,
+    "firstLinuxSeconds": [45, 45, 45],
+    "proofShellSeconds": [80, 86, 80],
+    "packageZipSha256": "D6A314145B1523CD9701362E81B4ECB453463375C4F461B352A758121F6349C4"
+  },
+  "desktop": {
+    "sourceResult": "run/boot-reliability/20260802-162317/summary.json",
+    "passes": 3,
+    "runs": 3,
+    "firstLinuxSeconds": [46, 45, 45],
+    "firstXSeconds": [86, 85, 85],
+    "populatedTerminalSeconds": [91, 97, 91],
+    "packageZipSha256": "CB01ED5C384E7B2E6B0A16C74D7C2FFECE609A50D95C6577C1A926A2279CE7D6"
+  },
+  "exploratoryDesktop": {
+    "runs": 2,
+    "passes": 1,
+    "note": "One pre-harness run stalled while Xromwell loaded the initramfs."
+  }
+}

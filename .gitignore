@@ -21,6 +21,7 @@
 /run/*.toml
 /run/screenshots/
 /run/hdd/
+/run/boot-reliability/
 
 # Generated boot media / firmware / disk images
 *.iso
