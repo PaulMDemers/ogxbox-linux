@@ -725,7 +725,7 @@ EOF
 cat > "$ROOT/usr/local/bin/xbox-launch-app" <<'EOF'
 #!/bin/sh
 export PATH=/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/sbin:/usr/local/bin
-export LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/lib
+unset LD_LIBRARY_PATH
 export HOME="${HOME:-/tmp/root-home}"
 export DISPLAY="${DISPLAY:-:0}"
 export TERM="${TERM:-xterm}"

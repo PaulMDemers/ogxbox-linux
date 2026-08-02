@@ -23,13 +23,13 @@ mkdir -p "$(dirname "$REPORT")"
         fi
         path=$(cat /tmp/xbox-app-path.txt)
         echo "path=$path"
-        if chroot "$ROOT" /bin/sh -lc "ldd '$path'" >/tmp/ldd.out 2>/tmp/ldd.err; then
-            if grep -q "not found" /tmp/ldd.out; then
-                echo "LDD_MISSING_DEPS"
-                grep "not found" /tmp/ldd.out
+        if chroot "$ROOT" /bin/sh -lc "unset LD_LIBRARY_PATH; ldd -r '$path'" >/tmp/ldd.out 2>/tmp/ldd.err; then
+            if grep -Eq "not found|undefined symbol" /tmp/ldd.out /tmp/ldd.err; then
+                echo "LDD_RELOCATION_FAILED"
+                grep -E "not found|undefined symbol" /tmp/ldd.out /tmp/ldd.err
                 failed=1
             else
-                echo "LDD_OK"
+                echo "LDD_RELOCATION_OK"
             fi
         else
             if grep -qi "not a dynamic executable" /tmp/ldd.err /tmp/ldd.out 2>/dev/null; then
@@ -43,6 +43,13 @@ mkdir -p "$(dirname "$REPORT")"
         fi
         echo
     done
+    printf 'xbox-launch-app library isolation: '
+    if grep -q '^unset LD_LIBRARY_PATH$' "$ROOT/usr/local/bin/xbox-launch-app"; then
+        echo OK
+    else
+        echo FAILED
+        failed=1
+    fi
     echo "== helper scripts =="
     for helper in xbox-app-launcher xbox-launch-app xbox-open-files xbox-browser xbox-editor xbox-desktop-info xbox-safe-poweroff xbox-plus-shell xbox-plus-proof xbox-network-up; do
         printf '%s: ' "$helper"
