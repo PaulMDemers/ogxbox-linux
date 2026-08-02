@@ -15,6 +15,7 @@ param(
     [string[]]$Device = @(),
     [string[]]$RequiredPath = @(),
     [string[]]$XemuArgument = @(),
+    [switch]$OmitMachineArgument,
     [switch]$DryRun
 )
 
@@ -43,9 +44,18 @@ $resolvedRequired = @($RequiredPath | ForEach-Object { Resolve-WorkspacePath $_ 
 $allRequired = @($resolvedXemu, $resolvedConfig, $resolvedBios, $resolvedMcpx) +
     $resolvedRequired
 
-foreach ($path in $allRequired) {
-    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
-        throw "Required file was not found: $path"
+if ($env:XBOX_XEMU_DRY_RUN -eq '1') {
+    $DryRun = $true
+}
+
+$skipPathValidation = $DryRun -and
+    $env:XBOX_XEMU_SKIP_PATH_VALIDATION -eq '1'
+
+if (-not $skipPathValidation) {
+    foreach ($path in $allRequired) {
+        if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+            throw "Required file was not found: $path"
+        }
     }
 }
 
@@ -54,8 +64,11 @@ $launchArguments.Add('-config_path')
 $launchArguments.Add($resolvedConfig)
 $launchArguments.Add('-bios')
 $launchArguments.Add($resolvedBios)
-$launchArguments.Add('-machine')
-$launchArguments.Add("xbox,bootrom=$resolvedMcpx,kernel-irqchip=off,avpack=$Avpack")
+
+if (-not $OmitMachineArgument) {
+    $launchArguments.Add('-machine')
+    $launchArguments.Add("xbox,bootrom=$resolvedMcpx,kernel-irqchip=off,avpack=$Avpack")
+}
 
 foreach ($deviceName in $Device) {
     $launchArguments.Add('-device')
@@ -64,10 +77,6 @@ foreach ($deviceName in $Device) {
 
 foreach ($argument in $XemuArgument) {
     $launchArguments.Add($argument)
-}
-
-if ($env:XBOX_XEMU_DRY_RUN -eq '1') {
-    $DryRun = $true
 }
 
 if ($DryRun) {

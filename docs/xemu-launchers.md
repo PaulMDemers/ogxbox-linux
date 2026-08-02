@@ -10,9 +10,8 @@ refer to them directly.
 
 | Family | Count | Status |
 |---|---:|---|
-| Shared wrappers | 7 | Migrated to `scripts\invoke_xemu.ps1` and smoke tested |
-| Legacy Cromwell/Xromwell | 24 | Direct command snapshots; next safe migration family |
-| Direct kernel | 6 | Pass a kernel/initrd directly in the xemu machine string |
+| Shared wrappers | 31 | Migrated to `scripts\invoke_xemu.ps1` and smoke tested |
+| Direct kernel | 6 | Pass a kernel/initrd directly in the xemu machine string; next migration family |
 | Dynamic TOML/media | 3 | Generate per-run HDD/DVD configuration; keep separate for now |
 | Base/retail/NXDK | 4 | General emulator and non-Linux development entry points |
 
@@ -23,6 +22,7 @@ refer to them directly.
 - resolve repository-relative paths
 - verify xemu, config, MCPX, BIOS, and optional required files
 - construct the Xbox machine argument and AV pack selection
+- preserve legacy Xromwell commands that intentionally omit `-machine`
 - add zero or more USB devices
 - forward additional xemu arguments unchanged
 - return the complete command without starting xemu when `-DryRun` is used
@@ -36,14 +36,17 @@ Example:
   -DryRun
 ```
 
-The compatibility wrappers also honor `XBOX_XEMU_DRY_RUN=1`. This is intended
-for automated verification; normal wrapper invocation still starts xemu.
+The compatibility wrappers also honor `XBOX_XEMU_DRY_RUN=1`. The smoke test
+additionally uses `XBOX_XEMU_SKIP_PATH_VALIDATION=1` so generated artifacts can
+be absent while commands are inspected. Path validation can only be skipped in
+dry-run mode; normal wrapper invocation still validates inputs and starts xemu.
 
 ## Migrated Compatibility Wrappers
 
-The seven `run-xemu-cromwell-modernhdr*.ps1` launchers are now thin wrappers.
-Their filenames, configs, BIOS files, device lists, and trailing xemu argument
-behavior are unchanged.
+Thirty-one Cromwell/Xromwell launchers are now thin wrappers: the original
+seven `modernhdr` launchers plus 24 legacy direct-command launchers. Their
+filenames, configs, xemu binaries, BIOS and media files, device lists, machine
+argument behavior, and trailing xemu argument forwarding are unchanged.
 
 Verify all of them without launching xemu:
 
@@ -64,6 +67,7 @@ additional xemu arguments are forwarded intact.
 5. Do not change the validated Devuan package, BIOS, HDD, or media artifacts as
    part of launcher cleanup.
 
-The next candidate is the 24 direct Cromwell/Xromwell command snapshots. The
-direct-kernel, dynamic-media, and base emulator families should remain unchanged
+The next candidate is the six direct-kernel launchers. Their custom
+kernel/initrd machine strings need an explicit shared-helper contract before
+migration. Dynamic-media and base emulator families should remain unchanged
 until that migration has been exercised successfully.

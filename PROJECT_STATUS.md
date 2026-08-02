@@ -94,7 +94,7 @@ hardware-tested Devuan ZIP. A dry run is the cleanup script's default.
 - **Tiny Core:** 5.8 hardware boots have succeeded; 6.18 testing produced a mix of mount failures, panics, terminal-only boots, and optical tray detection failures. Neither should supersede the Devuan baseline yet.
 - **Cromwell/Xromwell:** the sector512 XBE hash above is the known launcher baseline. Later loader timing/trace branches remain diagnostic only.
 - **Optical boot:** useful for experiments, but less reliable than the validated E:-root non-disc path and sensitive to drive/media behavior.
-- **xemu launchers:** 44 historical root entry points are classified in `docs/xemu-launchers.md`. Seven `modernhdr` launchers now use the shared, dry-run-tested `scripts/invoke_xemu.ps1` implementation without changing their filenames.
+- **xemu launchers:** 44 historical root entry points are classified in `docs/xemu-launchers.md`. Thirty-one Cromwell/Xromwell launchers now use the shared, dry-run-tested `scripts/invoke_xemu.ps1` implementation without changing filenames or launch behavior.
 
 ## Reproducible Commands
 
@@ -119,6 +119,6 @@ Apply only the guarded generated-file cleanup:
 ## Next Audit Priorities
 
 1. Keep normal packages on read-only FATX; test `829b71ab17ed` write support only through explicit persistence-smoke packages until hardware safety is established.
-2. Continue launcher consolidation with the 24 direct Cromwell/Xromwell wrappers; preserve every historical filename and add each migrated command to the dry-run smoke matrix.
+2. Continue launcher consolidation with the six direct-kernel wrappers; first represent their custom kernel/initrd machine strings in the shared helper, then preserve every historical filename and add each command to the dry-run smoke matrix.
 3. Add repeated cold-boot timing and reliability measurements for the Devuan baseline.
 4. Resume desktop completeness and performance work from a copy of the validated 5.8 package.
