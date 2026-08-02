@@ -10,8 +10,7 @@ refer to them directly.
 
 | Family | Count | Status |
 |---|---:|---|
-| Shared wrappers | 31 | Migrated to `scripts\invoke_xemu.ps1` and smoke tested |
-| Direct kernel | 6 | Pass a kernel/initrd directly in the xemu machine string; next migration family |
+| Shared wrappers | 37 | Migrated to `scripts\invoke_xemu.ps1` and smoke tested |
 | Dynamic TOML/media | 3 | Generate per-run HDD/DVD configuration; keep separate for now |
 | Base/retail/NXDK | 4 | General emulator and non-Linux development entry points |
 
@@ -22,6 +21,7 @@ refer to them directly.
 - resolve repository-relative paths
 - verify xemu, config, MCPX, BIOS, and optional required files
 - construct the Xbox machine argument and AV pack selection
+- resolve and validate optional direct-boot kernel/initrd inputs
 - preserve legacy Xromwell commands that intentionally omit `-machine`
 - add zero or more USB devices
 - forward additional xemu arguments unchanged
@@ -43,10 +43,11 @@ dry-run mode; normal wrapper invocation still validates inputs and starts xemu.
 
 ## Migrated Compatibility Wrappers
 
-Thirty-one Cromwell/Xromwell launchers are now thin wrappers: the original
-seven `modernhdr` launchers plus 24 legacy direct-command launchers. Their
-filenames, configs, xemu binaries, BIOS and media files, device lists, machine
-argument behavior, and trailing xemu argument forwarding are unchanged.
+Thirty-seven Linux launchers are now thin wrappers: the original seven
+`modernhdr` launchers, 24 legacy direct-command launchers, and six direct-kernel
+launchers. Their filenames, configs, xemu binaries, BIOS and media files,
+device lists, machine argument behavior, diagnostic log handling, and trailing
+xemu argument forwarding are unchanged.
 
 Verify all of them without launching xemu:
 
@@ -67,7 +68,8 @@ additional xemu arguments are forwarded intact.
 5. Do not change the validated Devuan package, BIOS, HDD, or media artifacts as
    part of launcher cleanup.
 
-The next candidate is the six direct-kernel launchers. Their custom
-kernel/initrd machine strings need an explicit shared-helper contract before
-migration. Dynamic-media and base emulator families should remain unchanged
-until that migration has been exercised successfully.
+The three dynamic-media launchers are the only remaining Linux-specific
+outliers. They generate temporary TOML and manage HDD/DVD lifecycle, so they
+should be audited as a separate family rather than forced into the static
+wrapper API. The four base emulator/retail/NXDK launchers remain intentionally
+simple and do not need migration.

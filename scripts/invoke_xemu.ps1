@@ -12,6 +12,11 @@ param(
     [ValidateSet('composite', 'svideo', 'component', 'vga', 'hdtv')]
     [string]$Avpack = 'composite',
 
+    [string]$KernelPath,
+    [string]$InitrdPath,
+    [AllowEmptyString()]
+    [string]$KernelAppend,
+
     [string[]]$Device = @(),
     [string[]]$RequiredPath = @(),
     [string[]]$XemuArgument = @(),
@@ -41,8 +46,22 @@ $resolvedConfig = Resolve-WorkspacePath $ConfigPath
 $resolvedBios = Resolve-WorkspacePath $BiosPath
 $resolvedMcpx = Resolve-WorkspacePath $McpxPath
 $resolvedRequired = @($RequiredPath | ForEach-Object { Resolve-WorkspacePath $_ })
+$hasKernel = -not [string]::IsNullOrWhiteSpace($KernelPath)
+$hasInitrd = -not [string]::IsNullOrWhiteSpace($InitrdPath)
+
+if ($hasKernel -ne $hasInitrd) {
+    throw 'KernelPath and InitrdPath must be provided together.'
+}
+
+if ($OmitMachineArgument -and $hasKernel) {
+    throw 'Direct-kernel options cannot be used with OmitMachineArgument.'
+}
+
+$resolvedKernel = if ($hasKernel) { Resolve-WorkspacePath $KernelPath } else { $null }
+$resolvedInitrd = if ($hasInitrd) { Resolve-WorkspacePath $InitrdPath } else { $null }
+$resolvedDirectKernel = if ($hasKernel) { @($resolvedKernel, $resolvedInitrd) } else { @() }
 $allRequired = @($resolvedXemu, $resolvedConfig, $resolvedBios, $resolvedMcpx) +
-    $resolvedRequired
+    $resolvedRequired + $resolvedDirectKernel
 
 if ($env:XBOX_XEMU_DRY_RUN -eq '1') {
     $DryRun = $true
@@ -66,8 +85,17 @@ $launchArguments.Add('-bios')
 $launchArguments.Add($resolvedBios)
 
 if (-not $OmitMachineArgument) {
+    $machineArgument = "xbox,bootrom=$resolvedMcpx,kernel-irqchip=off,avpack=$Avpack"
+
+    if ($hasKernel) {
+        $machineArgument += ",kernel=$resolvedKernel,initrd=$resolvedInitrd"
+        if ($PSBoundParameters.ContainsKey('KernelAppend')) {
+            $machineArgument += ",append=$KernelAppend"
+        }
+    }
+
     $launchArguments.Add('-machine')
-    $launchArguments.Add("xbox,bootrom=$resolvedMcpx,kernel-irqchip=off,avpack=$Avpack")
+    $launchArguments.Add($machineArgument)
 }
 
 foreach ($deviceName in $Device) {

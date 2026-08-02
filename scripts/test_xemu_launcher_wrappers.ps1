@@ -15,7 +15,14 @@ function New-LauncherCase {
         [Parameter(Mandatory)]
         [string]$Bios,
 
+        [ValidateSet('composite', 'svideo', 'component', 'vga', 'hdtv')]
+        [string]$Avpack = 'composite',
+        [string]$KernelPath,
+        [string]$InitrdPath,
+        [AllowEmptyString()]
+        [string]$KernelAppend,
         [string[]]$Devices = @(),
+        [string[]]$XemuArguments = @(),
         [string[]]$RequiredPaths = @(),
         [string]$XemuPath = $defaultXemu,
         [switch]$OmitMachineArgument
@@ -25,7 +32,13 @@ function New-LauncherCase {
         Launcher = $Launcher
         Config = $Config
         Bios = $Bios
+        Avpack = $Avpack
+        KernelPath = $KernelPath
+        InitrdPath = $InitrdPath
+        KernelAppend = $KernelAppend
+        HasKernelAppend = $PSBoundParameters.ContainsKey('KernelAppend')
         Devices = [string[]]$Devices
+        XemuArguments = [string[]]$XemuArguments
         RequiredPaths = [string[]]$RequiredPaths
         XemuPath = $XemuPath
         OmitMachineArgument = [bool]$OmitMachineArgument
@@ -191,6 +204,67 @@ $cases = @(
         -Bios 'Xbox-Emulator-Files\bios\Complex_4627.bin' `
         -RequiredPaths 'artifacts\xromwell-xboxdev.iso' `
         -OmitMachineArgument
+
+    New-LauncherCase `
+        -Launcher 'run-xemu-tinycore.ps1' `
+        -Config 'run\xemu.toml' `
+        -Bios 'Xbox-Emulator-Files\bios\Complex_4627.bin' `
+        -Avpack 'hdtv' `
+        -KernelPath 'upstream\tinycore-17-x86\vmlinuz' `
+        -InitrdPath 'upstream\tinycore-17-x86\core.gz' `
+        -KernelAppend 'quiet' `
+        -XemuPath 'tools\xemu\xemu.exe'
+    New-LauncherCase `
+        -Launcher 'run-xemu-tinycore-headless.ps1' `
+        -Config 'run\xemu.toml' `
+        -Bios 'Xbox-Emulator-Files\bios\Complex_4627.bin' `
+        -Avpack 'hdtv' `
+        -KernelPath 'upstream\tinycore-17-x86\vmlinuz' `
+        -InitrdPath 'upstream\tinycore-17-x86\core.gz' `
+        -KernelAppend 'quiet' `
+        -XemuArguments @('-display', 'none', '-S') `
+        -XemuPath 'tools\xemu\xemu.exe'
+    New-LauncherCase `
+        -Launcher 'run-xemu-xbox-kernel-tinycore.ps1' `
+        -Config 'run\xemu.toml' `
+        -Bios 'Xbox-Emulator-Files\bios\Complex_4627.bin' `
+        -Avpack 'hdtv' `
+        -KernelPath 'artifacts\kernels\xbox-linux-5.8.1-bzImage' `
+        -InitrdPath 'upstream\tinycore-17-x86\core.gz' `
+        -KernelAppend 'quiet' `
+        -XemuPath 'tools\xemu\xemu.exe'
+    New-LauncherCase `
+        -Launcher 'run-xemu-xbox-smoke-debugcon.ps1' `
+        -Config 'run\xemu.toml' `
+        -Bios 'Xbox-Emulator-Files\bios\Complex_4627.bin' `
+        -Avpack 'hdtv' `
+        -KernelPath 'artifacts\kernels\xbox-linux-5.8.1-bzImage' `
+        -InitrdPath 'artifacts\initramfs\xbox-smoke-core.gz' `
+        -KernelAppend 'debug' `
+        -XemuArguments @(
+            '-chardev', "file,id=debugcon,path=$(Join-Path $repoRoot 'run\guest-debugcon.log')",
+            '-device', 'isa-debugcon,iobase=0xe9,chardev=debugcon'
+        ) `
+        -XemuPath 'tools\xemu\xemu.exe'
+    New-LauncherCase `
+        -Launcher 'run-xemu-xbox-smoke-initramfs.ps1' `
+        -Config 'run\xemu.toml' `
+        -Bios 'Xbox-Emulator-Files\bios\Complex_4627.bin' `
+        -Avpack 'hdtv' `
+        -KernelPath 'artifacts\kernels\xbox-linux-5.8.1-bzImage' `
+        -InitrdPath 'artifacts\initramfs\xbox-smoke-core.gz' `
+        -KernelAppend 'debug' `
+        -XemuPath 'tools\xemu\xemu.exe'
+    New-LauncherCase `
+        -Launcher 'run-xemu-xbox-smoke-serial.ps1' `
+        -Config 'run\xemu.toml' `
+        -Bios 'Xbox-Emulator-Files\bios\Complex_4627.bin' `
+        -Avpack 'hdtv' `
+        -KernelPath 'artifacts\kernels\xbox-linux-5.8.1-serial-bzImage' `
+        -InitrdPath 'artifacts\initramfs\xbox-smoke-core.gz' `
+        -KernelAppend 'console=ttyS0,,115200n8' `
+        -XemuArguments @('-serial', "file:$(Join-Path $repoRoot 'run\guest-serial.log')") `
+        -XemuPath 'tools\xemu\xemu.exe'
 )
 
 $oldDryRun = $env:XBOX_XEMU_DRY_RUN
@@ -199,6 +273,38 @@ $env:XBOX_XEMU_DRY_RUN = '1'
 $env:XBOX_XEMU_SKIP_PATH_VALIDATION = '1'
 
 try {
+    $helper = Join-Path $repoRoot 'scripts\invoke_xemu.ps1'
+    $partialKernelError = $null
+    try {
+        & $helper `
+            -ConfigPath 'run\xemu.toml' `
+            -BiosPath 'Xbox-Emulator-Files\bios\Complex_4627.bin' `
+            -KernelPath 'artifacts\kernels\xbox-linux-5.8.1-bzImage' `
+            -DryRun
+    } catch {
+        $partialKernelError = $_.Exception.Message
+    }
+    if ($partialKernelError -ne 'KernelPath and InitrdPath must be provided together.') {
+        throw 'Partial direct-kernel configuration was not rejected.'
+    }
+
+    $conflictingModeError = $null
+    try {
+        & $helper `
+            -ConfigPath 'run\xemu.toml' `
+            -BiosPath 'Xbox-Emulator-Files\bios\Complex_4627.bin' `
+            -KernelPath 'artifacts\kernels\xbox-linux-5.8.1-bzImage' `
+            -InitrdPath 'artifacts\initramfs\xbox-smoke-core.gz' `
+            -OmitMachineArgument `
+            -DryRun
+    } catch {
+        $conflictingModeError = $_.Exception.Message
+    }
+    if ($conflictingModeError -ne
+        'Direct-kernel options cannot be used with OmitMachineArgument.') {
+        throw 'Conflicting machine argument modes were not rejected.'
+    }
+
     foreach ($case in $cases) {
         $launcher = Join-Path $repoRoot $case.Launcher
         $result = & $launcher
@@ -209,15 +315,26 @@ try {
         )
 
         if (-not $case.OmitMachineArgument) {
+            $machineArgument = "xbox,bootrom=$(Join-Path $repoRoot $mcpxRelative),kernel-irqchip=off,avpack=$($case.Avpack)"
+
+            if ($case.KernelPath) {
+                $machineArgument += ",kernel=$(Join-Path $repoRoot $case.KernelPath),initrd=$(Join-Path $repoRoot $case.InitrdPath)"
+                if ($case.HasKernelAppend) {
+                    $machineArgument += ",append=$($case.KernelAppend)"
+                }
+            }
+
             $expectedArguments += @(
                 '-machine',
-                "xbox,bootrom=$(Join-Path $repoRoot $mcpxRelative),kernel-irqchip=off,avpack=composite"
+                $machineArgument
             )
         }
 
         foreach ($device in $case.Devices) {
             $expectedArguments += @('-device', $device)
         }
+
+        $expectedArguments += $case.XemuArguments
 
         if ($result.XemuPath -ne $expectedXemu) {
             throw "Xemu path mismatch for $($case.Launcher)"
@@ -237,6 +354,12 @@ try {
         $expectedRequired += @($case.RequiredPaths | ForEach-Object {
             Join-Path $repoRoot $_
         })
+        if ($case.KernelPath) {
+            $expectedRequired += @(
+                (Join-Path $repoRoot $case.KernelPath),
+                (Join-Path $repoRoot $case.InitrdPath)
+            )
+        }
 
         if ((ConvertTo-Json @($result.RequiredPaths) -Compress) -ne
             (ConvertTo-Json @($expectedRequired) -Compress)) {

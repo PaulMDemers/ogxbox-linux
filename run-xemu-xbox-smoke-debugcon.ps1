@@ -1,27 +1,24 @@
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-$xemu = Join-Path $repoRoot 'tools\xemu\xemu.exe'
-$config = Join-Path $repoRoot 'run\xemu.toml'
-$mcpx = Join-Path $repoRoot 'Xbox-Emulator-Files\mcpx\mcpx_1.0.bin'
-$bios = Join-Path $repoRoot 'Xbox-Emulator-Files\bios\Complex_4627.bin'
-$kernel = Join-Path $repoRoot 'artifacts\kernels\xbox-linux-5.8.1-bzImage'
-$initrd = Join-Path $repoRoot 'artifacts\initramfs\xbox-smoke-core.gz'
+$launcher = Join-Path $repoRoot 'scripts\invoke_xemu.ps1'
 $debugLog = Join-Path $repoRoot 'run\guest-debugcon.log'
 
-foreach ($path in @($xemu, $config, $mcpx, $bios, $kernel, $initrd)) {
-    if (-not (Test-Path $path)) {
-        throw "Required file was not found: $path"
-    }
+if ($env:XBOX_XEMU_DRY_RUN -ne '1') {
+    Remove-Item -LiteralPath $debugLog -Force -ErrorAction SilentlyContinue
 }
 
-Remove-Item -Force $debugLog -ErrorAction SilentlyContinue
-$append = 'debug'
+$xemuArguments = @(
+    '-chardev', "file,id=debugcon,path=$debugLog",
+    '-device', 'isa-debugcon,iobase=0xe9,chardev=debugcon'
+) + [string[]]$args
 
-& $xemu `
-    -config_path $config `
-    -bios $bios `
-    -machine "xbox,bootrom=$mcpx,kernel-irqchip=off,avpack=hdtv,kernel=$kernel,initrd=$initrd,append=$append" `
-    -chardev "file,id=debugcon,path=$debugLog" `
-    -device "isa-debugcon,iobase=0xe9,chardev=debugcon" `
-    @args
+& $launcher `
+    -ConfigPath 'run\xemu.toml' `
+    -BiosPath 'Xbox-Emulator-Files\bios\Complex_4627.bin' `
+    -XemuPath 'tools\xemu\xemu.exe' `
+    -Avpack 'hdtv' `
+    -KernelPath 'artifacts\kernels\xbox-linux-5.8.1-bzImage' `
+    -InitrdPath 'artifacts\initramfs\xbox-smoke-core.gz' `
+    -KernelAppend 'debug' `
+    -XemuArgument ([string[]]$xemuArguments)
