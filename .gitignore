@@ -23,6 +23,8 @@
 /run/hdd/
 /run/boot-reliability/
 /run/desktop-candidate/
+/run/devuan58-hot-order-ab/
+/run/devuan58-hot-order-closure/
 
 # Generated boot media / firmware / disk images
 *.iso

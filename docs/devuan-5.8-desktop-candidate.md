@@ -140,3 +140,54 @@ the fully settled desktop 43 seconds slower, so it must not be promoted.
 
 The next candidate should test SquashFS hot-file ordering or block layout while
 keeping the proven loader and FATX path unchanged.
+
+## SquashFS Hot-Order Experiment
+
+The matched A/B builder is:
+
+```powershell
+.\scripts\new_devuan_5_8_hot_order_candidates.ps1
+```
+
+It extracts the exact ABI-fixed candidate once, then creates a control repack
+and a hot-order repack with identical gzip, 128 KiB block, and fixed-time
+settings. The 192-entry sort file gives startup binaries and their library
+closures the highest priority, followed by Dillo, mtPaint, Xfe, and initial
+desktop data. Local `mksquashfs` testing confirmed that higher sort priority
+places data earlier in the image.
+
+The control filesystem has the same size as the audited candidate and differs
+at only superblock bytes 8-11, the filesystem creation timestamp. Both exact
+payload audits passed, including all representative application relocation
+checks.
+
+Use the repeated cold-boot harness with:
+
+```powershell
+.\scripts\test_devuan_5_8_hot_order.ps1 -Runs 5 -RequiredPasses 2
+```
+
+The harness regenerates the raw HDD for every attempt, stages config, kernel,
+and initramfs first at fixed contiguous clusters, stages the payload after
+them, verifies every full-file FATX readback hash, and captures the complete
+xemu window every ten seconds. In the decisive repeated run, both variants
+passed twice with identical visual timings:
+
+```text
+                       Linux text   first X   proof visible
+control run 1              53 s       85 s          96 s
+control run 2              53 s       85 s          96 s
+hot-order run 1            53 s       85 s          96 s
+hot-order run 2            53 s       85 s          96 s
+```
+
+`proof visible` means X and the populated proof terminal were rendered. It is
+not an interactive-ready signal: Fluxbox chrome and USB-keyboard input can
+arrive substantially later. A control-only settled profile measured cold
+closures at 10.7 seconds for Dillo, 38.2 seconds for mtPaint, and 21.9 seconds
+for Xfe. The corresponding hot-order closure profile was inconclusive because
+that xemu run did not accept emulated USB-keyboard input.
+
+Do not promote the hot-order package. It has no reproduced visual boot benefit,
+and its application-launch effect remains unproven. Keep the protected 5.8.1
+package as the release baseline.

@@ -438,6 +438,13 @@ def write_path_file(fp, part: FatxPartition, path: str, data: bytes, *, layout: 
 
     add_directory_entry(fp, part, directory_cluster, name, ATTR_ARCHIVE, clusters[0], len(data))
     readback = read_path_file(fp, part, path)
+    source_sha256 = hashlib.sha256(data).hexdigest()
+    readback_sha256 = hashlib.sha256(readback).hexdigest()
+    if source_sha256 != readback_sha256:
+        raise RuntimeError(
+            f"FATX readback mismatch for {path}: "
+            f"source={source_sha256} readback={readback_sha256}"
+        )
     first_sector = part.cluster_offset(clusters[0]) // 512
     last_sector = (part.cluster_offset(clusters[-1]) + part.cluster_size - 1) // 512
     return FatxWriteResult(
@@ -447,8 +454,8 @@ def write_path_file(fp, part: FatxPartition, path: str, data: bytes, *, layout: 
         cluster_count=len(clusters),
         disk_offset=part.cluster_offset(clusters[0]),
         contiguous=all(clusters[index] + 1 == clusters[index + 1] for index in range(len(clusters) - 1)),
-        sha256=hashlib.sha256(data).hexdigest(),
-        readback_sha256=hashlib.sha256(readback).hexdigest(),
+        sha256=source_sha256,
+        readback_sha256=readback_sha256,
         first_sector=first_sector,
         last_sector=last_sector,
         chain_sample=clusters[:64],
@@ -486,6 +493,12 @@ def main() -> int:
     parser.add_argument("--payload-name", default="linuxroot.ext2")
     parser.add_argument("--append-payload-info", action="store_true")
     parser.add_argument(
+        "--stage-order",
+        choices=("payload-first", "boot-first"),
+        default="payload-first",
+        help="write payload before boot files (legacy) or pin boot files before payload",
+    )
+    parser.add_argument(
         "--boot-layout",
         choices=("normal", "contiguous", "fragmented"),
         default="normal",
@@ -504,6 +517,8 @@ def main() -> int:
 
     if args.raw_image.suffix.lower() == ".qcow2":
         raise SystemExit("refusing to edit qcow2 directly; convert to a disposable raw image first")
+    if args.stage_order == "boot-first" and args.append_payload_info:
+        raise SystemExit("--stage-order boot-first cannot be combined with --append-payload-info")
 
     with args.raw_image.open("r+b") as fp:
         part = open_partition(fp, args.raw_image, args.partition)
@@ -518,6 +533,7 @@ def main() -> int:
             "cluster1_offset": part.cluster1_offset,
             "boot_layout": args.boot_layout,
             "payload_layout": args.payload_layout,
+            "stage_order": args.stage_order,
             "files": [],
         }
 
@@ -525,7 +541,9 @@ def main() -> int:
             clean_known_boot_files(fp, part)
             print("cleaned known root-level Linux boot files")
 
-        if args.payload:
+        def stage_payload() -> FatxWriteResult | None:
+            if not args.payload:
+                return None
             payload_result = write_root_file(fp, part, args.payload_name, args.payload.read_bytes(), layout=args.payload_layout)
             if args.payload_layout == "contiguous" and not payload_result.contiguous:
                 raise RuntimeError(f"/{args.payload_name} was not allocated contiguously")
@@ -535,38 +553,46 @@ def main() -> int:
                 f"cluster={payload_result.start_cluster} clusters={payload_result.cluster_count} "
                 f"offset={payload_result.disk_offset} contiguous={payload_result.contiguous}"
             )
-            if args.append_payload_info:
+            return payload_result
+
+        def stage_boot(boot_append: str) -> None:
+            initrd_line = "initrd no\n"
+            if args.initrd:
+                initrd_line = f"initrd {args.initrd_name}\n"
+
+            cfg = (
+                f"title {args.title}\n"
+                f"kernel {args.kernel_name}\n"
+                f"{initrd_line}"
+                f"append {boot_append}\n"
+            ).encode("ascii")
+            files = {
+                "linuxboot.cfg": cfg,
+                args.kernel_name: args.kernel.read_bytes(),
+            }
+            if args.initrd:
+                files[args.initrd_name] = args.initrd.read_bytes()
+
+            for name, data in files.items():
+                result = write_root_file(fp, part, name, data, layout=args.boot_layout)
+                manifest["files"].append(result.__dict__)
+                print(
+                    f"wrote /{name}: {result.size} bytes "
+                    f"cluster={result.start_cluster} clusters={result.cluster_count} "
+                    f"contiguous={result.contiguous} sha256={result.sha256[:16]}"
+                )
+
+        if args.stage_order == "boot-first":
+            stage_boot(append)
+            stage_payload()
+        else:
+            payload_result = stage_payload()
+            if payload_result is not None and args.append_payload_info:
                 append = (
                     f"{append} tc_payload_offset={payload_result.disk_offset} "
                     f"tc_payload_size={payload_result.size} tc_payload_file=/{args.payload_name}"
                 )
-
-        initrd_line = "initrd no\n"
-        if args.initrd:
-            initrd_line = f"initrd {args.initrd_name}\n"
-
-        cfg = (
-            f"title {args.title}\n"
-            f"kernel {args.kernel_name}\n"
-            f"{initrd_line}"
-            f"append {append}\n"
-        ).encode("ascii")
-
-        files = {
-            "linuxboot.cfg": cfg,
-            args.kernel_name: args.kernel.read_bytes(),
-        }
-        if args.initrd:
-            files[args.initrd_name] = args.initrd.read_bytes()
-
-        for name, data in files.items():
-            result = write_root_file(fp, part, name, data, layout=args.boot_layout)
-            manifest["files"].append(result.__dict__)
-            print(
-                f"wrote /{name}: {result.size} bytes "
-                f"cluster={result.start_cluster} clusters={result.cluster_count} "
-                f"contiguous={result.contiguous} sha256={result.sha256[:16]}"
-            )
+            stage_boot(append)
 
         print(f"\n{args.partition.upper()}: root directory:")
         for line in list_root(fp, part):
