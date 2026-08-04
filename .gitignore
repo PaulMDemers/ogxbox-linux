@@ -25,6 +25,8 @@
 /run/desktop-candidate/
 /run/devuan58-hot-order-ab/
 /run/devuan58-hot-order-closure/
+/run/devuan58-*/
+/run/tinycore-hdd-*/
 
 # Generated boot media / firmware / disk images
 *.iso

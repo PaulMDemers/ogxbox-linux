@@ -1,6 +1,6 @@
 # Original Xbox Linux Project Status
 
-Updated: 2026-08-02
+Updated: 2026-08-03
 
 This is the current entry point for the project. Historical investigation notes
 remain in `docs/`, but this file identifies the protected baseline, active source
@@ -91,11 +91,11 @@ hardware-tested Devuan ZIP. A dry run is the cleanup script's default.
 - **Devuan 5.8 non-disc:** terminal and desktop boot on xemu and real hardware. This is the stable base for further work.
 - **Devuan 5.8 cold boots:** the protected terminal package passed 3/3 fresh xemu boots, reaching Linux text at 45 seconds and the proof shell in 80-86 seconds. The protected desktop passed 3/3, reaching Linux in 45-46 seconds, X in 85-86 seconds, and a populated terminal in 91-97 seconds. One of two earlier exploratory desktop boots stalled while Xromwell loaded the initramfs, so loader reliability remains worth watching despite the clean measured batches. See `docs/devuan-5.8-cold-boot-reliability.md`.
 - **Devuan 5.8 desktop candidate:** an isolated candidate now removes the Tiny Core `/usr/local/lib` override from distro application launches. Its exact squashfs passes relocation checks for the representative desktop applications. A fresh xemu boot reached the proof terminal before Fluxbox was usable, settled to a complete desktop at about 208 seconds, and mapped Dillo in under 90 seconds. mtPaint no longer crashes on the prior FreeType ABI mismatch, but still had not mapped after more than three minutes. See `docs/devuan-5.8-desktop-candidate.md`.
-- **Devuan 5.8 storage profile:** the candidate's active read-ahead is `hda=1024 KiB`, FATX `loop0=2048 KiB`, and SquashFS `loop1=2048 KiB`. Five uncached 1 MiB reads across `loop1` were uniform at 1.17-1.39 seconds, while cold executable/library closure reads took 68.7 seconds for Dillo, 62.4 seconds for mtPaint, and 18.5 seconds for Xfe. A config-only Fluxbox preload candidate regressed desktop settle time from 209 to 252 seconds and is rejected. The evidence points to expensive scattered cold SquashFS reads, not a slow region or per-read FATX chain walk.
+- **Devuan 5.8 storage profile:** an input-free self-test compared SquashFS block sizes, compression, and both loop read-ahead values on freshly staged disks. Gzip/128 KiB remains the format baseline: 64 KiB was neutral, 256 KiB and 1 MiB regressed, and zstd/128 KiB saved 26.2 MiB without improving elapsed time. Reducing both loop read-ahead values from 2048 KiB to 128 KiB cut the repeated self-test median from 150 to 117 seconds; 512 KiB measured 128 seconds. A normal RA128 desktop candidate passed 3/3 fresh xemu boots, but a matched RA2048 control also passed 3/3 and reached the early visual proof 0-11 seconds sooner. RA128 is therefore a hardware responsiveness candidate, not a promoted default. See `docs/devuan-5.8-storage-selftest.md`.
 - **Devuan 5.8 SquashFS ordering:** a matched control/hot-order experiment passed exact-payload audits and two repeated cold xemu boots per variant. All four boots reached Linux text at 53 seconds, first X at 85 seconds, and a visible populated proof terminal at 96 seconds. The ordering produced no repeatable visual boot gain and is not promoted. The test also confirmed that visual proof is earlier than a responsive Fluxbox desktop. See `docs/devuan-5.8-desktop-candidate.md`.
 - **Linux 5.8 FATX:** read-only FATX is sufficient to locate and loop-mount distro payload files from E:.
 - **Linux 6.18:** Xbox bringup works in several paths, but the release sweep still has unresolved optical/root-mount and desktop behavior. Commit `829b71ab17ed` adds the xemu-validated existing-file-only FATX write path. Commit `502b7bb738cf` is the clean read-only rollback point. Real-hardware write testing remains opt-in and experimental.
-- **Tiny Core:** 5.8 hardware boots have succeeded; 6.18 testing produced a mix of mount failures, panics, terminal-only boots, and optical tray detection failures. Neither should supersede the Devuan baseline yet.
+- **Tiny Core:** the protected 6.18.33 HDD/FATX lean package and an isolated RA128 rebuild each passed 3/3 fresh xemu boots through the proven Cromwell-ROM transport, reaching Linux at 21 seconds and the complete Xfbdev desktop at 42 seconds. The rebuild preserves the kernel, payload, and XBE; it changes only the initramfs storage tuning and config arguments, setting physical-disk read-ahead to 1024 KiB and both FATX/root loops to 128 KiB. Complex BIOS plus the XBE-on-DVD wrapper still loses the initrd and panics at `unknown-block(3,1)`, including with the protected control, so it is not the HDD-package gate. See `docs/tinycore-hdd-ra128-candidate.md`.
 - **Cromwell/Xromwell:** the sector512 XBE hash above is the known launcher baseline. Later loader timing/trace branches remain diagnostic only.
 - **Optical boot:** useful for experiments, but less reliable than the validated E:-root non-disc path and sensitive to drive/media behavior.
 - **xemu launchers:** 44 historical root entry points are classified in `docs/xemu-launchers.md`. Thirty-seven static Linux launchers use the dry-run-tested `scripts/invoke_xemu.ps1`; two Devuan live-disc launchers use the tested temporary-media layer above it. The persistent Xromwell HDD/FATX diagnostic launcher remains explicit by design.
@@ -155,10 +155,19 @@ Build and repeatedly test the matched SquashFS control/hot-order experiment:
 .\scripts\test_devuan_5_8_hot_order.ps1 -Runs 5 -RequiredPasses 2
 ```
 
+Build and test the isolated Tiny Core HDD/FATX RA128 candidate without
+modifying the hardware-passed ZIP:
+
+```powershell
+.\scripts\new_tinycore_hdd_ra128_candidate.ps1
+.\scripts\test_tinycore_hdd_candidate.ps1 -Runs 3 -RequiredPasses 3
+```
+
 ## Next Audit Priorities
 
 1. Keep normal packages on read-only FATX; test `829b71ab17ed` write support only through explicit persistence-smoke packages until hardware safety is established.
 2. Keep the persistent Xromwell dynamic launcher separate; add dry-run coverage only after its default raw-HDD fixture is regenerated.
-3. Leave the neutral SquashFS hot-order candidate unpromoted. The next performance experiment should test block-size/compression layout or produce a reliable post-settle application benchmark before changing more package content.
-4. Promote desktop changes only through isolated candidates derived from the validated 5.8 package.
-5. Repeat the cold-boot batch on future loader, kernel, initramfs, or payload candidates before hardware testing.
+3. Test the Tiny Core RA128 package on real hardware for post-desktop responsiveness; do not promote it based on equal xemu boot timing alone.
+4. Leave the neutral SquashFS hot-order candidate unpromoted. The next performance experiment should produce a reliable post-settle application benchmark before changing more package content.
+5. Promote desktop changes only through isolated candidates derived from a validated package.
+6. Repeat the cold-boot batch on future loader, kernel, initramfs, or payload candidates before hardware testing.

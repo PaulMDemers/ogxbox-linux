@@ -1,0 +1,179 @@
+[CmdletBinding()]
+param(
+    [ValidateRange(1, 10)]
+    [int]$Runs = 3,
+    [ValidateRange(1, 10)]
+    [int]$RequiredPasses = 3,
+    [ValidateRange(120, 600)]
+    [int]$TimeoutSeconds = 300,
+    [ValidateRange(5, 30)]
+    [int]$PollSeconds = 10,
+    [string]$CandidateRoot = 'artifacts\devuan-5.8.1-desktop-ra128-candidate',
+    [string]$OutputRoot = 'run\devuan58-desktop-ra128'
+)
+
+$ErrorActionPreference = 'Stop'
+$repoRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
+$candidateFull = [System.IO.Path]::GetFullPath((Join-Path $repoRoot $CandidateRoot))
+$manifestPath = Join-Path $candidateFull 'candidate-manifest.json'
+$manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
+$packageDir = Join-Path $candidateFull $manifest.candidate.directory
+$eRoot = Join-Path $packageDir 'E-root'
+$baseHdd = Join-Path $repoRoot 'Xbox-Emulator-Files\hdd\xbox_hdd.qcow2'
+$rawHdd = Join-Path $repoRoot 'run\hdd\devuan58-desktop-candidate.raw'
+$xemu = Join-Path $repoRoot 'tools\xemu-v0.8.135-nvnet\xemu.exe'
+$capture = Join-Path $repoRoot 'tools\capture-xemu-window\bin\Release\net10.0-windows\CaptureXemuWindow.exe'
+$classifier = Join-Path $repoRoot 'scripts\classify_xemu_boot_frame.py'
+$converter = Join-Path $repoRoot 'scripts\qcow2_to_raw_sparse.py'
+$stager = Join-Path $repoRoot 'scripts\fatx_stage_boot.py'
+$bios = Join-Path $repoRoot 'Xbox-Emulator-Files\bios\Complex_4627.bin'
+$mcpx = Join-Path $repoRoot 'Xbox-Emulator-Files\mcpx\mcpx_1.0.bin'
+$eeprom = Join-Path $repoRoot 'run\eeprom.bin'
+$loaderIso = Join-Path $repoRoot 'artifacts\xromwell-sector512-baseline.iso'
+
+function Assert-FileHash {
+    param([string]$Path, [string]$Expected)
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { throw "Required file was not found: $Path" }
+    $actual = (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash
+    if ($actual -ne $Expected) { throw "SHA-256 mismatch for $Path. Expected $Expected, got $actual" }
+}
+
+function Write-XemuConfig {
+    param([string]$Path, [string]$Hdd)
+    @"
+[general]
+show_welcome = false
+
+[sys.files]
+bootrom_path = '$mcpx'
+flashrom_path = '$bios'
+eeprom_path = '$eeprom'
+hdd_path = '$Hdd'
+dvd_path = '$loaderIso'
+
+[input.bindings]
+port1 = 'keyboard'
+port1_driver = 'usb-xbox-gamepad'
+"@ | Set-Content -LiteralPath $Path -Encoding ASCII
+}
+
+foreach ($required in @($manifestPath, $baseHdd, $xemu, $capture, $classifier, $converter, $stager, $bios, $mcpx, $eeprom, $loaderIso)) {
+    if (-not (Test-Path -LiteralPath $required -PathType Leaf)) { throw "Required file was not found: $required" }
+}
+if (Get-Process xemu -ErrorAction SilentlyContinue) { throw 'xemu is already running. Close it before testing.' }
+if ($RequiredPasses -gt $Runs) { throw "RequiredPasses ($RequiredPasses) cannot exceed Runs ($Runs)." }
+foreach ($property in $manifest.candidate.files.psobject.Properties) {
+    Assert-FileHash (Join-Path $packageDir ($property.Name.Replace('/', '\'))) $property.Value
+}
+
+$cfg = Get-Content -LiteralPath (Join-Path $eRoot 'linuxboot.cfg') -Raw
+$appendLine = $cfg -split "`r?`n" | Where-Object { $_ -like 'append *' } | Select-Object -First 1
+if (-not $appendLine) { throw "linuxboot.cfg has no append line: $eRoot" }
+$append = $appendLine.Substring('append '.Length)
+$session = Join-Path (Join-Path $repoRoot $OutputRoot) ([DateTime]::Now.ToString('yyyyMMdd-HHmmss'))
+New-Item -ItemType Directory -Force -Path $session, (Split-Path -Parent $rawHdd) | Out-Null
+$results = [System.Collections.Generic.List[object]]::new()
+$passedRuns = 0
+
+for ($run = 1; $run -le $Runs; $run++) {
+    $runDir = Join-Path $session ("run-{0:d2}" -f $run)
+    New-Item -ItemType Directory -Force -Path $runDir | Out-Null
+    $layout = Join-Path $runDir 'fatx-layout.json'
+    $config = Join-Path $runDir 'xemu.toml'
+
+    & python $converter $baseHdd $rawHdd --force
+    if ($LASTEXITCODE -ne 0) { throw "qcow2 conversion failed for run $run" }
+    & python $stager $rawHdd --partition E --clean-known-boot `
+        --kernel (Join-Path $eRoot 'devkrnl') --kernel-name devkrnl `
+        --initrd (Join-Path $eRoot 'devinit') --initrd-name devinit `
+        --payload (Join-Path $eRoot 'devuan.squashfs') --payload-name devuan.squashfs `
+        --append $append --title 'Xbox HDD' --boot-layout contiguous --payload-layout contiguous `
+        --stage-order boot-first --manifest $layout
+    if ($LASTEXITCODE -ne 0) { throw "FATX staging failed for run $run" }
+    $layoutData = Get-Content -LiteralPath $layout -Raw | ConvertFrom-Json
+    foreach ($file in $layoutData.files) {
+        if ($file.contiguous -ne $true) { throw "Staged FATX file is fragmented: $($file.name)" }
+        if ($file.sha256 -ne $file.readback_sha256) { throw "FATX readback failed: $($file.name)" }
+    }
+    Write-XemuConfig $config $rawHdd
+
+    $started = Get-Date
+    $process = $null
+    $frames = [System.Collections.Generic.List[object]]::new()
+    $outcome = 'timed-out'
+    $firstLinux = $null
+    $firstX = $null
+    $proofVisible = $null
+    $previousFingerprint = $null
+    $repeatedFingerprintPolls = 0
+    $lastStage = $null
+    try {
+        $process = Start-Process -FilePath $xemu -ArgumentList @(
+            '-config_path', $config, '-bios', $bios,
+            '-machine', "xbox,bootrom=$mcpx,kernel-irqchip=off,avpack=composite", '-snapshot'
+        ) -PassThru
+        while (-not $process.HasExited -and ((Get-Date) - $started).TotalSeconds -lt $TimeoutSeconds) {
+            Start-Sleep -Seconds $PollSeconds
+            $elapsed = [int][Math]::Round(((Get-Date) - $started).TotalSeconds)
+            & $capture --pid $process.Id --out-dir $runDir --prefix ("frame-{0:d3}s" -f $elapsed) --rect frame | Out-Null
+            if ($LASTEXITCODE -ne 0) { continue }
+            $png = Get-ChildItem -LiteralPath $runDir -Filter '*.png' | Sort-Object LastWriteTime | Select-Object -Last 1
+            if (-not $png) { continue }
+            $analysis = & python $classifier $png.FullName | ConvertFrom-Json
+            $frames.Add([pscustomobject]@{ elapsedSeconds = $elapsed; image = $png.Name; analysis = $analysis })
+            $lastStage = $analysis.stage
+            if ($analysis.stage -eq 'linux-text' -and $null -eq $firstLinux) { $firstLinux = $elapsed }
+            if ($analysis.stage -eq 'desktop-x' -and $null -eq $firstX) { $firstX = $elapsed }
+            if ($analysis.fingerprint -eq $previousFingerprint) { $repeatedFingerprintPolls++ } else { $repeatedFingerprintPolls = 0 }
+            $previousFingerprint = $analysis.fingerprint
+            if ($analysis.stage -eq 'desktop-x' -and $analysis.centerDarkRatio -ge 0.66) {
+                $proofVisible = $elapsed
+                $outcome = 'passed'
+                break
+            }
+            if ($analysis.stage -eq 'xromwell' -and $repeatedFingerprintPolls -ge 5) {
+                $outcome = 'stalled-xromwell'
+                break
+            }
+        }
+        $process.Refresh()
+        if ($process.HasExited -and $outcome -ne 'passed') { $outcome = 'xemu-exited' }
+    }
+    finally {
+        if ($process -and -not $process.HasExited) {
+            Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+            $process.WaitForExit(10000) | Out-Null
+        }
+    }
+
+    $result = [ordered]@{
+        run = $run
+        outcome = $outcome
+        elapsedSeconds = [int][Math]::Round(((Get-Date) - $started).TotalSeconds)
+        firstLinuxSeconds = $firstLinux
+        firstXSeconds = $firstX
+        proofVisibleSeconds = $proofVisible
+        frameCount = $frames.Count
+        lastStage = $lastStage
+        payloadSha256 = $manifest.candidate.files.'E-root/devuan.squashfs'
+        configSha256 = $manifest.candidate.files.'E-root/linuxboot.cfg'
+    }
+    $frames | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $runDir 'frames.json') -Encoding ASCII
+    $result | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $runDir 'result.json') -Encoding ASCII
+    $results.Add([pscustomobject]$result)
+    if ($outcome -eq 'passed') { $passedRuns++ }
+    Write-Host ("run {0}: {1} (Linux={2}s X={3}s proof={4}s)" -f $run, $outcome, $firstLinux, $firstX, $proofVisible)
+}
+
+[ordered]@{
+    generatedUtc = [DateTime]::UtcNow.ToString('o')
+    candidateManifest = $manifestPath
+    runsRequested = $Runs
+    requiredPasses = $RequiredPasses
+    passes = $passedRuns
+    results = $results
+} | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $session 'summary.json') -Encoding ASCII
+$results | Export-Csv -LiteralPath (Join-Path $session 'summary.csv') -NoTypeInformation
+$results | Format-Table run, outcome, firstLinuxSeconds, firstXSeconds, proofVisibleSeconds, frameCount -AutoSize
+Write-Host "Results: $session"
+if ($passedRuns -lt $RequiredPasses) { throw "Candidate passed $passedRuns/$Runs boots; $RequiredPasses required." }

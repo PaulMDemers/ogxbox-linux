@@ -109,6 +109,16 @@ teaching the kernel to modify FATX, but it is less convenient for the desired
 
 ## Current Performance Work
 
+The Devuan storage self-test now gives us an input-free cold-read benchmark.
+The selected next-candidate settings are gzip/128 KiB SquashFS blocks and
+128 KiB read-ahead on both the FATX backing loop and SquashFS root loop. The
+former 2048 KiB setting measured a 150-second median; 128 KiB measured 117
+seconds and the normal desktop candidate passed 3/3 fresh xemu boots. A matched
+normal RA2048 control also passed 3/3 and reached early visual proof slightly
+sooner, so RA128 remains an isolated hardware responsiveness candidate. See
+`docs/devuan-5.8-storage-selftest.md`; real-hardware responsiveness is the
+promotion gate.
+
 The Debian image now includes:
 
 ```text

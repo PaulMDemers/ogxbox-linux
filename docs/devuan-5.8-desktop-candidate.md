@@ -191,3 +191,37 @@ that xemu run did not accept emulated USB-keyboard input.
 Do not promote the hot-order package. It has no reproduced visual boot benefit,
 and its application-launch effect remains unproven. Keep the protected 5.8.1
 package as the release baseline.
+
+## Storage Self-Test And RA128 Candidate
+
+The next experiment removed keyboard automation from storage measurement. A
+boot flag runs a self-test before X, cold-reads five 1 MiB regions from the
+SquashFS loop, then reads the executable and shared-library closures for
+Xfbdev, xterm, Fluxbox, Dillo, mtPaint, and Xfe. The green console prints one
+compact summary that the full-window screenshot runner can classify.
+
+Gzip with 128 KiB blocks remains the format baseline. A 64 KiB image was
+neutral, while 256 KiB and 1 MiB images were progressively slower. A zstd
+128 KiB image was 245.5 MiB instead of 271.7 MiB, but its one 160-second run
+did not beat gzip. SquashFS ordering likewise remains rejected.
+
+The repeatable improvement was config-only: setting both
+`xbox_fatx_loop_readahead_kb` and `xbox_loop_readahead_kb` to 128. Repeated
+self-test medians were 117 seconds at 128 KiB, 128 seconds at 512 KiB, and
+150 seconds at the former 2048 KiB setting. A clean package made from the
+ordinary audited desktop candidate contains no self-test changes and passed
+three fresh xemu boots:
+
+```text
+run   Linux text   first X   proof visible
+ 1        53 s       75 s        107 s
+ 2        53 s       85 s        107 s
+ 3        53 s       85 s        107 s
+```
+
+Use `scripts/new_devuan_5_8_readahead_desktop_candidate.ps1` to rebuild it and
+`scripts/test_devuan_5_8_desktop_candidate.ps1` for the cold-boot gate. The
+candidate is ready for real-hardware responsiveness testing. A matched normal
+RA2048 control also passed 3/3 and reached visual proof in 96-107 seconds, so
+RA128 has not improved early visual startup. The protected hardware-passed
+package remains unchanged.

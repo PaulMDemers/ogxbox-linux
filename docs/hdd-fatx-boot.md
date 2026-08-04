@@ -73,6 +73,13 @@ That proves Cromwell can:
 - start the Tiny Core Xfbdev desktop
 - launch through `build\xromwell-hddfatx-autoboot-disc\default.xbe` when booted from the XDVDFS wrapper under Complex BIOS
 
+For automated HDD-package regression testing, use the FATX-autoboot Cromwell
+ROM and payload-first staging. Complex BIOS plus the XBE-on-DVD wrapper can
+drop the initrd in xemu and panic at `unknown-block(3,1)`, even with the
+protected hardware-passed package. That wrapper is a launcher diagnostic, not
+the Tiny Core HDD-package pass/fail gate. See
+`docs/tinycore-hdd-ra128-candidate.md`.
+
 The earlier BusyBox proof is still useful as a small diagnostic payload:
 
 ```text

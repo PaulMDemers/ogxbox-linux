@@ -2,6 +2,7 @@
 """Create a small raw newc initramfs with static i386 BusyBox."""
 
 from pathlib import Path
+import argparse
 import stat
 
 
@@ -493,10 +494,22 @@ ln -snf /tmp/tce /etc/sysconfig/tcedir
 
 cat > /usr/local/bin/xbox-storage-tune <<'EOX'
 #!/bin/sh
-for q in /sys/block/hd*/queue/read_ahead_kb /sys/block/sd*/queue/read_ahead_kb /sys/block/loop*/queue/read_ahead_kb; do
-    [ -w "$q" ] || continue
-    echo 1024 > "$q" 2>/dev/null || true
+DISK_RA=1024
+FATX_RA=1024
+ROOT_RA=1024
+for arg in $(cat /proc/cmdline 2>/dev/null); do
+    case "$arg" in
+        xbox_disk_readahead_kb=*) DISK_RA="${arg#xbox_disk_readahead_kb=}" ;;
+        xbox_fatx_loop_readahead_kb=*) FATX_RA="${arg#xbox_fatx_loop_readahead_kb=}" ;;
+        xbox_loop_readahead_kb=*) ROOT_RA="${arg#xbox_loop_readahead_kb=}" ;;
+    esac
 done
+for q in /sys/block/hd*/queue/read_ahead_kb /sys/block/sd*/queue/read_ahead_kb; do
+    [ -w "$q" ] || continue
+    echo "$DISK_RA" > "$q" 2>/dev/null || true
+done
+[ -w /sys/block/loop0/queue/read_ahead_kb ] && echo "$FATX_RA" > /sys/block/loop0/queue/read_ahead_kb 2>/dev/null || true
+[ -w /sys/block/loop1/queue/read_ahead_kb ] && echo "$ROOT_RA" > /sys/block/loop1/queue/read_ahead_kb 2>/dev/null || true
 EOX
 
 cat > /usr/local/bin/xbox-diag <<'EOX'
@@ -888,18 +901,19 @@ TINYCORE_HDD_EXT2_STAGE7_INIT = TINYCORE_STAGE6_INIT.replace(
 PAYLOAD_OFFSET=
 PAYLOAD_FILE=/linuxroot.ext2
 E_PARTITION_OFFSET=2884108288
+PAYLOAD_DISK=
+DISK_RA=1024
+FATX_RA=1024
+ROOT_RA=1024
 for arg in $(cat /proc/cmdline 2>/dev/null); do
     case "$arg" in
         tc_payload_offset=*) PAYLOAD_OFFSET="${arg#tc_payload_offset=}" ;;
         tc_payload_file=*) PAYLOAD_FILE="${arg#tc_payload_file=}" ;;
         tc_fatx_e_offset=*) E_PARTITION_OFFSET="${arg#tc_fatx_e_offset=}" ;;
-    esac
-done
-
-PAYLOAD_DISK=
-for arg in $(cat /proc/cmdline 2>/dev/null); do
-    case "$arg" in
         tc_payload_disk=*) PAYLOAD_DISK="${arg#tc_payload_disk=}" ;;
+        xbox_disk_readahead_kb=*) DISK_RA="${arg#xbox_disk_readahead_kb=}" ;;
+        xbox_fatx_loop_readahead_kb=*) FATX_RA="${arg#xbox_fatx_loop_readahead_kb=}" ;;
+        xbox_loop_readahead_kb=*) ROOT_RA="${arg#xbox_loop_readahead_kb=}" ;;
     esac
 done
 
@@ -917,6 +931,8 @@ fi
 if [ -z "$PAYLOAD_DISK" ]; then
     PAYLOAD_DISK=/dev/hda
 fi
+DISK_NAME="${PAYLOAD_DISK#/dev/}"
+[ -w "/sys/block/$DISK_NAME/queue/read_ahead_kb" ] && echo "$DISK_RA" > "/sys/block/$DISK_NAME/queue/read_ahead_kb" 2>/dev/null || true
 
 mknod /dev/loop0 b 7 0 2>/dev/null || true
 mknod /dev/loop1 b 7 1 2>/dev/null || true
@@ -929,6 +945,7 @@ if [ -n "$PAYLOAD_OFFSET" ]; then
     echo "Mounting Tiny Core ext2 HDD payload from $PAYLOAD_DISK at offset $PAYLOAD_OFFSET"
     if losetup -o "$PAYLOAD_OFFSET" /dev/loop0 "$PAYLOAD_DISK" 2>/tmp/tc-losetup.err; then
         echo "Attached /dev/loop0"
+        [ -w /sys/block/loop0/queue/read_ahead_kb ] && echo "$ROOT_RA" > /sys/block/loop0/queue/read_ahead_kb 2>/dev/null || true
     else
         echo "losetup failed:"
         cat /tmp/tc-losetup.err 2>/dev/null || true
@@ -943,6 +960,7 @@ else
     echo "Mounting Xbox E FATX from $PAYLOAD_DISK at offset $E_PARTITION_OFFSET"
     if losetup -o "$E_PARTITION_OFFSET" /dev/loop0 "$PAYLOAD_DISK" 2>/tmp/tc-fatx-losetup.err; then
         echo "Attached FATX loop /dev/loop0"
+        [ -w /sys/block/loop0/queue/read_ahead_kb ] && echo "$FATX_RA" > /sys/block/loop0/queue/read_ahead_kb 2>/dev/null || true
     else
         echo "FATX losetup failed:"
         cat /tmp/tc-fatx-losetup.err 2>/dev/null || true
@@ -952,6 +970,7 @@ else
         ls -la /mnt/xboxe 2>/dev/null || true
         if losetup /dev/loop1 "/mnt/xboxe$PAYLOAD_FILE" 2>/tmp/tc-file-losetup.err; then
             echo "Attached ext2 image /mnt/xboxe$PAYLOAD_FILE to /dev/loop1"
+            [ -w /sys/block/loop1/queue/read_ahead_kb ] && echo "$ROOT_RA" > /sys/block/loop1/queue/read_ahead_kb 2>/dev/null || true
         else
             echo "ext2 image losetup failed:"
             cat /tmp/tc-file-losetup.err 2>/dev/null || true
@@ -1095,7 +1114,30 @@ def build(init_data, extra_entries=None):
 
 
 def main():
-    OUT.parent.mkdir(parents=True, exist_ok=True)
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--out-dir",
+        type=Path,
+        default=ROOT / "artifacts" / "initramfs",
+        help="write every generated initramfs under this directory",
+    )
+    args = parser.parse_args()
+    out_dir = args.out_dir.resolve()
+    out_dir.mkdir(parents=True, exist_ok=True)
+    outputs = {
+        "raw": out_dir / OUT.name,
+        "console": out_dir / OUT_CONSOLE.name,
+        "stage2": out_dir / OUT_STAGE2.name,
+        "reboot_probe": out_dir / OUT_REBOOT_PROBE.name,
+        "visual_probe": out_dir / OUT_VISUAL_PROBE.name,
+        "tinycore_stage3": out_dir / OUT_TINYCORE_STAGE3.name,
+        "tinycore_stage4": out_dir / OUT_TINYCORE_STAGE4.name,
+        "tinycore_stage5": out_dir / OUT_TINYCORE_STAGE5.name,
+        "tinycore_stage6": out_dir / OUT_TINYCORE_STAGE6.name,
+        "tinycore_hdd_stage6": out_dir / OUT_TINYCORE_HDD_STAGE6.name,
+        "tinycore_hdd_stage6_game": out_dir / OUT_TINYCORE_HDD_STAGE6_GAME.name,
+        "tinycore_hdd_ext2_stage7": out_dir / OUT_TINYCORE_HDD_EXT2_STAGE7.name,
+    }
     tc_root = ROOT / "downloads" / "tinycore" / "11.x" / "x86"
     tcz_dir = tc_root / "tcz"
     tcz_order = tcz_dir / "desktop-load-order.txt"
@@ -1124,30 +1166,20 @@ def main():
         for name in game_tcz_names
     )
 
-    OUT.write_bytes(build((SRC / "init").read_bytes()))
-    OUT_CONSOLE.write_bytes(build(CONSOLE_INIT))
-    OUT_STAGE2.write_bytes(build(STAGE2_INIT))
-    OUT_REBOOT_PROBE.write_bytes(build(REBOOT_PROBE_INIT))
-    OUT_VISUAL_PROBE.write_bytes(build(VISUAL_PROBE_INIT, [("fbmark.raw", make_fb_marker(), 0o644)]))
-    OUT_TINYCORE_STAGE3.write_bytes(build(TINYCORE_STAGE3_INIT))
-    OUT_TINYCORE_STAGE4.write_bytes(build(TINYCORE_STAGE4_INIT))
-    OUT_TINYCORE_STAGE5.write_bytes(build(TINYCORE_STAGE5_INIT))
-    OUT_TINYCORE_STAGE6.write_bytes(build(TINYCORE_STAGE6_INIT))
-    OUT_TINYCORE_HDD_STAGE6.write_bytes(build(TINYCORE_HDD_STAGE6_INIT, tinycore_hdd_entries))
-    OUT_TINYCORE_HDD_STAGE6_GAME.write_bytes(build(TINYCORE_HDD_STAGE6_INIT, tinycore_hdd_game_entries))
-    OUT_TINYCORE_HDD_EXT2_STAGE7.write_bytes(build(TINYCORE_HDD_EXT2_STAGE7_INIT))
-    print(OUT)
-    print(OUT_CONSOLE)
-    print(OUT_STAGE2)
-    print(OUT_REBOOT_PROBE)
-    print(OUT_VISUAL_PROBE)
-    print(OUT_TINYCORE_STAGE3)
-    print(OUT_TINYCORE_STAGE4)
-    print(OUT_TINYCORE_STAGE5)
-    print(OUT_TINYCORE_STAGE6)
-    print(OUT_TINYCORE_HDD_STAGE6)
-    print(OUT_TINYCORE_HDD_STAGE6_GAME)
-    print(OUT_TINYCORE_HDD_EXT2_STAGE7)
+    outputs["raw"].write_bytes(build((SRC / "init").read_bytes()))
+    outputs["console"].write_bytes(build(CONSOLE_INIT))
+    outputs["stage2"].write_bytes(build(STAGE2_INIT))
+    outputs["reboot_probe"].write_bytes(build(REBOOT_PROBE_INIT))
+    outputs["visual_probe"].write_bytes(build(VISUAL_PROBE_INIT, [("fbmark.raw", make_fb_marker(), 0o644)]))
+    outputs["tinycore_stage3"].write_bytes(build(TINYCORE_STAGE3_INIT))
+    outputs["tinycore_stage4"].write_bytes(build(TINYCORE_STAGE4_INIT))
+    outputs["tinycore_stage5"].write_bytes(build(TINYCORE_STAGE5_INIT))
+    outputs["tinycore_stage6"].write_bytes(build(TINYCORE_STAGE6_INIT))
+    outputs["tinycore_hdd_stage6"].write_bytes(build(TINYCORE_HDD_STAGE6_INIT, tinycore_hdd_entries))
+    outputs["tinycore_hdd_stage6_game"].write_bytes(build(TINYCORE_HDD_STAGE6_INIT, tinycore_hdd_game_entries))
+    outputs["tinycore_hdd_ext2_stage7"].write_bytes(build(TINYCORE_HDD_EXT2_STAGE7_INIT))
+    for output in outputs.values():
+        print(output)
 
 
 if __name__ == "__main__":
