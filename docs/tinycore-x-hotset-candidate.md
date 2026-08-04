@@ -104,6 +104,50 @@ run\tinycore-hdd-x-hotset-ra1024\20260804-012026
 xemu validates compatibility and repeatability, but its storage speed does not
 predict the real Xbox improvement.
 
+## Real-Hardware Result
+
+The RA1024 X-hotset package booted to an interactive desktop in approximately
+50 seconds measured from launching Xromwell in the dashboard. Kernel uptime
+markers put the completed wallpaper, dock, and system X hooks at 26.99 seconds:
+
+```text
+13.85 hotset-start
+20.36 hotset-finished
+24.95 xsession-start
+25.99 x-socket-ready
+25.99 waitforx-start
+26.00 waitforx-finished
+26.00 x-ready
+26.98 wallpaper-finished
+26.99 icons-started
+26.99 system-xd-finished
+```
+
+The hotset copy took 6.51 seconds. Xfbdev then exposed its socket in about one
+second and the first Xlib connection completed in 0.01 seconds. This replaces
+the previous approximately 137.4-second delay between `xsession-start` and
+`x-ready`.
+
+Memory snapshots show the expected cost:
+
+```text
+                         before       after
+MemFree                  6736 kB      3388 kB
+MemAvailable            16968 kB     10880 kB
+```
+
+The 6,088 kB reduction in available memory closely matches the measured 6.14
+MB extracted hotset. After the complete desktop loaded, `MemAvailable` remained
+about 10.9 MB. This is workable for the lean desktop but leaves little room for
+larger applications, so future expansion should avoid materializing unrelated
+extensions.
+
+Networking also passed: DHCP assigned `192.168.50.156`, installed the default
+route and resolver, and reported `XBOX_NETWORK_DHCP_OK`. The internal hard disk
+used UDMA2 rather than PIO. Under this 6.18 libata kernel the internal PATA disk
+is `/dev/sda`; a subsequently connected USB flash drive should normally be
+`/dev/sdb` or `/dev/sdb1`.
+
 ## Hardware Checklist
 
 After the desktop appears, collect:
