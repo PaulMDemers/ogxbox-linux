@@ -80,6 +80,11 @@ if ($appendLines.Count -ne 1) { throw "Expected exactly one append line in $eRoo
 $appendLine = $appendLines[0]
 if (-not $appendLine) { throw "linuxboot.cfg has no append line: $eRoot" }
 $append = $appendLine.Substring('append '.Length)
+$stageTitle = if ($null -eq $manifest.candidate.fatxLoopReadAheadKb) {
+    'Tiny Core HDD Protected Control'
+} else {
+    "Tiny Core HDD RA$($manifest.candidate.fatxLoopReadAheadKb)"
+}
 if ($null -ne $manifest.candidate.fatxLoopReadAheadKb) {
     $expectedArgs = @(
         "xbox_disk_readahead_kb=$($manifest.candidate.diskReadAheadKb)",
@@ -109,7 +114,7 @@ for ($run = 1; $run -le $Runs; $run++) {
         --kernel (Join-Path $eRoot 'vmlinuz') --kernel-name vmlinuz `
         --initrd (Join-Path $eRoot 'initramf') --initrd-name initramf `
         --payload (Join-Path $eRoot 'linuxroot.ext2') --payload-name linuxroot.ext2 `
-        --append $append --title 'Tiny Core HDD RA128' --boot-layout contiguous --payload-layout contiguous `
+        --append $append --title $stageTitle --boot-layout contiguous --payload-layout contiguous `
         --stage-order $StageOrder --manifest $layout
     if ($LASTEXITCODE -ne 0) { throw "FATX staging failed for run $run" }
     $layoutData = Get-Content -LiteralPath $layout -Raw | ConvertFrom-Json

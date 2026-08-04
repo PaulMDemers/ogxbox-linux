@@ -95,7 +95,7 @@ hardware-tested Devuan ZIP. A dry run is the cleanup script's default.
 - **Devuan 5.8 SquashFS ordering:** a matched control/hot-order experiment passed exact-payload audits and two repeated cold xemu boots per variant. All four boots reached Linux text at 53 seconds, first X at 85 seconds, and a visible populated proof terminal at 96 seconds. The ordering produced no repeatable visual boot gain and is not promoted. The test also confirmed that visual proof is earlier than a responsive Fluxbox desktop. See `docs/devuan-5.8-desktop-candidate.md`.
 - **Linux 5.8 FATX:** read-only FATX is sufficient to locate and loop-mount distro payload files from E:.
 - **Linux 6.18:** Xbox bringup works in several paths, but the release sweep still has unresolved optical/root-mount and desktop behavior. Commit `829b71ab17ed` adds the xemu-validated existing-file-only FATX write path. Commit `502b7bb738cf` is the clean read-only rollback point. Real-hardware write testing remains opt-in and experimental.
-- **Tiny Core:** the protected 6.18.33 HDD/FATX lean package and an isolated RA128 rebuild each passed 3/3 fresh xemu boots through the proven Cromwell-ROM transport, reaching Linux at 21 seconds and the complete Xfbdev desktop at 42 seconds. The rebuild preserves the kernel, payload, and XBE; it changes only the initramfs storage tuning and config arguments, setting physical-disk read-ahead to 1024 KiB and both FATX/root loops to 128 KiB. Complex BIOS plus the XBE-on-DVD wrapper still loses the initrd and panics at `unknown-block(3,1)`, including with the protected control, so it is not the HDD-package gate. See `docs/tinycore-hdd-ra128-candidate.md`.
+- **Tiny Core:** the protected 6.18.33 HDD/FATX lean package and an isolated RA128 rebuild each passed 3/3 fresh xemu boots through the proven Cromwell-ROM transport. Real hardware then confirmed the RA128 build boots quickly but exposed a several-minute post-X pause: synchronous wallpaper loading blocked wbar and the proof terminal. Matched UI-first RA128 and RA1024 candidates now launch FLWM, the terminal, and wbar before asynchronous wallpaper loading, record `/tmp/xbox-desktop-timing.txt`, and each pass 3/3 fresh xemu boots. RA1024 retains the protected package's original loop read-ahead and is the preferred first hardware test. Complex BIOS plus the XBE-on-DVD wrapper still loses the initrd and is not the HDD-package gate. See `docs/tinycore-hdd-ra128-candidate.md` and `docs/tinycore-ui-first-candidates.md`.
 - **Cromwell/Xromwell:** the sector512 XBE hash above is the known launcher baseline. Later loader timing/trace branches remain diagnostic only.
 - **Optical boot:** useful for experiments, but less reliable than the validated E:-root non-disc path and sensitive to drive/media behavior.
 - **xemu launchers:** 44 historical root entry points are classified in `docs/xemu-launchers.md`. Thirty-seven static Linux launchers use the dry-run-tested `scripts/invoke_xemu.ps1`; two Devuan live-disc launchers use the tested temporary-media layer above it. The persistent Xromwell HDD/FATX diagnostic launcher remains explicit by design.
@@ -163,11 +163,17 @@ modifying the hardware-passed ZIP:
 .\scripts\test_tinycore_hdd_candidate.ps1 -Runs 3 -RequiredPasses 3
 ```
 
+Build the matched Tiny Core UI-first RA128/RA1024 candidates:
+
+```powershell
+.\scripts\new_tinycore_hdd_ui_first_candidates.ps1
+```
+
 ## Next Audit Priorities
 
 1. Keep normal packages on read-only FATX; test `829b71ab17ed` write support only through explicit persistence-smoke packages until hardware safety is established.
 2. Keep the persistent Xromwell dynamic launcher separate; add dry-run coverage only after its default raw-HDD fixture is regenerated.
-3. Test the Tiny Core RA128 package on real hardware for post-desktop responsiveness; do not promote it based on equal xemu boot timing alone.
+3. Test the Tiny Core UI-first RA1024 package on real hardware. Confirm that the terminal, FLWM, and wbar become usable before the wallpaper completes, then collect `/tmp/xbox-desktop-timing.txt`. Keep RA128 as the matched follow-up and do not promote either based on xemu timing alone.
 4. Leave the neutral SquashFS hot-order candidate unpromoted. The next performance experiment should produce a reliable post-settle application benchmark before changing more package content.
 5. Promote desktop changes only through isolated candidates derived from a validated package.
 6. Repeat the cold-boot batch on future loader, kernel, initramfs, or payload candidates before hardware testing.

@@ -653,16 +653,32 @@ cp -a /etc/skel/. /home/tc/ 2>/dev/null || true
 rm -f /home/tc/.xsession
 cat > /home/tc/.xsession <<'EOX'
 #!/bin/sh
+: > /tmp/xbox-desktop-timing.txt
+xbox_mark() {
+    xbox_event="$*"
+    read xbox_uptime xbox_idle < /proc/uptime
+    printf '%s %s\n' "$xbox_uptime" "$xbox_event" >> /tmp/xbox-desktop-timing.txt
+}
+xbox_mark xsession-start
 Xfbdev :0 -screen 640x480x32 -mouse /dev/input/mice,5 -nolisten tcp >/tmp/xfbdev.log 2>&1 &
 export XPID=$!
 waitforX || ! echo failed in waitforX || exit
+xbox_mark x-ready
 "$DESKTOP" 2>/tmp/wm_errors &
 export WM_PID=$!
-[ -x "$HOME/.setbackground" ] && "$HOME/.setbackground"
+xbox_mark wm-started
 [ -x "$HOME/.mouse_config" ] && "$HOME/.mouse_config" &
-[ "$(which "$ICONS".sh 2>/dev/null)" ] && "$ICONS".sh &
-[ -d "/usr/local/etc/X.d" ] && find "/usr/local/etc/X.d" -type f -o -type l | sort | while read F; do . "$F"; done
 [ -d "$HOME/.X.d" ] && find "$HOME/.X.d" -type f -o -type l | sort | while read F; do . "$F"; done
+xbox_mark user-xd-started
+[ "$(which "$ICONS".sh 2>/dev/null)" ] && "$ICONS".sh &
+xbox_mark icons-started
+[ -x "$HOME/.setbackground" ] && (
+    xbox_mark wallpaper-start
+    "$HOME/.setbackground" >/tmp/setbackground.log 2>&1
+    xbox_mark wallpaper-finished
+) &
+[ -d "/usr/local/etc/X.d" ] && find "/usr/local/etc/X.d" -type f -o -type l | sort | while read F; do . "$F"; done
+xbox_mark system-xd-finished
 wait "$XPID"
 EOX
 

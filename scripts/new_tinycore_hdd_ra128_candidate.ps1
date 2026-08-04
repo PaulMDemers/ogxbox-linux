@@ -12,8 +12,16 @@ param(
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $artifactsRoot = [System.IO.Path]::GetFullPath((Join-Path $repoRoot 'artifacts'))
-$protectedZipFull = [System.IO.Path]::GetFullPath((Join-Path $repoRoot $ProtectedZip))
-$outFull = [System.IO.Path]::GetFullPath((Join-Path $repoRoot $OutRoot))
+$protectedZipFull = if ([System.IO.Path]::IsPathRooted($ProtectedZip)) {
+    [System.IO.Path]::GetFullPath($ProtectedZip)
+} else {
+    [System.IO.Path]::GetFullPath((Join-Path $repoRoot $ProtectedZip))
+}
+$outFull = if ([System.IO.Path]::IsPathRooted($OutRoot)) {
+    [System.IO.Path]::GetFullPath($OutRoot)
+} else {
+    [System.IO.Path]::GetFullPath((Join-Path $repoRoot $OutRoot))
+}
 $initramfsOut = Join-Path $outFull 'initramfs-build'
 $candidateName = if ($ProtectedControl) {
     'xromwell-hddfatx-tinycore-lean-protected-control'
@@ -102,13 +110,15 @@ fresh-disk xemu harness as the RA128 candidate.
 "@
 } else {
 @"
-Tiny Core HDD RA128 Candidate
-=============================
+Tiny Core HDD UI-First RA${ReadAheadKb} Candidate
+================================================
 
 This is an isolated candidate derived from the hardware-passed Tiny Core lean
 ZIP. Copy default.xbe to a dashboard app folder and copy E-root contents to E:.
 
 Candidate changes:
+  - start FLWM, the proof terminal, and wbar before loading the wallpaper
+  - record desktop startup milestones in /tmp/xbox-desktop-timing.txt
   - preserve physical-disk read-ahead at ${DiskReadAheadKb} KiB
   - set the FATX loop read-ahead to ${ReadAheadKb} KiB immediately after attach
   - set the ext2 root loop read-ahead to ${ReadAheadKb} KiB immediately after attach
@@ -117,13 +127,13 @@ Candidate changes:
 The protected ZIP is hash-verified and is never modified.
 "@
 }
-$readmeBody | Set-Content -LiteralPath (Join-Path $candidateDir 'README-RA128.txt') -Encoding ASCII
+$readmeBody | Set-Content -LiteralPath (Join-Path $candidateDir 'README-CANDIDATE.txt') -Encoding ASCII
 
 $files = Get-FileHashMap $candidateDir
 Compress-Archive -Path (Join-Path $candidateDir '*') -DestinationPath $candidateZip -CompressionLevel Optimal
 $manifest = [ordered]@{
     generatedUtc = [DateTime]::UtcNow.ToString('o')
-    purpose = if ($ProtectedControl) { 'Unmodified protected Tiny Core HDD/FATX control' } else { 'Tiny Core HDD/FATX 128 KiB loop read-ahead candidate' }
+    purpose = if ($ProtectedControl) { 'Unmodified protected Tiny Core HDD/FATX control' } else { "Tiny Core HDD/FATX UI-first ${ReadAheadKb} KiB loop read-ahead candidate" }
     protectedSource = [ordered]@{
         zip = $ProtectedZip.Replace('\', '/')
         zipSha256 = $protectedZipSha256
