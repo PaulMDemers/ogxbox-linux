@@ -116,6 +116,11 @@ Keep RA128 as the matched follow-up if RA1024 succeeds and a responsiveness
 comparison is still useful. Neither candidate replaces the protected release
 baseline until real hardware confirms the post-X behavior.
 
+The RA1024 hardware trace later showed that wallpaper loading took only 1.54
+seconds while the X server/first-Xlib-client boundary took roughly 137 seconds.
+The follow-up RAM-materialized X startup experiment is documented in
+`docs/tinycore-x-hotset-candidate.md`.
+
 ## Reproduce
 
 ```powershell

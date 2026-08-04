@@ -469,6 +469,63 @@ while read ext; do
     fi
 done < /mnt/cd/tcz/desktop-load-order.txt
 
+X_HOTSET=0
+for arg in $(cat /proc/cmdline 2>/dev/null); do
+    case "$arg" in
+        xbox_x_hotset=1) X_HOTSET=1 ;;
+    esac
+done
+
+hotset_mark() {
+    event="$*"
+    read uptime idle < /proc/uptime
+    printf '%s %s\n' "$uptime" "$event" >> /mnt/tcroot/tmp/xbox-hotset-timing.txt
+}
+
+materialize_extension() {
+    base="$1"
+    source_root="/mnt/tcroot/tmp/tcloop/$base"
+    if [ ! -d "$source_root" ]; then
+        echo "X hotset missing extension: $base"
+        return 1
+    fi
+    echo "X hotset materializing $base"
+    (
+        cd "$source_root" || exit 1
+        find . -type d | while read d; do
+            mkdir -p "/mnt/tcroot/${d#./}" 2>/dev/null || true
+        done
+        find . ! -type d | while read f; do
+            rel="${f#./}"
+            dest="/mnt/tcroot/$rel"
+            mkdir -p "$(dirname "$dest")" 2>/dev/null || true
+            rm -f "$dest" 2>/dev/null || true
+            cp -a "$source_root/$rel" "$dest" 2>/tmp/x-hotset-copy.err || {
+                echo "X hotset copy failed: $base/$rel"
+                cat /tmp/x-hotset-copy.err 2>/dev/null || true
+                exit 1
+            }
+        done
+    )
+}
+
+: > /mnt/tcroot/tmp/xbox-hotset-timing.txt
+hotset_mark hotset-check
+grep -E 'MemTotal|MemFree|MemAvailable' /proc/meminfo > /mnt/tcroot/tmp/xbox-hotset-memory-before.txt 2>/dev/null || true
+if [ "$X_HOTSET" = "1" ]; then
+    hotset_mark hotset-start
+    for base in libXau libXdmcp libxcb libX11 Xlibs libpng freetype libfontenc libXfont Xfbdev; do
+        materialize_extension "$base" || {
+            echo "X hotset materialization failed at $base"
+            exec setsid cttyhack sh
+        }
+        hotset_mark "hotset-extension-$base"
+    done
+    hotset_mark hotset-finished
+fi
+grep -E 'MemTotal|MemFree|MemAvailable' /proc/meminfo > /mnt/tcroot/tmp/xbox-hotset-memory-after.txt 2>/dev/null || true
+du -sk /mnt/tcroot/usr/local/bin /mnt/tcroot/usr/local/lib 2>/dev/null > /mnt/tcroot/tmp/xbox-hotset-du.txt || true
+
 mkdir -p /mnt/tcroot/root /mnt/tcroot/tmp/.X11-unix /mnt/tcroot/tmp/.ICE-unix
 cat > /mnt/tcroot/root/start-xbox-desktop.sh <<'EOS'
 #!/bin/sh
@@ -660,9 +717,24 @@ xbox_mark() {
     printf '%s %s\n' "$xbox_uptime" "$xbox_event" >> /tmp/xbox-desktop-timing.txt
 }
 xbox_mark xsession-start
+xbox_mark xfbdev-start
 Xfbdev :0 -screen 640x480x32 -mouse /dev/input/mice,5 -nolisten tcp >/tmp/xfbdev.log 2>&1 &
 export XPID=$!
+xbox_mark xfbdev-launched
+xbox_mark x-socket-wait-start
+xbox_socket_wait=0
+while [ ! -e /tmp/.X11-unix/X0 ] && [ "$xbox_socket_wait" -lt 60 ]; do
+    sleep 1
+    xbox_socket_wait=$((xbox_socket_wait + 1))
+done
+if [ -e /tmp/.X11-unix/X0 ]; then
+    xbox_mark x-socket-ready
+else
+    xbox_mark x-socket-timeout
+fi
+xbox_mark waitforx-start
 waitforX || ! echo failed in waitforX || exit
+xbox_mark waitforx-finished
 xbox_mark x-ready
 "$DESKTOP" 2>/tmp/wm_errors &
 export WM_PID=$!
@@ -670,13 +742,13 @@ xbox_mark wm-started
 [ -x "$HOME/.mouse_config" ] && "$HOME/.mouse_config" &
 [ -d "$HOME/.X.d" ] && find "$HOME/.X.d" -type f -o -type l | sort | while read F; do . "$F"; done
 xbox_mark user-xd-started
-[ "$(which "$ICONS".sh 2>/dev/null)" ] && "$ICONS".sh &
-xbox_mark icons-started
-[ -x "$HOME/.setbackground" ] && (
+[ -x "$HOME/.setbackground" ] && {
     xbox_mark wallpaper-start
     "$HOME/.setbackground" >/tmp/setbackground.log 2>&1
     xbox_mark wallpaper-finished
-) &
+}
+[ "$(which "$ICONS".sh 2>/dev/null)" ] && "$ICONS".sh &
+xbox_mark icons-started
 [ -d "/usr/local/etc/X.d" ] && find "/usr/local/etc/X.d" -type f -o -type l | sort | while read F; do . "$F"; done
 xbox_mark system-xd-finished
 wait "$XPID"

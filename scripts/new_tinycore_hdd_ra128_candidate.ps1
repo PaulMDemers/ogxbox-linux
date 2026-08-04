@@ -6,6 +6,7 @@ param(
     [int]$ReadAheadKb = 128,
     [ValidateRange(128, 4096)]
     [int]$DiskReadAheadKb = 1024,
+    [switch]$XHotset,
     [switch]$ProtectedControl
 )
 
@@ -25,6 +26,8 @@ $outFull = if ([System.IO.Path]::IsPathRooted($OutRoot)) {
 $initramfsOut = Join-Path $outFull 'initramfs-build'
 $candidateName = if ($ProtectedControl) {
     'xromwell-hddfatx-tinycore-lean-protected-control'
+} elseif ($XHotset) {
+    "xromwell-hddfatx-tinycore-lean-xhotset-ra${ReadAheadKb}k-candidate"
 } else {
     "xromwell-hddfatx-tinycore-lean-ra${ReadAheadKb}k-candidate"
 }
@@ -90,6 +93,9 @@ if (-not $ProtectedControl) {
     }
     if ($appendIndex -lt 0) { throw "No append line found in $cfgPath" }
     $cfgLines[$appendIndex] += ' xbox_disk_readahead_kb={0} xbox_fatx_loop_readahead_kb={1} xbox_loop_readahead_kb={1}' -f $DiskReadAheadKb, $ReadAheadKb
+    if ($XHotset) {
+        $cfgLines[$appendIndex] += ' xbox_x_hotset=1'
+    }
     [System.IO.File]::WriteAllLines($cfgPath, $cfgLines, [System.Text.Encoding]::ASCII)
     $cfg = [System.IO.File]::ReadAllText($cfgPath)
     if ($cfg -notmatch "xbox_disk_readahead_kb=$DiskReadAheadKb" -or
@@ -97,6 +103,29 @@ if (-not $ProtectedControl) {
         $cfg -notmatch "xbox_loop_readahead_kb=$ReadAheadKb") {
         throw "Failed to add read-ahead settings to $cfgPath"
     }
+    if ($XHotset -and $cfg -notmatch 'xbox_x_hotset=1') {
+        throw "Failed to enable the X hotset in $cfgPath"
+    }
+}
+
+$desktopOrder = if ($XHotset) {
+    '  - start FLWM and the proof terminal, load the wallpaper, then launch wbar'
+} else {
+    '  - start FLWM, the proof terminal, and wbar before loading the wallpaper'
+}
+$hotsetDetails = if ($XHotset) {
+@'
+  - materialize the measured Xfbdev/X11 startup hotset into RAM before X starts
+  - record hotset timing and memory snapshots under /tmp/xbox-hotset-*
+  - start wbar after the wallpaper so its faux-transparent background is valid
+'@
+} else {
+    ''
+}
+$candidateTitle = if ($XHotset) {
+    "Tiny Core HDD X-Hotset RA${ReadAheadKb} Candidate"
+} else {
+    "Tiny Core HDD UI-First RA${ReadAheadKb} Candidate"
 }
 
 $readmeBody = if ($ProtectedControl) {
@@ -110,19 +139,20 @@ fresh-disk xemu harness as the RA128 candidate.
 "@
 } else {
 @"
-Tiny Core HDD UI-First RA${ReadAheadKb} Candidate
+$candidateTitle
 ================================================
 
 This is an isolated candidate derived from the hardware-passed Tiny Core lean
 ZIP. Copy default.xbe to a dashboard app folder and copy E-root contents to E:.
 
 Candidate changes:
-  - start FLWM, the proof terminal, and wbar before loading the wallpaper
+$desktopOrder
   - record desktop startup milestones in /tmp/xbox-desktop-timing.txt
   - preserve physical-disk read-ahead at ${DiskReadAheadKb} KiB
   - set the FATX loop read-ahead to ${ReadAheadKb} KiB immediately after attach
   - set the ext2 root loop read-ahead to ${ReadAheadKb} KiB immediately after attach
   - make xbox-storage-tune honor the same command-line values
+$hotsetDetails
 
 The protected ZIP is hash-verified and is never modified.
 "@
@@ -133,7 +163,7 @@ $files = Get-FileHashMap $candidateDir
 Compress-Archive -Path (Join-Path $candidateDir '*') -DestinationPath $candidateZip -CompressionLevel Optimal
 $manifest = [ordered]@{
     generatedUtc = [DateTime]::UtcNow.ToString('o')
-    purpose = if ($ProtectedControl) { 'Unmodified protected Tiny Core HDD/FATX control' } else { "Tiny Core HDD/FATX UI-first ${ReadAheadKb} KiB loop read-ahead candidate" }
+    purpose = if ($ProtectedControl) { 'Unmodified protected Tiny Core HDD/FATX control' } elseif ($XHotset) { "Tiny Core HDD/FATX X-hotset ${ReadAheadKb} KiB loop read-ahead candidate" } else { "Tiny Core HDD/FATX UI-first ${ReadAheadKb} KiB loop read-ahead candidate" }
     protectedSource = [ordered]@{
         zip = $ProtectedZip.Replace('\', '/')
         zipSha256 = $protectedZipSha256
@@ -145,6 +175,8 @@ $manifest = [ordered]@{
         diskReadAheadKb = if ($ProtectedControl) { $null } else { $DiskReadAheadKb }
         fatxLoopReadAheadKb = if ($ProtectedControl) { $null } else { $ReadAheadKb }
         rootLoopReadAheadKb = if ($ProtectedControl) { $null } else { $ReadAheadKb }
+        xHotset = if ($ProtectedControl) { $false } else { [bool]$XHotset }
+        xHotsetExtensions = if ($XHotset) { @('libXau', 'libXdmcp', 'libxcb', 'libX11', 'Xlibs', 'libpng', 'freetype', 'libfontenc', 'libXfont', 'Xfbdev') } else { @() }
         protectedControl = [bool]$ProtectedControl
         files = $files
     }
