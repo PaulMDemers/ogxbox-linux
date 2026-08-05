@@ -341,3 +341,30 @@ C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-rw-shell-smoke-20260526-
 The extracted `E:\debian.ext2` from this run passed `e2fsck -fn` without bitmap
 warnings after a host-side hard kill. Use
 `docs\real-hardware-rw-smoke-checklist.md` for the hardware test order.
+
+## Resume Audit
+
+Rechecked on August 5, 2026 after the Tiny Core release was finalized:
+
+- `sources/haxar-xbox-linux-sparse` is clean at `829b71ab17ed` on
+  `xbox-6.18.y-bringup` and matches its remote branch.
+- The write kernel remains
+  `0AC26C6FB52F89503DE2E7ADAD65DC856A12A06B13D51F9AC430B7CE9AB40546`.
+- The prior Debian shell-smoke ZIP remains
+  `76129A3C09DBB7463F16B38D84AC44C00BC5524E6A90FFFDB89DF3A5267ED3F4`.
+- The prior Devuan shell-smoke ZIP remains
+  `CBF90C1F12253FCA4BA4777AAA350FC81803A0CBA0ACF7EE744C1E3BF319F499`.
+
+The next hardware candidate must not overwrite the normal read-only release
+filenames. Build a new Debian shell-only package using isolated names such as
+`rwkrnl`, `rwinit`, and `rwdebian.ext2`, then automate this disposable-xemu
+gate before publishing it for hardware testing:
+
+1. First boot writes both persistence markers and reaches
+   `XBOX_ROOT_REMOUNT_RO_OK`.
+2. Second boot, without restaging, finds both markers and again remounts root
+   read-only.
+3. Extract the FATX-backed ext2 file and require `e2fsck -fn` to complete
+   without filesystem errors.
+
+Normal Tiny Core and Devuan packages remain read-only throughout this work.

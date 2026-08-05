@@ -212,7 +212,7 @@ Build and verify the isolated Apps default-mirror candidate:
 
 ## Next Audit Priorities
 
-1. Keep normal packages on read-only FATX; test `829b71ab17ed` write support only through explicit persistence-smoke packages until hardware safety is established.
+1. Keep normal packages on read-only FATX. Derive a new Debian shell-only persistence candidate from `829b71ab17ed` using isolated `rwkrnl`, `rwinit`, and `rwdebian.ext2` filenames, then require an automated two-boot persistence/remount-ro/fsck gate before real-hardware testing.
 2. Keep the persistent Xromwell dynamic launcher separate; add dry-run coverage only after its default raw-HDD fixture is regenerated.
 3. Treat the promoted Tiny Core Apps ZIP and named pre-Apps rollback ZIP as immutable release baselines; derive future experiments into isolated candidate folders.
 4. Leave the neutral SquashFS hot-order candidate unpromoted. The next performance experiment should produce a reliable post-settle application benchmark before changing more package content.
