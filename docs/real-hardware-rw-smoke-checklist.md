@@ -1,36 +1,45 @@
 # Real Hardware RW Shell Smoke Checklist
 
-Date: May 26, 2026
+Date: August 5, 2026
 
 This is the disk-safety checkpoint before using the writable Debian desktop on
 real hardware. It intentionally does not start X.
 
 ## Package
 
-Use:
+Use the xemu-gated package:
 
 ```text
-C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-debian-bookworm-rw-shell-smoke.zip
+C:\Users\Paul\Desktop\xbox_linux\artifacts\debian-6.18.33-rw-candidate\xromwell-hddfatx-debian-bookworm-6.18.33-rw-shell.zip
+```
+
+Expected ZIP SHA-256:
+
+```text
+23F5B8717A11F7C4DDCA1E1947A362BCBCC7FBBC4DE7DBFFE1845E29B19FCF04
 ```
 
 Build it with:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\package_distro_rw_shell_smoke.ps1
+.\scripts\build_debian_6_18_rw_candidate.ps1 -Force
+.\scripts\test_debian_6_18_rw_safety_gate.ps1 -BootCount 2
 ```
 
-The package writes test files inside `E:\debian.ext2`, then immediately runs
-`xbox-sync-ro` to sync and remount the ext2 root read-only.
+The package writes test files inside `E:\rwdebian.ext2`, then replaces PID 1
+with `xbox-sync-ro` to sync and remount the ext2 root read-only. It does not
+start X or launch a general-purpose shell.
 
 ## Backup
 
-Before testing, back up these `E:\` files if they exist:
+Before testing, make a complete backup of E:. At minimum back up
+`E:\linuxboot.cfg` and any existing files with these candidate names:
 
 ```text
 E:\linuxboot.cfg
-E:\debkrnl
-E:\debinit
-E:\debian.ext2
+E:\rwkrnl
+E:\rwinit
+E:\rwdebian.ext2
 ```
 
 Also keep the known-good read-only Debian package nearby:
@@ -44,22 +53,22 @@ C:\Users\Paul\Desktop\xbox_linux\artifacts\softmod\xromwell-hddfatx-debian-bookw
 FTP or copy the app folder to:
 
 ```text
-E:\Apps\XromwellDebianBookwormRwShell\
+E:\Apps\XboxLinuxDebian618RwShell\
 ```
 
 Copy the package `E-root\` files to `E:\`:
 
 ```text
 E:\linuxboot.cfg
-E:\debkrnl
-E:\debinit
-E:\debian.ext2
+E:\rwkrnl
+E:\rwinit
+E:\rwdebian.ext2
 ```
 
 Launch:
 
 ```text
-E:\Apps\XromwellDebianBookwormRwShell\default.xbe
+E:\Apps\XboxLinuxDebian618RwShell\default.xbe
 ```
 
 ## First Boot Pass Criteria
@@ -72,13 +81,14 @@ XBOX_NORMAL_USE_FILE_WRITTEN
 XBOX_ROOT_REMOUNT_RO_OK
 ```
 
-After `XBOX_ROOT_REMOUNT_RO_OK`, it is safe to reset or power off for this
-smoke test. If that marker does not appear, do not intentionally power-cycle
-unless the system is already hung.
+After `XBOX_ROOT_REMOUNT_RO_OK`, wait ten seconds, then reset or power off for
+this smoke test. If that marker does not appear, do not intentionally
+power-cycle unless the system is already hung; restore the E: backup before
+another write attempt.
 
 ## Second Boot Pass Criteria
 
-Launch the same package again without replacing `E:\debian.ext2`. The console
+Launch the same package again without replacing `E:\rwdebian.ext2`. The console
 should show:
 
 ```text
@@ -87,49 +97,39 @@ XBOX_NORMAL_USE_FILE_PRESENT
 XBOX_ROOT_REMOUNT_RO_OK
 ```
 
-This proves that the FATX existing-file write path can persist data inside the
-preallocated Debian ext2 image and can return to a clean read-only state before
-shutdown.
+This proves on hardware that the FATX existing-file write path can persist data
+inside the preallocated Debian ext2 image and can return to a clean read-only
+state before shutdown.
 
 ## xemu Proof
 
-The package was staged into the disposable xemu FATX HDD and booted to the
-proof shell. The console showed both write markers and:
+The final package was staged into one disposable xemu FATX HDD and booted twice
+without restaging. Both boots showed the marker files and:
 
 ```text
 XBOX_ROOT_REMOUNT_RO_OK
 ```
 
-Screenshot:
+Automated result:
 
 ```text
-C:\Users\Paul\Desktop\xbox_linux\run\screenshots\debian-rw-shell-smoke-20260526-121332.png
+boot 1: mount count 1, remount OK, e2fsck -fn clean
+boot 2: mount count 2, remount OK, e2fsck -fn clean
 ```
 
-After a host-side hard kill, `E:\debian.ext2` was extracted and checked with:
+Evidence directory:
 
 ```powershell
-python .\scripts\extract_fatx_root_file.py .\run\hdd\xbox_hdd_hddboot.raw debian.ext2 .\run\fatx-extract\debian-shell-smoke-after-syncro.ext2
-wsl -e bash -lc "cd /mnt/c/Users/Paul/Desktop/xbox_linux && e2fsck -fn run/fatx-extract/debian-shell-smoke-after-syncro.ext2"
+run\debian-rw-safety-gate\20260805-182211\
 ```
 
-Result:
-
-```text
-Pass 1: Checking inodes, blocks, and sizes
-Pass 2: Checking directory structure
-Pass 3: Checking directory connectivity
-Pass 4: Checking reference counts
-Pass 5: Checking group summary information
-run/fatx-extract/debian-shell-smoke-after-syncro.ext2: 9666/98304 files (0.1% non-contiguous), 71093/98304 blocks
-```
-
-No bitmap-difference warning was reported.
+The gate enforces persistence, mount-count progression, remount status, and a
+clean host-side `e2fsck -fn` after each boot.
 
 ## Recovery
 
-If the rw smoke fails, restore the backed-up root files and return to the
-read-only Debian package. The FATX kernel write support is intentionally narrow:
-it overwrites data inside existing files only. It does not create, delete,
-rename, extend, or allocate FATX files.
-
+If the rw smoke fails, restore the complete E: backup and return to the
+read-only Debian package. Do not copy a failed `rwdebian.ext2` into another
+package. The FATX kernel write support is intentionally narrow: it overwrites
+data inside existing files only. It does not create, delete, rename, extend,
+or allocate FATX files.

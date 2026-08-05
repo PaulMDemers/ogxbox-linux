@@ -49,6 +49,9 @@ KNOWN_BOOT_ROOT_FILES = (
     "ndkrnl",
     "ndinit",
     "nddevuan.ext2",
+    "rwkrnl",
+    "rwinit",
+    "rwdebian.ext2",
 )
 
 

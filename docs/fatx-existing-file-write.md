@@ -368,3 +368,54 @@ gate before publishing it for hardware testing:
    without filesystem errors.
 
 Normal Tiny Core and Devuan packages remain read-only throughout this work.
+
+## Automated Debian 6.18 Safety Gate
+
+Completed August 5, 2026 with the pinned production write kernel:
+
+```text
+kernel SHA-256: 0AC26C6FB52F89503DE2E7ADAD65DC856A12A06B13D51F9AC430B7CE9AB40546
+source commit:  829b71ab17ed
+package:        artifacts/debian-6.18.33-rw-candidate/
+package ZIP:    23F5B8717A11F7C4DDCA1E1947A362BCBCC7FBBC4DE7DBFFE1845E29B19FCF04
+```
+
+The candidate uses only isolated E: names:
+
+```text
+E:\rwkrnl
+E:\rwinit
+E:\rwdebian.ext2
+E:\linuxboot.cfg
+```
+
+The automated gate creates a fresh sparse raw Xbox disk, stages all four files
+contiguously with readback hashes, and boots that same writable disk twice
+without restaging. After each forced xemu stop it extracts `rwdebian.ext2`,
+checks both persistence files and the remount status file, runs read-only fsck,
+and records the ext2 mount count.
+
+Final production-kernel result:
+
+```text
+boot 1: Linux at 26 s, mount count 1, remount OK, fsck clean
+boot 2: Linux at 26 s, mount count 2, remount OK, fsck clean
+```
+
+Evidence is retained under:
+
+```text
+run/debian-rw-safety-gate/20260805-182211/
+```
+
+The intermittent remount failure was diagnosed with a disposable VFS-trace
+kernel. PID 1 had opened `/tmp/xbox-sync-ro.txt` for the helper's redirected
+output; because `/tmp` was still ext2-backed in that boot path, the child could
+not remount its own root read-only. The candidate now replaces PID 1 with
+`xbox-sync-ro` and writes directly to the console. No diagnostic kernel changes
+remain in the source checkout or production artifact.
+
+The real-hardware checklist is now unblocked for an opt-in, backed-up shell-only
+test. This does not promote general FATX writes or a writable desktop: the
+driver still only overwrites blocks within existing FATX files and cannot
+create, delete, rename, extend, or allocate FATX files.

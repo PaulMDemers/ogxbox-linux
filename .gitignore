@@ -33,6 +33,7 @@
 /run/tinycore-apps-*/
 /run/cpio-*/
 /run/readonly-boot-matrix/
+/run/debian-rw-safety-gate/
 /run/recovered-6.18-stage1.cpio
 
 # Generated boot media / firmware / disk images
