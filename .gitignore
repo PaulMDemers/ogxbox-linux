@@ -28,6 +28,7 @@
 /run/devuan58-*/
 /run/tinycore-hdd-*/
 /run/tinycore-hardware-remote/
+/run/tinycore-hardware-memory/
 
 # Generated boot media / firmware / disk images
 *.iso

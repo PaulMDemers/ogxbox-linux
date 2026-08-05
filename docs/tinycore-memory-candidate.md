@@ -1,8 +1,8 @@
-# Tiny Core Post-Startup Hotset Release Candidate
+# Tiny Core Post-Startup Hotset Release
 
 ## Purpose
 
-The hardware-passed Tiny Core remote image uses an X hotset to avoid slow
+The earlier hardware-passed Tiny Core remote image uses an X hotset to avoid slow
 first-client reads from the Xbox disk. Materializing that hotset into RAM costs
 about 6 MB on a 64 MB console. This isolated candidate preserves the exact fast
 startup path, then restores the original Tiny Core squashfs links after X,
@@ -12,7 +12,9 @@ Already-running processes retain their mapped pages. Files that were copied
 into the hotset but were not needed remain reclaimable, while later application
 launches resolve through the original mounted extensions.
 
-The protected X-hotset and remote-diagnostics ZIPs are not modified.
+The protected X-hotset and remote-diagnostics ZIPs are not modified. This
+post-startup release variant is now hardware-passed and is the current improved
+Tiny Core diagnostics baseline.
 
 ## Artifact
 
@@ -76,6 +78,51 @@ run\tinycore-hdd-x-hotset-memory\20260804-211905
 run\tinycore-hdd-x-hotset-memory-ssh\20260804-212226
 ```
 
+## Real-Hardware Result
+
+The exact candidate above passed on an Original Xbox. After boot, every
+available desktop application was opened, including Tiny Core Apps, and then
+closed again. The desktop, mouse, terminal, text editor, DHCP, password SSH,
+and SCP remained usable.
+
+The release restored all 450 hotset paths with no failures:
+
+```text
+restored=450
+failed=0
+XBOX_X_HOTSET_RELEASE_OK
+```
+
+Memory changed immediately as follows on hardware:
+
+| Metric | Before release | After release | Change |
+|---|---:|---:|---:|
+| MemAvailable | 5,696 kB | 8,124 kB | +2,428 kB |
+| MemFree | 3,452 kB | 5,540 kB | +2,088 kB |
+| Shmem | 25,256 kB | 20,960 kB | -4,296 kB |
+
+After the application exercise and closing the applications, the settled
+system reported 10,976 kB available. A diagnostic snapshot moments later
+reported 10,880 kB available. The remaining processes were the normal desktop,
+Dropbear, and the active SSH collection session; no tested application was
+left running.
+
+Startup remained effectively unchanged relative to the earlier validated
+remote image:
+
+| Event | Earlier remote image | Hotset release | Difference |
+|---|---:|---:|---:|
+| X ready | 26.14 s | 26.43 s | +0.29 s |
+| Wallpaper and dock complete | 27.19 s | 27.53 s | +0.34 s |
+
+The internal disk remained at UDMA2, FATX remained read-only, and DHCP assigned
+`192.168.50.156`. The collected logs and their SHA256 manifest are retained
+locally under:
+
+```text
+run\tinycore-hardware-memory\20260804-220000
+```
+
 ## Reproduce
 
 ```powershell
@@ -108,9 +155,11 @@ run\tinycore-hdd-x-hotset-memory-ssh\20260804-212226
    it with the validated candidate, but do not promote this image on emulator
    memory numbers alone.
 
-## Promotion Rule
+## Promotion Decision
 
-Promote post-startup hotset release only after real hardware preserves the
-fast startup and application behavior while showing useful additional memory.
-Any startup regression, missing desktop file, or post-release application
-failure keeps the existing remote candidate as the rollback point.
+Real hardware preserved the fast startup and application behavior while
+recovering useful memory, so this candidate is promoted as the improved Tiny
+Core diagnostics baseline. The earlier X-hotset and remote-diagnostics ZIPs
+remain untouched rollback points. Future Tiny Core release artifacts should be
+derived into new output directories and must not overwrite any of these three
+packages.
