@@ -78,9 +78,9 @@ XBOX_REMOTE_SSH_OK
 ```
 
 The ext2 payload must also pass read-only `e2fsck` with zero non-contiguous
-files. These gates prove packaging and service startup in xemu; real hardware
-must still confirm memory headroom, DHCP, readable terminal geometry, and SSH
-access over the physical Xbox Ethernet adapter.
+files. These gates prove packaging and service startup in xemu. The real-
+hardware results below additionally confirm memory headroom, DHCP, readable
+terminal geometry, and SSH access over the physical Xbox Ethernet adapter.
 
 Final xemu results:
 
@@ -101,6 +101,12 @@ DHCP client assigned `192.168.50.156`, installed the default route and resolver,
 and reported `XBOX_NETWORK_DHCP_OK`. Dropbear reported
 `XBOX_REMOTE_SSH_OK`; password login and both SCP transfers succeeded from a
 Windows host. Root SSH login remained disabled.
+
+Final hands-on validation also passed. The `9x15` terminal font was clear on
+the test television, `ping` reached the network, the text editor opened, and
+desktop responsiveness remained equal to the previously hardware-passed
+X-hotset build. Adding Dropbear and the larger terminal font therefore caused
+no observed usability or performance regression.
 
 The X-hotset and desktop timings remained fast:
 
@@ -137,8 +143,16 @@ run\tinycore-hardware-remote\20260804-203045
 
 The `xbox-chpasswd.err` file contains the success message `password for 'tc'
 changed`; BusyBox writes that status to stderr, so it is not a boot error.
-Subjective confirmation of terminal readability and sustained desktop
-responsiveness is still useful before promoting this diagnostic image.
+
+Tiny Core's Apps tool has one known limitation on this image: accepting its
+offer to benchmark the fastest mirror fails and can leave the 64 MB system
+unresponsive. Declining that prompt allows Apps to open normally. This path
+was not tested on the earlier builds, so it is recorded as an unconfirmed
+pre-existing or low-memory Tiny Core behavior rather than a regression caused
+by the remote-diagnostics changes.
+
+With terminal readability, networking, applications, SSH/SCP, and sustained
+responsiveness confirmed, this candidate is hardware-passed.
 
 ## Reproduce
 
