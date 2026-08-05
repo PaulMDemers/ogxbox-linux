@@ -8,9 +8,9 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
-$tinyCoreFull = Join-Path $repoRoot $TinyCoreRoot
-$payloadRootFull = Join-Path $repoRoot $PayloadRoot
-$imageFull = Join-Path $repoRoot $ImagePath
+$tinyCoreFull = if ([System.IO.Path]::IsPathRooted($TinyCoreRoot)) { $TinyCoreRoot } else { Join-Path $repoRoot $TinyCoreRoot }
+$payloadRootFull = if ([System.IO.Path]::IsPathRooted($PayloadRoot)) { $PayloadRoot } else { Join-Path $repoRoot $PayloadRoot }
+$imageFull = if ([System.IO.Path]::IsPathRooted($ImagePath)) { $ImagePath } else { Join-Path $repoRoot $ImagePath }
 $tczSource = Join-Path $tinyCoreFull 'tcz'
 $orderSource = Join-Path $tczSource 'desktop-load-order.txt'
 

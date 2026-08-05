@@ -673,10 +673,64 @@ echo
 
 if ifconfig eth0 2>/dev/null | grep -q 'inet addr:'; then
     echo "XBOX_NETWORK_DHCP_OK"
+    xbox-remote-up --background >/tmp/xbox-remote-up-launch.log 2>&1 || true
     exit 0
 fi
 
 echo "XBOX_NETWORK_DHCP_FAILED"
+exit 1
+EOX
+
+cat > /usr/local/bin/xbox-remote-up <<'EOX'
+#!/bin/sh
+export PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin
+LOG=/tmp/xbox-remote-up.txt
+
+if [ "${1:-}" = "--background" ]; then
+    "$0" --foreground >"$LOG" 2>&1 &
+    exit 0
+fi
+
+REMOTE_DIAG=0
+for arg in $(cat /proc/cmdline 2>/dev/null); do
+    case "$arg" in
+        xbox_remote_diag=1) REMOTE_DIAG=1 ;;
+    esac
+done
+
+echo "== xbox tinycore remote diagnostics =="
+if [ "$REMOTE_DIAG" != "1" ]; then
+    echo "XBOX_REMOTE_DISABLED"
+    exit 0
+fi
+if ! command -v dropbear >/dev/null 2>&1; then
+    echo "XBOX_REMOTE_NO_DROPBEAR"
+    exit 1
+fi
+if pidof dropbear >/dev/null 2>&1; then
+    echo "XBOX_REMOTE_ALREADY_RUNNING"
+    exit 0
+fi
+if ! ifconfig eth0 2>/dev/null | grep -q 'inet addr:'; then
+    echo "XBOX_REMOTE_NO_ADDRESS"
+    exit 1
+fi
+
+mkdir -p /var/run /usr/local/etc/dropbear
+echo "starting Dropbear on tcp/22"
+echo "login: tc (root login disabled)"
+dropbear -R -w -E -p 22 -b /usr/local/etc/dropbear/banner 2>>"$LOG" || {
+    status=$?
+    echo "XBOX_REMOTE_START_FAILED status=$status"
+    exit "$status"
+}
+sleep 1
+if pidof dropbear >/dev/null 2>&1; then
+    echo "XBOX_REMOTE_SSH_OK"
+    exit 0
+fi
+
+echo "XBOX_REMOTE_START_FAILED no-process"
 exit 1
 EOX
 
@@ -688,7 +742,17 @@ export TERM=xterm
 export HOME="${HOME:-/home/tc}"
 export USER="${USER:-tc}"
 cd "$HOME" 2>/dev/null || cd /
-exec aterm -fn fixed -fg white -bg black -geometry 78x24+20+20 -title "Xbox Terminal" -e /bin/sh -c "export HOME=/home/tc USER=tc TERM=xterm; cd /home/tc 2>/dev/null || cd /; exec /bin/sh -i" >/tmp/xbox-aterm.log 2>&1
+XBOX_FONT=fixed
+XBOX_GEOMETRY=78x24+20+20
+for arg in $(cat /proc/cmdline 2>/dev/null); do
+    case "$arg" in
+        xbox_terminal_font=9x15)
+            XBOX_FONT=9x15
+            XBOX_GEOMETRY=66x26+8+8
+            ;;
+    esac
+done
+exec aterm -fn "$XBOX_FONT" -fg white -bg black -geometry "$XBOX_GEOMETRY" -title "Xbox Terminal" -e /bin/sh -c "export HOME=/home/tc USER=tc TERM=xterm; cd /home/tc 2>/dev/null || cd /; exec /bin/sh -i" >/tmp/xbox-aterm.log 2>&1
 EOX
 
 cat > /usr/local/bin/xbox-proof-aterm <<'EOX'
@@ -696,14 +760,27 @@ cat > /usr/local/bin/xbox-proof-aterm <<'EOX'
 export PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin
 export LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/lib
 xbox-diag >/tmp/xbox-diag.txt 2>&1 || true
-exec aterm -fn fixed -fg white -bg black -geometry 78x26+20+20 -title "Xbox Tiny Core" -e /bin/sh -c "echo XBOX_TINYCORE_NORMAL_DESKTOP_OK; uname -a; echo; echo memory:; grep -E 'MemTotal|MemFree|MemAvailable|Buffers|Cached|SwapTotal|SwapFree' /proc/meminfo 2>/dev/null; echo; echo network:; ifconfig eth0 2>/dev/null || true; grep -E 'XBOX_NETWORK_(DHCP_OK|DHCP_FAILED|NO_ETH0|NO_DHCP_CLIENT)' /tmp/xbox-network-up.txt 2>/dev/null || true; echo; echo framebuffer:; cat /sys/class/graphics/fb0/name /sys/class/graphics/fb0/virtual_size /sys/class/graphics/fb0/bits_per_pixel 2>/dev/null; echo; echo input:; grep -E 'Name|Handlers' /proc/bus/input/devices 2>/dev/null; echo; echo diag: /tmp/xbox-diag.txt; echo network log: /tmp/xbox-network-up.txt; sleep 100000"
+XBOX_FONT=fixed
+XBOX_GEOMETRY=78x26+20+20
+for arg in $(cat /proc/cmdline 2>/dev/null); do
+    case "$arg" in
+        xbox_terminal_font=9x15)
+            XBOX_FONT=9x15
+            XBOX_GEOMETRY=66x28+8+8
+            ;;
+    esac
+done
+exec aterm -fn "$XBOX_FONT" -fg white -bg black -geometry "$XBOX_GEOMETRY" -title "Xbox Tiny Core" -e /bin/sh -c "echo XBOX_TINYCORE_NORMAL_DESKTOP_OK; uname -a; echo; echo memory:; grep -E 'MemTotal|MemFree|MemAvailable|Buffers|Cached|SwapTotal|SwapFree' /proc/meminfo 2>/dev/null; echo; echo network:; ifconfig eth0 2>/dev/null || true; grep -E 'XBOX_NETWORK_(DHCP_OK|DHCP_FAILED|NO_ETH0|NO_DHCP_CLIENT)' /tmp/xbox-network-up.txt 2>/dev/null || true; echo; echo remote:; cat /tmp/xbox-remote-up.txt 2>/dev/null || echo pending; echo; echo framebuffer:; cat /sys/class/graphics/fb0/name /sys/class/graphics/fb0/virtual_size /sys/class/graphics/fb0/bits_per_pixel 2>/dev/null; echo; echo input:; grep -E 'Name|Handlers' /proc/bus/input/devices 2>/dev/null; echo; echo diag: /tmp/xbox-diag.txt; echo network log: /tmp/xbox-network-up.txt; echo remote log: /tmp/xbox-remote-up.txt; sleep 100000"
 EOX
-chmod 755 /usr/local/bin/xbox-storage-tune /usr/local/bin/xbox-diag /usr/local/bin/xbox-network-up /usr/local/bin/xbox-aterm /usr/local/bin/xbox-proof-aterm
+chmod 755 /usr/local/bin/xbox-storage-tune /usr/local/bin/xbox-diag /usr/local/bin/xbox-network-up /usr/local/bin/xbox-remote-up /usr/local/bin/xbox-aterm /usr/local/bin/xbox-proof-aterm
 
 if ! grep -q '^tc:' /etc/passwd 2>/dev/null; then
     adduser -s /bin/sh -G staff -D tc 2>/tmp/adduser.log || cat /tmp/adduser.log
-    echo "tc:tcuser" | chpasswd -m 2>/dev/null || true
 fi
+echo "tc:tcuser" | chpasswd -m 2>/tmp/xbox-chpasswd.err || {
+    echo "XBOX_TC_PASSWORD_SETUP_FAILED" >&2
+    cat /tmp/xbox-chpasswd.err >&2 2>/dev/null || true
+}
 grep -q '^tc[[:space:]]' /etc/sudoers 2>/dev/null || echo 'tc ALL=NOPASSWD: ALL' >> /etc/sudoers
 
 cp -a /etc/skel/. /home/tc/ 2>/dev/null || true

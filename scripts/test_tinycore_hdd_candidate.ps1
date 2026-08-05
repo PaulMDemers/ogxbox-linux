@@ -154,7 +154,8 @@ for ($run = 1; $run -le $Runs; $run++) {
             if ($analysis.fingerprint -eq $previousFingerprint) { $repeatedFingerprintPolls++ } else { $repeatedFingerprintPolls = 0 }
             $previousFingerprint = $analysis.fingerprint
             $tinyCoreDesktop = $null -ne $firstLinux -and $analysis.stage -eq 'xromwell' -and `
-                $analysis.blueRatio -ge 0.75 -and $analysis.darkRatio -le 0.55 -and $analysis.edgeRatio -le 0.06
+                $analysis.blueRatio -ge 0.75 -and $analysis.darkRatio -le 0.75 -and `
+                $analysis.lightRatio -ge 0.02 -and $analysis.edgeRatio -le 0.06
             if ($tinyCoreDesktop -and $null -eq $firstX) { $firstX = $elapsed }
             if (($analysis.stage -eq 'desktop-x' -and $analysis.centerDarkRatio -ge 0.45) -or $tinyCoreDesktop) {
                 $proofVisible = $elapsed

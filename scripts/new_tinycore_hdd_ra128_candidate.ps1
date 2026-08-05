@@ -7,6 +7,10 @@ param(
     [ValidateRange(128, 4096)]
     [int]$DiskReadAheadKb = 1024,
     [switch]$XHotset,
+    [switch]$RemoteDiagnostics,
+    [ValidateSet('fixed', '9x15')]
+    [string]$TerminalFont = 'fixed',
+    [string]$PayloadPath,
     [switch]$ProtectedControl
 )
 
@@ -26,6 +30,8 @@ $outFull = if ([System.IO.Path]::IsPathRooted($OutRoot)) {
 $initramfsOut = Join-Path $outFull 'initramfs-build'
 $candidateName = if ($ProtectedControl) {
     'xromwell-hddfatx-tinycore-lean-protected-control'
+} elseif ($RemoteDiagnostics) {
+    "xromwell-hddfatx-tinycore-lean-xhotset-remote-ra${ReadAheadKb}k-candidate"
 } elseif ($XHotset) {
     "xromwell-hddfatx-tinycore-lean-xhotset-ra${ReadAheadKb}k-candidate"
 } else {
@@ -34,6 +40,14 @@ $candidateName = if ($ProtectedControl) {
 $candidateDir = Join-Path $outFull $candidateName
 $candidateZip = Join-Path $outFull "$candidateName.zip"
 $protectedZipSha256 = '17327756ED0CB274145CFDD974D119BEF19DB0F7588509726BB8C6BBFD4DE866'
+$payloadFull = $null
+if ($PayloadPath) {
+    $payloadFull = if ([System.IO.Path]::IsPathRooted($PayloadPath)) {
+        [System.IO.Path]::GetFullPath($PayloadPath)
+    } else {
+        [System.IO.Path]::GetFullPath((Join-Path $repoRoot $PayloadPath))
+    }
+}
 
 function Get-RelativePath {
     param([string]$BasePath, [string]$TargetPath)
@@ -60,6 +74,15 @@ if (-not $outFull.StartsWith($artifactsPrefix, [System.StringComparison]::Ordina
 if (-not (Test-Path -LiteralPath $protectedZipFull -PathType Leaf)) {
     throw "Protected Tiny Core package was not found: $protectedZipFull"
 }
+if ($RemoteDiagnostics -and (-not $XHotset -or -not $payloadFull)) {
+    throw 'RemoteDiagnostics requires XHotset and a Dropbear-enabled PayloadPath.'
+}
+if ($payloadFull -and -not (Test-Path -LiteralPath $payloadFull -PathType Leaf)) {
+    throw "Candidate payload was not found: $payloadFull"
+}
+if ($payloadFull -and $payloadFull.StartsWith($outFull.TrimEnd('\') + '\', [System.StringComparison]::OrdinalIgnoreCase)) {
+    throw "PayloadPath must be outside OutRoot because OutRoot is rebuilt: $payloadFull"
+}
 $actualProtectedHash = (Get-FileHash -LiteralPath $protectedZipFull -Algorithm SHA256).Hash
 if ($actualProtectedHash -ne $protectedZipSha256) {
     throw "Protected Tiny Core package changed. Expected $protectedZipSha256, got $actualProtectedHash"
@@ -74,6 +97,9 @@ if (Test-Path -LiteralPath $outFull) {
 }
 New-Item -ItemType Directory -Force -Path $outFull | Out-Null
 Expand-Archive -LiteralPath $protectedZipFull -DestinationPath $candidateDir
+if ($payloadFull) {
+    Copy-Item -LiteralPath $payloadFull -Destination (Join-Path $candidateDir 'E-root\linuxroot.ext2') -Force
+}
 
 if (-not $ProtectedControl) {
     & python (Join-Path $repoRoot 'scripts\make_busybox_initramfs.py') --out-dir $initramfsOut
@@ -96,6 +122,12 @@ if (-not $ProtectedControl) {
     if ($XHotset) {
         $cfgLines[$appendIndex] += ' xbox_x_hotset=1'
     }
+    if ($RemoteDiagnostics) {
+        $cfgLines[$appendIndex] += ' xbox_remote_diag=1'
+    }
+    if ($TerminalFont -ne 'fixed') {
+        $cfgLines[$appendIndex] += " xbox_terminal_font=$TerminalFont"
+    }
     [System.IO.File]::WriteAllLines($cfgPath, $cfgLines, [System.Text.Encoding]::ASCII)
     $cfg = [System.IO.File]::ReadAllText($cfgPath)
     if ($cfg -notmatch "xbox_disk_readahead_kb=$DiskReadAheadKb" -or
@@ -105,6 +137,12 @@ if (-not $ProtectedControl) {
     }
     if ($XHotset -and $cfg -notmatch 'xbox_x_hotset=1') {
         throw "Failed to enable the X hotset in $cfgPath"
+    }
+    if ($RemoteDiagnostics -and $cfg -notmatch 'xbox_remote_diag=1') {
+        throw "Failed to enable remote diagnostics in $cfgPath"
+    }
+    if ($TerminalFont -ne 'fixed' -and $cfg -notmatch "xbox_terminal_font=$TerminalFont") {
+        throw "Failed to set the terminal font in $cfgPath"
     }
 }
 
@@ -118,6 +156,15 @@ $hotsetDetails = if ($XHotset) {
   - materialize the measured Xfbdev/X11 startup hotset into RAM before X starts
   - record hotset timing and memory snapshots under /tmp/xbox-hotset-*
   - start wbar after the wallpaper so its faux-transparent background is valid
+'@
+} else {
+    ''
+}
+$remoteDetails = if ($RemoteDiagnostics) {
+@'
+  - add the Tiny Core 11 Dropbear extension to the isolated payload
+  - start SSH on tcp/22 after DHCP succeeds, with root login disabled
+  - configure the tc/tcuser diagnostic login for this LAN test image
 '@
 } else {
     ''
@@ -153,6 +200,8 @@ $desktopOrder
   - set the ext2 root loop read-ahead to ${ReadAheadKb} KiB immediately after attach
   - make xbox-storage-tune honor the same command-line values
 $hotsetDetails
+$remoteDetails
+  - use terminal font $TerminalFont
 
 The protected ZIP is hash-verified and is never modified.
 "@
@@ -163,7 +212,7 @@ $files = Get-FileHashMap $candidateDir
 Compress-Archive -Path (Join-Path $candidateDir '*') -DestinationPath $candidateZip -CompressionLevel Optimal
 $manifest = [ordered]@{
     generatedUtc = [DateTime]::UtcNow.ToString('o')
-    purpose = if ($ProtectedControl) { 'Unmodified protected Tiny Core HDD/FATX control' } elseif ($XHotset) { "Tiny Core HDD/FATX X-hotset ${ReadAheadKb} KiB loop read-ahead candidate" } else { "Tiny Core HDD/FATX UI-first ${ReadAheadKb} KiB loop read-ahead candidate" }
+    purpose = if ($ProtectedControl) { 'Unmodified protected Tiny Core HDD/FATX control' } elseif ($RemoteDiagnostics) { "Tiny Core HDD/FATX X-hotset remote-diagnostics ${ReadAheadKb} KiB loop read-ahead candidate" } elseif ($XHotset) { "Tiny Core HDD/FATX X-hotset ${ReadAheadKb} KiB loop read-ahead candidate" } else { "Tiny Core HDD/FATX UI-first ${ReadAheadKb} KiB loop read-ahead candidate" }
     protectedSource = [ordered]@{
         zip = $ProtectedZip.Replace('\', '/')
         zipSha256 = $protectedZipSha256
@@ -177,6 +226,10 @@ $manifest = [ordered]@{
         rootLoopReadAheadKb = if ($ProtectedControl) { $null } else { $ReadAheadKb }
         xHotset = if ($ProtectedControl) { $false } else { [bool]$XHotset }
         xHotsetExtensions = if ($XHotset) { @('libXau', 'libXdmcp', 'libxcb', 'libX11', 'Xlibs', 'libpng', 'freetype', 'libfontenc', 'libXfont', 'Xfbdev') } else { @() }
+        remoteDiagnostics = [bool]$RemoteDiagnostics
+        remoteService = if ($RemoteDiagnostics) { 'Dropbear SSH tcp/22; tc login; root disabled' } else { $null }
+        terminalFont = $TerminalFont
+        replacementPayload = if ($payloadFull) { [ordered]@{ path = $PayloadPath.Replace('\', '/'); sha256 = (Get-FileHash -LiteralPath $payloadFull -Algorithm SHA256).Hash } } else { $null }
         protectedControl = [bool]$ProtectedControl
         files = $files
     }
