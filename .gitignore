@@ -27,6 +27,7 @@
 /run/devuan58-hot-order-closure/
 /run/devuan58-*/
 /run/tinycore-hdd-*/
+/run/tinycore-hardware-remote/
 
 # Generated boot media / firmware / disk images
 *.iso

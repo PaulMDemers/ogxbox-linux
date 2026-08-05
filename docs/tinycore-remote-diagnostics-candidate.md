@@ -94,6 +94,52 @@ run\tinycore-hdd-x-hotset-remote-release\20260804-201133
 run\tinycore-hdd-x-hotset-remote-release-ssh\20260804-201453
 ```
 
+## Real-Hardware Result
+
+The exact candidate ZIP booted on real Original Xbox hardware. Its built-in
+DHCP client assigned `192.168.50.156`, installed the default route and resolver,
+and reported `XBOX_NETWORK_DHCP_OK`. Dropbear reported
+`XBOX_REMOTE_SSH_OK`; password login and both SCP transfers succeeded from a
+Windows host. Root SSH login remained disabled.
+
+The X-hotset and desktop timings remained fast:
+
+```text
+14.04 hotset-start
+20.46 hotset-finished
+25.11 xsession-start
+26.13 x-socket-ready
+26.14 x-ready
+27.19 wallpaper-finished
+27.19 icons-started
+27.19 system-xd-finished
+```
+
+The hotset took 6.42 seconds. X became usable 1.03 seconds after the session
+started, and the wallpaper plus dock completed at 27.19 seconds of kernel
+uptime. The internal disk and DVD drive negotiated UDMA2, the physical disk
+and FATX/ext2 loops used 1024 KiB read-ahead, and FATX remained mounted
+read-only.
+
+Memory remains the limiting resource rather than SSH. Before X, the hotset
+left 14,960 kB available. The early desktop diagnostic, before wbar and the
+proof terminal fully settled, reported 11,660 kB available. A later snapshot
+with the complete desktop, two aterm windows, and an active SSH session
+reported 2,996 kB available and no swap. Per-process status showed Dropbear's
+master using 104 kB anonymous RSS and the active child using 144 kB; most of
+the later pressure came from Xfbdev, wbar, and the two terminals.
+
+Collected logs and their SHA-256 manifest are preserved locally at:
+
+```text
+run\tinycore-hardware-remote\20260804-203045
+```
+
+The `xbox-chpasswd.err` file contains the success message `password for 'tc'
+changed`; BusyBox writes that status to stderr, so it is not a boot error.
+Subjective confirmation of terminal readability and sustained desktop
+responsiveness is still useful before promoting this diagnostic image.
+
 ## Reproduce
 
 ```powershell
