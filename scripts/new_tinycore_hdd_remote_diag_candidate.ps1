@@ -5,7 +5,8 @@ param(
     [ValidateRange(64, 4096)]
     [int]$ReadAheadKb = 1024,
     [ValidateRange(128, 4096)]
-    [int]$DiskReadAheadKb = 1024
+    [int]$DiskReadAheadKb = 1024,
+    [switch]$ReleaseXHotset
 )
 
 $ErrorActionPreference = 'Stop'
@@ -54,5 +55,5 @@ if ($LASTEXITCODE -ne 0) { throw 'Building the Dropbear-enabled Tiny Core payloa
 
 & (Join-Path $repoRoot 'scripts\new_tinycore_hdd_ra128_candidate.ps1') `
     -OutRoot $OutRoot -ReadAheadKb $ReadAheadKb -DiskReadAheadKb $DiskReadAheadKb `
-    -XHotset -RemoteDiagnostics -TerminalFont 9x15 -PayloadPath $payloadPath
+    -XHotset -ReleaseXHotset:$ReleaseXHotset -RemoteDiagnostics -TerminalFont 9x15 -PayloadPath $payloadPath
 if ($LASTEXITCODE -ne 0) { throw 'Packaging the Tiny Core remote-diagnostics candidate failed.' }

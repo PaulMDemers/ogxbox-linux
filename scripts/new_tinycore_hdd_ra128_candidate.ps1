@@ -7,6 +7,7 @@ param(
     [ValidateRange(128, 4096)]
     [int]$DiskReadAheadKb = 1024,
     [switch]$XHotset,
+    [switch]$ReleaseXHotset,
     [switch]$RemoteDiagnostics,
     [ValidateSet('fixed', '9x15')]
     [string]$TerminalFont = 'fixed',
@@ -30,6 +31,8 @@ $outFull = if ([System.IO.Path]::IsPathRooted($OutRoot)) {
 $initramfsOut = Join-Path $outFull 'initramfs-build'
 $candidateName = if ($ProtectedControl) {
     'xromwell-hddfatx-tinycore-lean-protected-control'
+} elseif ($RemoteDiagnostics -and $ReleaseXHotset) {
+    "xromwell-hddfatx-tinycore-lean-xhotset-release-remote-ra${ReadAheadKb}k-candidate"
 } elseif ($RemoteDiagnostics) {
     "xromwell-hddfatx-tinycore-lean-xhotset-remote-ra${ReadAheadKb}k-candidate"
 } elseif ($XHotset) {
@@ -77,6 +80,9 @@ if (-not (Test-Path -LiteralPath $protectedZipFull -PathType Leaf)) {
 if ($RemoteDiagnostics -and (-not $XHotset -or -not $payloadFull)) {
     throw 'RemoteDiagnostics requires XHotset and a Dropbear-enabled PayloadPath.'
 }
+if ($ReleaseXHotset -and -not $XHotset) {
+    throw 'ReleaseXHotset requires XHotset.'
+}
 if ($payloadFull -and -not (Test-Path -LiteralPath $payloadFull -PathType Leaf)) {
     throw "Candidate payload was not found: $payloadFull"
 }
@@ -122,6 +128,9 @@ if (-not $ProtectedControl) {
     if ($XHotset) {
         $cfgLines[$appendIndex] += ' xbox_x_hotset=1'
     }
+    if ($ReleaseXHotset) {
+        $cfgLines[$appendIndex] += ' xbox_x_hotset_release=1'
+    }
     if ($RemoteDiagnostics) {
         $cfgLines[$appendIndex] += ' xbox_remote_diag=1'
     }
@@ -137,6 +146,9 @@ if (-not $ProtectedControl) {
     }
     if ($XHotset -and $cfg -notmatch 'xbox_x_hotset=1') {
         throw "Failed to enable the X hotset in $cfgPath"
+    }
+    if ($ReleaseXHotset -and $cfg -notmatch 'xbox_x_hotset_release=1') {
+        throw "Failed to enable X hotset release in $cfgPath"
     }
     if ($RemoteDiagnostics -and $cfg -notmatch 'xbox_remote_diag=1') {
         throw "Failed to enable remote diagnostics in $cfgPath"
@@ -156,6 +168,14 @@ $hotsetDetails = if ($XHotset) {
   - materialize the measured Xfbdev/X11 startup hotset into RAM before X starts
   - record hotset timing and memory snapshots under /tmp/xbox-hotset-*
   - start wbar after the wallpaper so its faux-transparent background is valid
+'@
+} else {
+    ''
+}
+$hotsetReleaseDetails = if ($ReleaseXHotset) {
+@'
+  - restore the original squashfs links after the desktop has started
+  - record reclamation status and memory under /tmp/xbox-hotset-release.txt
 '@
 } else {
     ''
@@ -200,6 +220,7 @@ $desktopOrder
   - set the ext2 root loop read-ahead to ${ReadAheadKb} KiB immediately after attach
   - make xbox-storage-tune honor the same command-line values
 $hotsetDetails
+$hotsetReleaseDetails
 $remoteDetails
   - use terminal font $TerminalFont
 
@@ -212,7 +233,7 @@ $files = Get-FileHashMap $candidateDir
 Compress-Archive -Path (Join-Path $candidateDir '*') -DestinationPath $candidateZip -CompressionLevel Optimal
 $manifest = [ordered]@{
     generatedUtc = [DateTime]::UtcNow.ToString('o')
-    purpose = if ($ProtectedControl) { 'Unmodified protected Tiny Core HDD/FATX control' } elseif ($RemoteDiagnostics) { "Tiny Core HDD/FATX X-hotset remote-diagnostics ${ReadAheadKb} KiB loop read-ahead candidate" } elseif ($XHotset) { "Tiny Core HDD/FATX X-hotset ${ReadAheadKb} KiB loop read-ahead candidate" } else { "Tiny Core HDD/FATX UI-first ${ReadAheadKb} KiB loop read-ahead candidate" }
+    purpose = if ($ProtectedControl) { 'Unmodified protected Tiny Core HDD/FATX control' } elseif ($RemoteDiagnostics -and $ReleaseXHotset) { "Tiny Core HDD/FATX releasable X-hotset remote-diagnostics ${ReadAheadKb} KiB loop read-ahead candidate" } elseif ($RemoteDiagnostics) { "Tiny Core HDD/FATX X-hotset remote-diagnostics ${ReadAheadKb} KiB loop read-ahead candidate" } elseif ($XHotset) { "Tiny Core HDD/FATX X-hotset ${ReadAheadKb} KiB loop read-ahead candidate" } else { "Tiny Core HDD/FATX UI-first ${ReadAheadKb} KiB loop read-ahead candidate" }
     protectedSource = [ordered]@{
         zip = $ProtectedZip.Replace('\', '/')
         zipSha256 = $protectedZipSha256
@@ -225,6 +246,7 @@ $manifest = [ordered]@{
         fatxLoopReadAheadKb = if ($ProtectedControl) { $null } else { $ReadAheadKb }
         rootLoopReadAheadKb = if ($ProtectedControl) { $null } else { $ReadAheadKb }
         xHotset = if ($ProtectedControl) { $false } else { [bool]$XHotset }
+        xHotsetRelease = if ($ProtectedControl) { $false } else { [bool]$ReleaseXHotset }
         xHotsetExtensions = if ($XHotset) { @('libXau', 'libXdmcp', 'libxcb', 'libX11', 'Xlibs', 'libpng', 'freetype', 'libfontenc', 'libXfont', 'Xfbdev') } else { @() }
         remoteDiagnostics = [bool]$RemoteDiagnostics
         remoteService = if ($RemoteDiagnostics) { 'Dropbear SSH tcp/22; tc login; root disabled' } else { $null }

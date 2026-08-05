@@ -505,11 +505,13 @@ materialize_extension() {
                 cat /tmp/x-hotset-copy.err 2>/dev/null || true
                 exit 1
             }
+            printf '%s|%s\n' "$rel" "/tmp/tcloop/$base/$rel" >> /mnt/tcroot/tmp/xbox-hotset-files.txt
         done
     )
 }
 
 : > /mnt/tcroot/tmp/xbox-hotset-timing.txt
+: > /mnt/tcroot/tmp/xbox-hotset-files.txt
 hotset_mark hotset-check
 grep -E 'MemTotal|MemFree|MemAvailable' /proc/meminfo > /mnt/tcroot/tmp/xbox-hotset-memory-before.txt 2>/dev/null || true
 if [ "$X_HOTSET" = "1" ]; then
@@ -567,6 +569,60 @@ for q in /sys/block/hd*/queue/read_ahead_kb /sys/block/sd*/queue/read_ahead_kb; 
 done
 [ -w /sys/block/loop0/queue/read_ahead_kb ] && echo "$FATX_RA" > /sys/block/loop0/queue/read_ahead_kb 2>/dev/null || true
 [ -w /sys/block/loop1/queue/read_ahead_kb ] && echo "$ROOT_RA" > /sys/block/loop1/queue/read_ahead_kb 2>/dev/null || true
+EOX
+
+cat > /usr/local/bin/xbox-hotset-release <<'EOX'
+#!/bin/sh
+LOG=/tmp/xbox-hotset-release.txt
+FILES=/tmp/xbox-hotset-files.txt
+
+case " $(cat /proc/cmdline 2>/dev/null) " in
+    *" xbox_x_hotset_release=1 "*) ;;
+    *) exit 0 ;;
+esac
+
+{
+    echo "== xbox x hotset release =="
+    date
+    echo
+    echo "memory before:"
+    grep -E 'MemTotal|MemFree|MemAvailable|Cached|Shmem|Slab' /proc/meminfo 2>/dev/null || true
+    echo
+} > "$LOG"
+
+restored=0
+failed=0
+while IFS='|' read rel source; do
+    [ -n "$rel" ] || continue
+    dest="/$rel"
+    if [ ! -e "$source" ]; then
+        echo "missing source: $source" >> "$LOG"
+        failed=$((failed + 1))
+        continue
+    fi
+    rm -f "$dest" 2>/dev/null || true
+    if ln -s "$source" "$dest" 2>/dev/null; then
+        restored=$((restored + 1))
+    else
+        echo "restore failed: $dest -> $source" >> "$LOG"
+        failed=$((failed + 1))
+    fi
+done < "$FILES"
+
+{
+    echo
+    echo "restored=$restored"
+    echo "failed=$failed"
+    echo
+    echo "memory after:"
+    grep -E 'MemTotal|MemFree|MemAvailable|Cached|Shmem|Slab' /proc/meminfo 2>/dev/null || true
+    echo
+    if [ "$failed" -eq 0 ]; then
+        echo "XBOX_X_HOTSET_RELEASE_OK"
+    else
+        echo "XBOX_X_HOTSET_RELEASE_FAILED"
+    fi
+} >> "$LOG"
 EOX
 
 cat > /usr/local/bin/xbox-diag <<'EOX'
@@ -772,7 +828,7 @@ for arg in $(cat /proc/cmdline 2>/dev/null); do
 done
 exec aterm -fn "$XBOX_FONT" -fg white -bg black -geometry "$XBOX_GEOMETRY" -title "Xbox Tiny Core" -e /bin/sh -c "echo XBOX_TINYCORE_NORMAL_DESKTOP_OK; uname -a; echo; echo memory:; grep -E 'MemTotal|MemFree|MemAvailable|Buffers|Cached|SwapTotal|SwapFree' /proc/meminfo 2>/dev/null; echo; echo network:; ifconfig eth0 2>/dev/null || true; grep -E 'XBOX_NETWORK_(DHCP_OK|DHCP_FAILED|NO_ETH0|NO_DHCP_CLIENT)' /tmp/xbox-network-up.txt 2>/dev/null || true; echo; echo remote:; cat /tmp/xbox-remote-up.txt 2>/dev/null || echo pending; echo; echo framebuffer:; cat /sys/class/graphics/fb0/name /sys/class/graphics/fb0/virtual_size /sys/class/graphics/fb0/bits_per_pixel 2>/dev/null; echo; echo input:; grep -E 'Name|Handlers' /proc/bus/input/devices 2>/dev/null; echo; echo diag: /tmp/xbox-diag.txt; echo network log: /tmp/xbox-network-up.txt; echo remote log: /tmp/xbox-remote-up.txt; sleep 100000"
 EOX
-chmod 755 /usr/local/bin/xbox-storage-tune /usr/local/bin/xbox-diag /usr/local/bin/xbox-network-up /usr/local/bin/xbox-remote-up /usr/local/bin/xbox-aterm /usr/local/bin/xbox-proof-aterm
+chmod 755 /usr/local/bin/xbox-storage-tune /usr/local/bin/xbox-hotset-release /usr/local/bin/xbox-diag /usr/local/bin/xbox-network-up /usr/local/bin/xbox-remote-up /usr/local/bin/xbox-aterm /usr/local/bin/xbox-proof-aterm
 
 if ! grep -q '^tc:' /etc/passwd 2>/dev/null; then
     adduser -s /bin/sh -G staff -D tc 2>/tmp/adduser.log || cat /tmp/adduser.log
@@ -828,6 +884,7 @@ xbox_mark user-xd-started
 xbox_mark icons-started
 [ -d "/usr/local/etc/X.d" ] && find "/usr/local/etc/X.d" -type f -o -type l | sort | while read F; do . "$F"; done
 xbox_mark system-xd-finished
+( sleep 5; xbox-hotset-release ) >/tmp/xbox-hotset-release-launch.log 2>&1 &
 wait "$XPID"
 EOX
 
