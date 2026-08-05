@@ -52,7 +52,7 @@ The candidate builder requires the exact promoted release ZIP:
 
 ```text
 artifacts/tinycore-6.18.33-nondisc/
-  tinycore11-desktop-6.18.33-hotset-release-xbe.zip
+  tinycore11-desktop-6.18.33-pre-apps-rollback-xbe.zip
 SHA256 F75DC44CBA6CDD994E146C6E684AFE0EB149DFF75E48BA5A0CC8CA965A5FDAF1
 ```
 
@@ -130,5 +130,19 @@ and SHA-256 manifest are retained locally under:
 run\tinycore-apps-hardware\20260805-confirmed
 ```
 
-This candidate is hardware-passed and eligible to replace the older promoted
-package. Preserve the tested ZIP unchanged during promotion.
+## Promotion
+
+The exact hardware-tested ZIP was promoted without rebuilding it to:
+
+```text
+artifacts/tinycore-6.18.33-nondisc/
+  tinycore11-desktop-6.18.33-apps-default-mirror-xbe.zip
+```
+
+Its SHA-256 remains `B914A6B513009CE84422EE881996B09F96F75196F65D3F3FB39B0B272478F6F0`.
+The older promoted package is retained beside it as the complete named rollback
+`tinycore11-desktop-6.18.33-pre-apps-rollback-xbe.zip` with SHA-256
+`F75DC44CBA6CDD994E146C6E684AFE0EB149DFF75E48BA5A0CC8CA965A5FDAF1`.
+
+The self-contained promoted layout passed an additional fresh-FATX boot and
+Apps/SSH smoke gate before replacing the canonical release folder.

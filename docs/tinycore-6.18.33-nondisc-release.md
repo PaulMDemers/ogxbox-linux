@@ -2,13 +2,13 @@
 
 ## Purpose
 
-This release promotes the hardware-passed Tiny Core post-startup hotset-release
-package into one complete, release-friendly directory. It boots from a dashboard
-XBE and E:-root files without an optical disc.
+This release promotes the hardware-passed Tiny Core Apps default-mirror package
+into one complete, release-friendly directory. It boots from a dashboard XBE
+and E:-root files without an optical disc.
 
 The promoted ZIP is a byte-for-byte copy of the real-hardware-tested package.
-The earlier X-hotset, remote-diagnostics, and memory-candidate packages remain
-untouched rollback points.
+The previous hardware-tested hotset release is retained in the same directory
+as a named, complete rollback ZIP. No boot artifact was rebuilt for promotion.
 
 ## Artifact
 
@@ -19,7 +19,15 @@ artifacts\tinycore-6.18.33-nondisc\
 Primary package:
 
 ```text
-tinycore11-desktop-6.18.33-hotset-release-xbe.zip
+tinycore11-desktop-6.18.33-apps-default-mirror-xbe.zip
+size:   20,185,092 bytes
+SHA256: B914A6B513009CE84422EE881996B09F96F75196F65D3F3FB39B0B272478F6F0
+```
+
+Named rollback package:
+
+```text
+tinycore11-desktop-6.18.33-pre-apps-rollback-xbe.zip
 size:   20,184,231 bytes
 SHA256: F75DC44CBA6CDD994E146C6E684AFE0EB149DFF75E48BA5A0CC8CA965A5FDAF1
 ```
@@ -28,7 +36,7 @@ The directory also contains:
 
 - A complete extracted FTP folder with `default.xbe` and all four E:-root files.
 - `README.md` with installation, network login, and known-issue notes.
-- `SHA256SUMS.txt` for the distributable ZIP.
+- `SHA256SUMS.txt` for both complete distributable ZIPs.
 - `release-manifest.json` with file hashes and hardware validation results.
 - `candidate-manifest.json` for the established xemu test harness.
 
@@ -46,49 +54,55 @@ or configuration.
 DHCP starts automatically. Dropbear listens on tcp/22 with user `tc`, password
 `tcuser`, and root SSH login disabled.
 
-When Tiny Core Apps asks to check for the fastest mirror, select No. The mirror
-benchmark can fail and lock the 64 MB system.
+Tiny Core Apps opens with the normal repository already configured. Its
+resource-heavy first-run fastest-mirror benchmark is intentionally marked
+complete and does not prompt.
 
 ## Verification
 
-The release package passed three fresh-disk xemu boots. Every run used a newly
-generated FATX layout with contiguous, hash-verified readback of the kernel,
-initramfs, configuration, and root payload.
+The Apps candidate passed three fresh-disk xemu boots before hardware testing.
+Every run used a newly generated FATX layout with contiguous, hash-verified
+readback of the kernel, initramfs, configuration, and root payload.
 
 | Run | Linux visible | Desktop proof visible |
 |---|---:|---:|
-| 1 | 17 s | 45 s |
+| 1 | 22 s | 45 s |
 | 2 | 17 s | 45 s |
 | 3 | 17 s | 45 s |
 
-A separate release gate also passed:
+A separate promotion gate then passed against the self-contained release layout:
 
-- Desktop boot from a fresh disk.
+- Fresh-disk desktop boot: Linux at 17 seconds, desktop proof at 46 seconds.
 - DHCP and Dropbear host-key reachability.
 - Password authentication as `tc`.
-- Current-boot host-key verification using an isolated known-hosts file.
-- Authorized launch of a second `aterm` on the root-owned X session.
-- Live aterm process count increased from one to two.
-- Full-window application smoke screenshot captured.
+- `/tmp/tce/optional` and `/tmp/tce/firstrun` were present.
+- Apps launched without the first-run dialog or `mirrorpicker`.
+- `/opt/tcemirror` remained `http://repo.tinycorelinux.net/`.
+- A full-window Apps smoke screenshot was captured.
 
 Final application-smoke markers:
 
 ```text
-XBOX_PASSWORD_SSH_OK
-XBOX_ATERM_COUNT_1_2
-XBOX_RELEASE_APP_OK
+XBOX_APPS_FIRSTRUN_MARKER_OK
+XBOX_APPS_OPTIONAL_DIR_OK
+XBOX_APPS_DEFAULT_MIRROR_OK
+XBOX_APPS_LAUNCH_OK
+XBOX_APPS_NO_MIRRORPICKER_OK
+XBOX_APPS_MIRROR_UNCHANGED_OK
 ```
 
 Generated evidence is retained locally under:
 
 ```text
-run\tinycore-6.18.33-release\20260804-231453
-run\tinycore-6.18.33-release-clean-harness\20260804-235401
+run\tinycore-6.18.33-promoted-gate\20260805-112053
+run\tinycore-6.18.33-promoted-apps-gate\20260805-112211
 ```
 
-The release ZIP itself had already passed real-hardware boot, desktop, mouse,
-application, DHCP, SSH, SCP, memory-reclaim, and responsiveness testing. See
-`docs/tinycore-memory-candidate.md` for those measurements.
+The exact active ZIP had already passed real-hardware boot, desktop, mouse,
+Apps, DHCP, SSH, SCP, hotset restore, and responsiveness testing. Apps skipped
+the mirror prompt, X was ready at 26.48 seconds, desktop startup completed at
+27.63 seconds, and 6,260 kB remained available after interactive testing. See
+`docs/tinycore-apps-default-mirror-candidate.md` for the full evidence.
 
 ## Reproduce
 
@@ -110,7 +124,7 @@ Run the cold-boot and remote application gates:
 .\scripts\test_tinycore_remote_diag.ps1 `
   -CandidateRoot artifacts\tinycore-6.18.33-nondisc-new `
   -OutputRoot run\tinycore-6.18.33-release-new-ssh `
-  -ApplicationSmoke
+  -AppsDefaultMirrorSmoke
 ```
 
 The builder refuses to overwrite an existing output directory unless `-Force`

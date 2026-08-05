@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
-    [string]$SourceRoot = 'artifacts\tinycore-hdd-x-hotset-memory-candidate',
+    [string]$SourceRoot = 'artifacts\tinycore-apps-default-mirror-candidate',
+    [string]$RollbackSourceRoot = 'artifacts\tinycore-hdd-x-hotset-memory-candidate',
     [string]$OutRoot = 'artifacts\tinycore-6.18.33-nondisc',
     [switch]$Force
 )
@@ -9,14 +10,20 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $artifactsRoot = [System.IO.Path]::GetFullPath((Join-Path $repoRoot 'artifacts'))
 $sourceFull = [System.IO.Path]::GetFullPath((Join-Path $repoRoot $SourceRoot))
+$rollbackSourceFull = [System.IO.Path]::GetFullPath((Join-Path $repoRoot $RollbackSourceRoot))
 $outFull = [System.IO.Path]::GetFullPath((Join-Path $repoRoot $OutRoot))
-$releaseName = 'tinycore11-desktop-6.18.33-hotset-release-xbe'
-$sourceZipName = 'xromwell-hddfatx-tinycore-lean-xhotset-release-remote-ra1024k-candidate.zip'
-$sourceZipSha256 = 'F75DC44CBA6CDD994E146C6E684AFE0EB149DFF75E48BA5A0CC8CA965A5FDAF1'
+$releaseName = 'tinycore11-desktop-6.18.33-apps-default-mirror-xbe'
+$sourceZipName = 'tinycore11-desktop-6.18.33-apps-default-mirror-xbe.zip'
+$sourceZipSha256 = 'B914A6B513009CE84422EE881996B09F96F75196F65D3F3FB39B0B272478F6F0'
+$rollbackSourceZipName = 'xromwell-hddfatx-tinycore-lean-xhotset-release-remote-ra1024k-candidate.zip'
+$rollbackZipName = 'tinycore11-desktop-6.18.33-pre-apps-rollback-xbe.zip'
+$rollbackZipSha256 = 'F75DC44CBA6CDD994E146C6E684AFE0EB149DFF75E48BA5A0CC8CA965A5FDAF1'
 $sourceZip = Join-Path $sourceFull $sourceZipName
+$rollbackSourceZip = Join-Path $rollbackSourceFull $rollbackSourceZipName
 $sourceManifestPath = Join-Path $sourceFull 'candidate-manifest.json'
 $releaseDir = Join-Path $outFull $releaseName
 $releaseZip = Join-Path $outFull "$releaseName.zip"
+$rollbackZip = Join-Path $outFull $rollbackZipName
 
 function Get-RelativePath {
     param([string]$BasePath, [string]$TargetPath)
@@ -42,6 +49,9 @@ $artifactsPrefix = $artifactsRoot.TrimEnd('\') + '\'
 if (-not $sourceFull.StartsWith($artifactsPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
     throw "SourceRoot must be under ${artifactsRoot}: $sourceFull"
 }
+if (-not $rollbackSourceFull.StartsWith($artifactsPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+    throw "RollbackSourceRoot must be under ${artifactsRoot}: $rollbackSourceFull"
+}
 if (-not $outFull.StartsWith($artifactsPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
     throw "OutRoot must be under ${artifactsRoot}: $outFull"
 }
@@ -49,6 +59,7 @@ if (-not (Test-Path -LiteralPath $sourceManifestPath -PathType Leaf)) {
     throw "Candidate manifest was not found: $sourceManifestPath"
 }
 Assert-FileHash -Path $sourceZip -Expected $sourceZipSha256
+Assert-FileHash -Path $rollbackSourceZip -Expected $rollbackZipSha256
 
 $sourceManifest = Get-Content -LiteralPath $sourceManifestPath -Raw | ConvertFrom-Json
 if ($sourceManifest.candidate.zipSha256 -ne $sourceZipSha256) {
@@ -56,8 +67,12 @@ if ($sourceManifest.candidate.zipSha256 -ne $sourceZipSha256) {
 }
 if ($sourceManifest.candidate.xHotsetRelease -ne $true -or
     $sourceManifest.candidate.remoteDiagnostics -ne $true -or
-    $sourceManifest.candidate.terminalFont -ne '9x15') {
-    throw 'Candidate manifest is missing the promoted hotset release, remote diagnostics, or 9x15 terminal settings.'
+    $sourceManifest.candidate.terminalFont -ne '9x15' -or
+    $sourceManifest.candidate.appsSkipMirror -ne $true -or
+    $sourceManifest.candidate.appsOptionalDirectory -ne '/tmp/tce/optional' -or
+    $sourceManifest.candidate.appsFirstRunMarker -ne '/tmp/tce/firstrun' -or
+    $sourceManifest.candidate.configuredMirror -ne 'http://repo.tinycorelinux.net/') {
+    throw 'Candidate manifest is missing the hardware-tested hotset, diagnostics, terminal, or Apps settings.'
 }
 
 if (Test-Path -LiteralPath $outFull) {
@@ -71,6 +86,8 @@ New-Item -ItemType Directory -Force -Path $outFull | Out-Null
 # The promoted release ZIP is a byte-for-byte copy of the hardware-tested ZIP.
 Copy-Item -LiteralPath $sourceZip -Destination $releaseZip
 Assert-FileHash -Path $releaseZip -Expected $sourceZipSha256
+Copy-Item -LiteralPath $rollbackSourceZip -Destination $rollbackZip
+Assert-FileHash -Path $rollbackZip -Expected $rollbackZipSha256
 Expand-Archive -LiteralPath $releaseZip -DestinationPath $releaseDir
 
 foreach ($property in $sourceManifest.candidate.files.PSObject.Properties) {
@@ -79,6 +96,9 @@ foreach ($property in $sourceManifest.candidate.files.PSObject.Properties) {
 }
 
 $compatManifest = $sourceManifest | ConvertTo-Json -Depth 10 | ConvertFrom-Json
+$compatManifest.protectedSource.root = $OutRoot.Replace('\', '/')
+$compatManifest.protectedSource.zip = $rollbackZipName
+$compatManifest.protectedSource.zipSha256 = $rollbackZipSha256
 $compatManifest.candidate.directory = $releaseName
 $compatManifest.candidate.zip = [System.IO.Path]::GetFileName($releaseZip)
 $compatManifest | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath (Join-Path $outFull 'candidate-manifest.json') -Encoding ASCII
@@ -95,7 +115,7 @@ Get-ChildItem -LiteralPath $releaseDir -Recurse -File | Sort-Object FullName | F
 $gitCommit = (& git -C $repoRoot rev-parse HEAD).Trim()
 if ($LASTEXITCODE -ne 0) { throw 'Unable to identify the coordinator Git commit.' }
 $releaseManifest = [ordered]@{
-    releaseId = 'tinycore11-desktop-6.18.33-nondisc-hotset-release'
+    releaseId = 'tinycore11-desktop-6.18.33-nondisc-apps-default-mirror'
     generatedUtc = [DateTime]::UtcNow.ToString('o')
     coordinatorCommit = $gitCommit
     hardwareValidated = $true
@@ -114,6 +134,12 @@ $releaseManifest = [ordered]@{
         opticalDiscRequired = $false
         fatxWriteEnabled = $false
         dhcp = $true
+        apps = [ordered]@{
+            fastestMirrorPromptSkipped = $true
+            optionalDirectory = '/tmp/tce/optional'
+            firstRunMarker = '/tmp/tce/firstrun'
+            configuredMirror = 'http://repo.tinycorelinux.net/'
+        }
         ssh = [ordered]@{
             service = 'Dropbear tcp/22'
             user = 'tc'
@@ -122,17 +148,26 @@ $releaseManifest = [ordered]@{
         }
         files = $payloadFiles
     }
+    rollback = [ordered]@{
+        zip = $rollbackZipName
+        zipBytes = (Get-Item -LiteralPath $rollbackZip).Length
+        zipSha256 = $rollbackZipSha256
+        sourceRoot = $RollbackSourceRoot.Replace('\', '/')
+        sourceZip = $rollbackSourceZipName
+        description = 'Previous hardware-tested hotset release before the Apps mirror bypass.'
+    }
     hardwareResult = [ordered]@{
         hotsetPathsRestored = 450
         hotsetRestoreFailures = 0
-        memAvailableBeforeKb = 5696
-        memAvailableAfterKb = 8124
-        settledMemAvailableKb = 10976
-        xReadySeconds = 26.43
-        desktopCompleteSeconds = 27.53
-        applicationsOpenedAndClosed = $true
+        memAvailableAfterInteractiveKb = 6260
+        xReadySeconds = 26.48
+        desktopCompleteSeconds = 27.63
+        appsPromptSkipped = $true
+        appsOpened = $true
+        dhcp = $true
+        ssh = $true
     }
-    knownIssue = 'In Tiny Core Apps, decline the fastest-mirror benchmark. Accepting it can fail and lock this 64 MB system.'
+    knownIssue = $null
 }
 $releaseManifest | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath (Join-Path $outFull 'release-manifest.json') -Encoding ASCII
 
@@ -140,8 +175,8 @@ $releaseManifest | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath (Join-Pat
 # Tiny Core 11 Desktop for Original Xbox
 
 This is the hardware-validated, non-disc Tiny Core desktop release using Linux
-6.18.33. The release ZIP is a byte-for-byte copy of the tested hotset-release
-package. No DVD or CD payload is required.
+6.18.33. The primary ZIP is a byte-for-byte copy of the tested Apps
+default-mirror package. No DVD or CD payload is required.
 
 ## Install
 
@@ -155,6 +190,15 @@ package. No DVD or CD payload is required.
 Keep every file from this package together. Do not mix its kernel, initramfs,
 configuration, payload, or XBE with files from another build.
 
+## Rollback
+
+The previous hardware-tested release is retained as:
+
+    $rollbackZipName
+
+It predates the Apps prompt bypass. Use all files from one ZIP or the other;
+never mix their boot files.
+
 ## Network Login
 
 DHCP starts automatically. SSH listens on tcp/22 after an address is acquired.
@@ -163,19 +207,19 @@ DHCP starts automatically. SSH listens on tcp/22 after an address is acquired.
     password: tcuser
     root SSH login: disabled
 
-## Known Issue
+## Tiny Core Apps
 
-When Tiny Core Apps asks to check for the fastest mirror, select No. The mirror
-benchmark can fail and lock the 64 MB system. Apps itself works when that test
-is declined.
+Apps opens with the normal Tiny Core repository already configured. The
+resource-heavy fastest-mirror benchmark is intentionally marked complete so it
+does not prompt on this 64 MB system.
 
 ## Validation
 
 - X hotset release: 450 restored, 0 failed
-- Hardware X ready: 26.43 seconds of kernel uptime
-- Hardware desktop complete: 27.53 seconds of kernel uptime
-- Immediate MemAvailable: 5,696 to 8,124 kB
-- Settled MemAvailable after opening and closing the applications: 10,976 kB
+- Hardware X ready: 26.48 seconds of kernel uptime
+- Hardware desktop complete: 27.63 seconds of kernel uptime
+- MemAvailable after interactive Apps testing: 6,260 kB
+- Apps opened without the mirror question and remained responsive
 - DHCP, SSH, SCP, mouse, dock, terminal, and editor passed on hardware
 - FATX remains read-only
 
@@ -184,8 +228,10 @@ candidate-manifest.json is retained so the established xemu test harness can
 verify and boot the promoted release without special handling.
 "@ | Set-Content -LiteralPath (Join-Path $outFull 'README.md') -Encoding ASCII
 
-"$sourceZipSha256 *$([System.IO.Path]::GetFileName($releaseZip))" |
-    Set-Content -LiteralPath (Join-Path $outFull 'SHA256SUMS.txt') -Encoding ASCII
+@(
+    "$sourceZipSha256 *$([System.IO.Path]::GetFileName($releaseZip))"
+    "$rollbackZipSha256 *$rollbackZipName"
+) | Set-Content -LiteralPath (Join-Path $outFull 'SHA256SUMS.txt') -Encoding ASCII
 
 [pscustomobject]@{
     releaseRoot = $outFull
@@ -193,5 +239,7 @@ verify and boot the promoted release without special handling.
     zip = $releaseZip
     zipBytes = (Get-Item -LiteralPath $releaseZip).Length
     zipSha256 = (Get-FileHash -LiteralPath $releaseZip -Algorithm SHA256).Hash
+    rollbackZip = $rollbackZip
+    rollbackZipSha256 = (Get-FileHash -LiteralPath $rollbackZip -Algorithm SHA256).Hash
     payloadFiles = $payloadFiles.Count
 }
