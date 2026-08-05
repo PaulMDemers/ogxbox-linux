@@ -2,7 +2,19 @@
 
 This repo coordinates the original Xbox Linux bringup work: Cromwell boot media, Xbox-enabled kernel experiments, Tiny Core payload assembly, xemu launchers, and proof notes.
 
-Current known-good release path:
+Current reconciled read-only boot matrix:
+
+```powershell
+.\scripts\build_readonly_boot_matrix.ps1 -Force
+.\scripts\test_readonly_boot_matrix.ps1 -Cell all -Runs 1 -RequiredPasses 1
+```
+
+This produces self-contained Debian 5.8/6.18, Devuan 5.8/6.18, and Tiny Core
+6.18 dashboard XBE packages under `artifacts\readonly-boot-matrix`. See
+`docs\readonly-boot-matrix.md` before changing loader, initramfs, or root-image
+pairings.
+
+Dedicated Devuan 5.8 hardware release path:
 
 ```powershell
 .\scripts\build_devuan_5_8_nondisc.ps1
@@ -25,6 +37,8 @@ See:
 
 - `PROJECT_STATUS.md` for the current project map, protected baselines,
   repository states, storage inventory, and next work
+- `docs/readonly-boot-matrix.md` for the reconciled distro/kernel matrix,
+  compatibility rules, build command, and xemu proof
 - `docs/hardware-validation-devuan-5.8.1-nondisc.md` for the exact validated
   Devuan package hashes
 - `docs/checkpoint-2026-05-24-6.18-tinycore-xromwell.md` for the current save point, artifact paths, commits, and pre-HDD status

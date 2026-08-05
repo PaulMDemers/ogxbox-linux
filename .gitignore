@@ -31,6 +31,9 @@
 /run/tinycore-hardware-memory/
 /run/tinycore-6.18.33-*/
 /run/tinycore-apps-*/
+/run/cpio-*/
+/run/readonly-boot-matrix/
+/run/recovered-6.18-stage1.cpio
 
 # Generated boot media / firmware / disk images
 *.iso
