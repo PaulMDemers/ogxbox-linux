@@ -377,7 +377,7 @@ Completed August 5, 2026 with the pinned production write kernel:
 kernel SHA-256: 0AC26C6FB52F89503DE2E7ADAD65DC856A12A06B13D51F9AC430B7CE9AB40546
 source commit:  829b71ab17ed
 package:        artifacts/debian-6.18.33-rw-candidate/
-package ZIP:    23F5B8717A11F7C4DDCA1E1947A362BCBCC7FBBC4DE7DBFFE1845E29B19FCF04
+package ZIP:    494E1798C2686A9DD774717B5C62D4971189816DD4DEC2DB69B4AF41605DD738
 ```
 
 The candidate uses only isolated E: names:
@@ -405,7 +405,14 @@ boot 2: Linux at 26 s, mount count 2, remount OK, fsck clean
 Evidence is retained under:
 
 ```text
-run/debian-rw-safety-gate/20260805-182211/
+run/debian-rw-safety-gate/20260805-190950/
+```
+
+The final full-window captures also show the video-only proof banners:
+
+```text
+boot 1: XBOX_HARDWARE_SMOKE_FIRST_BOOT_PASS
+boot 2: XBOX_HARDWARE_SMOKE_SECOND_BOOT_PASS
 ```
 
 The intermittent remount failure was diagnosed with a disposable VFS-trace

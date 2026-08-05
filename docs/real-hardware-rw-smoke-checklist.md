@@ -16,7 +16,7 @@ C:\Users\Paul\Desktop\xbox_linux\artifacts\debian-6.18.33-rw-candidate\xromwell-
 Expected ZIP SHA-256:
 
 ```text
-23F5B8717A11F7C4DDCA1E1947A362BCBCC7FBBC4DE7DBFFE1845E29B19FCF04
+494E1798C2686A9DD774717B5C62D4971189816DD4DEC2DB69B4AF41605DD738
 ```
 
 Build it with:
@@ -79,7 +79,12 @@ The console should show:
 XBOX_PERSIST_MARKER_WRITTEN
 XBOX_NORMAL_USE_FILE_WRITTEN
 XBOX_ROOT_REMOUNT_RO_OK
+XBOX_HARDWARE_SMOKE_FIRST_BOOT_PASS
 ```
+
+The final `XBOX_HARDWARE_SMOKE_FIRST_BOOT_PASS` line is the unambiguous video
+result. It is printed only when both writes succeeded and the root was then
+remounted read-only.
 
 After `XBOX_ROOT_REMOUNT_RO_OK`, wait ten seconds, then reset or power off for
 this smoke test. If that marker does not appear, do not intentionally
@@ -95,7 +100,12 @@ should show:
 XBOX_PERSIST_MARKER_PRESENT
 XBOX_NORMAL_USE_FILE_PRESENT
 XBOX_ROOT_REMOUNT_RO_OK
+XBOX_HARDWARE_SMOKE_SECOND_BOOT_PASS
 ```
+
+The final `XBOX_HARDWARE_SMOKE_SECOND_BOOT_PASS` line is the unambiguous video
+result. It proves the two files from the prior boot were found before the root
+was remounted read-only again.
 
 This proves on hardware that the FATX existing-file write path can persist data
 inside the preallocated Debian ext2 image and can return to a clean read-only
@@ -120,7 +130,7 @@ boot 2: mount count 2, remount OK, e2fsck -fn clean
 Evidence directory:
 
 ```powershell
-run\debian-rw-safety-gate\20260805-182211\
+run\debian-rw-safety-gate\20260805-190950\
 ```
 
 The gate enforces persistence, mount-count progression, remount status, and a

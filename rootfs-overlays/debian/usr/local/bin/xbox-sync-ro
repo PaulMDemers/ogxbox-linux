@@ -71,6 +71,17 @@ while [ "$attempt" -le 5 ]; do
     if root_is_read_only; then
         sync
         echo "XBOX_ROOT_REMOUNT_RO_OK"
+        case "${XBOX_SMOKE_PHASE:-INCOMPLETE}" in
+            FIRST_BOOT_WRITE_OK)
+                echo "XBOX_HARDWARE_SMOKE_FIRST_BOOT_PASS"
+                ;;
+            SECOND_BOOT_PERSISTENCE_OK)
+                echo "XBOX_HARDWARE_SMOKE_SECOND_BOOT_PASS"
+                ;;
+            *)
+                echo "XBOX_HARDWARE_SMOKE_PERSISTENCE_INCOMPLETE phase=${XBOX_SMOKE_PHASE:-INCOMPLETE}"
+                ;;
+        esac
         echo "It is now safer to power off or reset."
         while :; do sleep 3600; done
     fi

@@ -62,11 +62,27 @@ else
     fi
 fi
 
+XBOX_SMOKE_PHASE=INCOMPLETE
 if [ "$PERSIST_SMOKE" = "1" ] && [ -x /usr/local/bin/xbox-persist-smoke ]; then
     echo "persistence smoke: running"
-    /usr/local/bin/xbox-persist-smoke >/tmp/xbox-persist-smoke.txt 2>&1 || true
-    echo "persistence smoke: done"
+    persist_status=0
+    /usr/local/bin/xbox-persist-smoke >/tmp/xbox-persist-smoke.txt 2>&1 || persist_status=$?
+    echo "persistence smoke: status=$persist_status"
+    echo
+    cat /tmp/xbox-persist-smoke.txt 2>/dev/null || true
+    echo
+    if [ "$persist_status" = "0" ] &&
+       grep -q '^XBOX_PERSIST_MARKER_WRITTEN$' /tmp/xbox-persist-smoke.txt 2>/dev/null &&
+       grep -q '^XBOX_NORMAL_USE_FILE_WRITTEN$' /tmp/xbox-persist-smoke.txt 2>/dev/null; then
+        XBOX_SMOKE_PHASE=FIRST_BOOT_WRITE_OK
+    elif [ "$persist_status" = "0" ] &&
+         grep -q '^XBOX_PERSIST_MARKER_PRESENT$' /tmp/xbox-persist-smoke.txt 2>/dev/null &&
+         grep -q '^XBOX_NORMAL_USE_FILE_PRESENT$' /tmp/xbox-persist-smoke.txt 2>/dev/null; then
+        XBOX_SMOKE_PHASE=SECOND_BOOT_PERSISTENCE_OK
+    fi
+    echo "XBOX_PERSISTENCE_PHASE=$XBOX_SMOKE_PHASE"
 fi
+export XBOX_SMOKE_PHASE
 if [ "$SYNC_RO_SMOKE" = "1" ] && [ -x /usr/local/bin/xbox-sync-ro ]; then
     echo "sync-ro smoke: replacing PID 1"
     exec /usr/local/bin/xbox-sync-ro
