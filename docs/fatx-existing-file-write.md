@@ -422,7 +422,11 @@ not remount its own root read-only. The candidate now replaces PID 1 with
 `xbox-sync-ro` and writes directly to the console. No diagnostic kernel changes
 remain in the source checkout or production artifact.
 
-The real-hardware checklist is now unblocked for an opt-in, backed-up shell-only
-test. This does not promote general FATX writes or a writable desktop: the
-driver still only overwrites blocks within existing FATX files and cannot
-create, delete, rename, extend, or allocate FATX files.
+The exact package above subsequently passed both checklist boots on real
+Original Xbox hardware. The first boot displayed
+`XBOX_HARDWARE_SMOKE_FIRST_BOOT_PASS`; the second boot, without replacing
+`rwdebian.ext2`, displayed `XBOX_HARDWARE_SMOKE_SECOND_BOOT_PASS`. This closes
+the existing-file overwrite checkpoint but does not promote general FATX
+writes or a writable desktop: the driver still only overwrites blocks within
+existing FATX files and cannot create, delete, rename, extend, or allocate FATX
+files.

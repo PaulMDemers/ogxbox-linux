@@ -19,6 +19,24 @@ Expected ZIP SHA-256:
 494E1798C2686A9DD774717B5C62D4971189816DD4DEC2DB69B4AF41605DD738
 ```
 
+## Hardware Result
+
+Passed August 5, 2026 on real Original Xbox hardware using the exact ZIP hash
+above. The first boot displayed:
+
+```text
+XBOX_HARDWARE_SMOKE_FIRST_BOOT_PASS
+```
+
+The second boot, without replacing `E:\rwdebian.ext2`, displayed:
+
+```text
+XBOX_HARDWARE_SMOKE_SECOND_BOOT_PASS
+```
+
+This package is the immutable hardware-validated existing-file FATX write
+baseline. Retain it unchanged when deriving later persistence experiments.
+
 Build it with:
 
 ```powershell
