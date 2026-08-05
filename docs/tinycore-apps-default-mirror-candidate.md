@@ -105,14 +105,30 @@ dialog, `/tmp/tce/optional` as its TCE directory, and the unchanged repository
 URL. Testing only for an Apps process and an absent `mirrorpicker` process is
 not sufficient: `mirrorpicker` does not start until the user chooses Yes.
 
-## Hardware Gate
+## Hardware Result
 
-This is not yet the promoted release. On one real Xbox:
+The exact ZIP and SHA-256 listed above passed the real-hardware gate on
+2026-08-05. Apps opened directly without the fastest-mirror question, normal
+operation was confirmed, and the Xbox remained responsive after the test.
 
-1. Install the complete candidate package without mixing artifacts.
-2. Boot to the desktop and launch Apps.
-3. Confirm Apps opens directly without the fastest-mirror question.
-4. Browse the normal extension list, install nothing, and close Apps.
-5. Confirm the desktop, terminal, editor, DHCP, and SSH remain responsive.
+An SSH snapshot taken while that same boot was still running confirmed:
 
-If any check fails, reinstall the protected baseline ZIP above.
+- the kernel command line contained `xbox_apps_skip_mirror=1`;
+- `/etc/sysconfig/tcedir` resolved to `/tmp/tce`;
+- `/tmp/tce/optional` existed;
+- `/tmp/tce/firstrun` was the only `firstrun` marker under `/tmp`;
+- `/opt/tcemirror` remained `http://repo.tinycorelinux.net/`;
+- DHCP configured `192.168.50.156` with a default route and resolver;
+- hotset release restored all 450 paths with zero failures;
+- X was ready at 26.48 seconds and wallpaper/dock startup finished at 27.63;
+- `MemAvailable` was 6,260 kB after the interactive test session.
+
+The collected state, boot diagnostics, network log, timing data, hotset logs,
+and SHA-256 manifest are retained locally under:
+
+```text
+run\tinycore-apps-hardware\20260805-confirmed
+```
+
+This candidate is hardware-passed and eligible to replace the older promoted
+package. Preserve the tested ZIP unchanged during promotion.
