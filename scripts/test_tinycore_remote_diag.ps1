@@ -5,7 +5,10 @@ param(
     [ValidateRange(1024, 65535)]
     [int]$HostPort = 2222,
     [ValidateRange(30, 180)]
-    [int]$TimeoutSeconds = 120
+    [int]$TimeoutSeconds = 120,
+    [switch]$ApplicationSmoke,
+    [string]$LoginUser = 'tc',
+    [string]$LoginPassword = 'tcuser'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -18,10 +21,13 @@ $mcpx = Join-Path $repoRoot 'Xbox-Emulator-Files\mcpx\mcpx_1.0.bin'
 $eeprom = Join-Path $repoRoot 'run\eeprom.bin'
 $dvdPath = Join-Path $repoRoot 'artifacts\xromwell-modern-initrd32.iso'
 $sshKeyscan = (Get-Command ssh-keyscan.exe -ErrorAction Stop).Source
+$ssh = (Get-Command ssh.exe -ErrorAction Stop).Source
 $session = Join-Path (Join-Path $repoRoot $OutputRoot) ([DateTime]::Now.ToString('yyyyMMdd-HHmmss'))
 $config = Join-Path $session 'xemu-ssh.toml'
 $keyscanOut = Join-Path $session 'ssh-keyscan.txt'
 $keyscanErr = Join-Path $session 'ssh-keyscan.err.txt'
+$appSmokeOut = Join-Path $session 'ssh-app-smoke.txt'
+$globalKnownHosts = Join-Path $session 'ssh-global-known-hosts.txt'
 
 foreach ($required in @($xemu, $capture, $bootBios, $mcpx, $eeprom, $dvdPath)) {
     if (-not (Test-Path -LiteralPath $required -PathType Leaf)) { throw "Required file was not found: $required" }
@@ -29,6 +35,9 @@ foreach ($required in @($xemu, $capture, $bootBios, $mcpx, $eeprom, $dvdPath)) {
 if (Get-Process xemu -ErrorAction SilentlyContinue) { throw 'xemu is already running. Close it before testing.' }
 if (Get-NetTCPConnection -State Listen -LocalPort $HostPort -ErrorAction SilentlyContinue) {
     throw "Host port $HostPort is already in use."
+}
+if ($ApplicationSmoke -and $LoginPassword -match '[\r\n&|<>^]') {
+    throw 'LoginPassword contains characters that cannot be written safely to the temporary askpass helper.'
 }
 
 & (Join-Path $repoRoot 'scripts\test_tinycore_hdd_candidate.ps1') `
@@ -38,6 +47,7 @@ if ($LASTEXITCODE -ne 0) { throw 'The prerequisite Tiny Core desktop gate failed
 if (-not (Test-Path -LiteralPath $rawHdd -PathType Leaf)) { throw "Staged raw HDD was not found: $rawHdd" }
 
 New-Item -ItemType Directory -Force -Path $session | Out-Null
+'' | Set-Content -LiteralPath $globalKnownHosts -Encoding ASCII
 @"
 [general]
 show_welcome = false
@@ -88,6 +98,65 @@ try {
     }
     & $capture --pid $process.Id --out-dir $session --prefix 'ssh-reachable' --rect frame | Out-Null
     if ($LASTEXITCODE -ne 0) { throw 'Capturing the complete xemu window failed.' }
+
+    if ($ApplicationSmoke) {
+        $askpass = Join-Path $session 'askpass.cmd'
+        $oldAskpass = $env:SSH_ASKPASS
+        $oldAskpassRequire = $env:SSH_ASKPASS_REQUIRE
+        $oldDisplay = $env:DISPLAY
+        try {
+            @(
+                '@echo off'
+                "echo $LoginPassword"
+            ) | Set-Content -LiteralPath $askpass -Encoding ASCII
+            $env:SSH_ASKPASS = $askpass
+            $env:SSH_ASKPASS_REQUIRE = 'force'
+            $env:DISPLAY = 'codex-askpass'
+
+            $remoteCommand = 'echo XBOX_PASSWORD_SSH_OK; export PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin; export LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/lib; echo XBOX_ATERM=$(command -v aterm); ls -l /tmp/.X11-unix /home/tc/.Xauthority 2>&1; before=$(grep -l aterm /proc/[0-9]*/comm 2>/dev/null | wc -l); sudo env DISPLAY=:0 XAUTHORITY=/home/tc/.Xauthority HOME=/root USER=root PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/lib aterm -fn 9x15 -fg white -bg black -geometry 66x26+8+8 -e sleep 8 </dev/null >/tmp/xbox-release-aterm.log 2>&1 & sleep 3; after=$(grep -l aterm /proc/[0-9]*/comm 2>/dev/null | wc -l); echo XBOX_ATERM_COUNT_${before}_${after}; if test $after -gt $before; then echo XBOX_RELEASE_APP_OK; fi; echo XBOX_ATERM_LOG; cat /tmp/xbox-release-aterm.log 2>&1'
+            $sshArgs = @(
+                '-n',
+                '-p', "$HostPort",
+                '-o', 'StrictHostKeyChecking=yes',
+                '-o', "UserKnownHostsFile=$keyscanOut",
+                '-o', "GlobalKnownHostsFile=$globalKnownHosts",
+                '-o', 'PreferredAuthentications=password',
+                '-o', 'PubkeyAuthentication=no',
+                '-o', 'NumberOfPasswordPrompts=1',
+                '-o', 'LogLevel=ERROR',
+                '-o', 'ConnectTimeout=10',
+                '-o', 'ServerAliveInterval=5',
+                '-o', 'ServerAliveCountMax=3',
+                "${LoginUser}@127.0.0.1",
+                $remoteCommand
+            )
+            $savedErrorActionPreference = $ErrorActionPreference
+            try {
+                $ErrorActionPreference = 'Continue'
+                $sshOutput = & $ssh @sshArgs 2>&1
+                $sshExitCode = $LASTEXITCODE
+            }
+            finally {
+                $ErrorActionPreference = $savedErrorActionPreference
+            }
+            $sshOutput | Set-Content -LiteralPath $appSmokeOut -Encoding ASCII
+            if ($sshExitCode -ne 0) {
+                throw "SSH application smoke exited with code $sshExitCode. See $appSmokeOut"
+            }
+            $sshText = $sshOutput -join "`n"
+            if ($sshText -notmatch 'XBOX_PASSWORD_SSH_OK' -or $sshText -notmatch 'XBOX_RELEASE_APP_OK') {
+                throw "Password login or aterm marker was missing. See $appSmokeOut"
+            }
+            & $capture --pid $process.Id --out-dir $session --prefix 'application-smoke' --rect frame | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw 'Capturing the application smoke window failed.' }
+        }
+        finally {
+            $env:SSH_ASKPASS = $oldAskpass
+            $env:SSH_ASKPASS_REQUIRE = $oldAskpassRequire
+            $env:DISPLAY = $oldDisplay
+            Remove-Item -LiteralPath $askpass -Force -ErrorAction SilentlyContinue
+        }
+    }
 }
 finally {
     if ($process -and -not $process.HasExited) {
@@ -100,6 +169,10 @@ finally {
     result = 'passed'
     endpoint = "127.0.0.1:$HostPort"
     keyscan = $keyscanOut
+    passwordLogin = [bool]$ApplicationSmoke
+    applicationSmoke = [bool]$ApplicationSmoke
+    applicationSmokeOutput = if ($ApplicationSmoke) { $appSmokeOut } else { $null }
     screenshot = (Get-ChildItem -LiteralPath $session -Filter 'ssh-reachable*.png' | Select-Object -First 1).FullName
+    applicationScreenshot = if ($ApplicationSmoke) { (Get-ChildItem -LiteralPath $session -Filter 'application-smoke*.png' | Select-Object -First 1).FullName } else { $null }
     session = $session
 }

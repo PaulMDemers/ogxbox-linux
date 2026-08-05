@@ -29,6 +29,7 @@
 /run/tinycore-hdd-*/
 /run/tinycore-hardware-remote/
 /run/tinycore-hardware-memory/
+/run/tinycore-6.18.33-*/
 
 # Generated boot media / firmware / disk images
 *.iso
