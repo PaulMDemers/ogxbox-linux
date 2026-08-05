@@ -7,6 +7,7 @@ param(
     [ValidateRange(30, 180)]
     [int]$TimeoutSeconds = 120,
     [switch]$ApplicationSmoke,
+    [switch]$AppsDefaultMirrorSmoke,
     [string]$LoginUser = 'tc',
     [string]$LoginPassword = 'tcuser'
 )
@@ -36,7 +37,7 @@ if (Get-Process xemu -ErrorAction SilentlyContinue) { throw 'xemu is already run
 if (Get-NetTCPConnection -State Listen -LocalPort $HostPort -ErrorAction SilentlyContinue) {
     throw "Host port $HostPort is already in use."
 }
-if ($ApplicationSmoke -and $LoginPassword -match '[\r\n&|<>^]') {
+if (($ApplicationSmoke -or $AppsDefaultMirrorSmoke) -and $LoginPassword -match '[\r\n&|<>^]') {
     throw 'LoginPassword contains characters that cannot be written safely to the temporary askpass helper.'
 }
 
@@ -99,7 +100,7 @@ try {
     & $capture --pid $process.Id --out-dir $session --prefix 'ssh-reachable' --rect frame | Out-Null
     if ($LASTEXITCODE -ne 0) { throw 'Capturing the complete xemu window failed.' }
 
-    if ($ApplicationSmoke) {
+    if ($ApplicationSmoke -or $AppsDefaultMirrorSmoke) {
         $askpass = Join-Path $session 'askpass.cmd'
         $oldAskpass = $env:SSH_ASKPASS
         $oldAskpassRequire = $env:SSH_ASKPASS_REQUIRE
@@ -113,7 +114,11 @@ try {
             $env:SSH_ASKPASS_REQUIRE = 'force'
             $env:DISPLAY = 'codex-askpass'
 
-            $remoteCommand = 'echo XBOX_PASSWORD_SSH_OK; export PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin; export LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/lib; echo XBOX_ATERM=$(command -v aterm); ls -l /tmp/.X11-unix /home/tc/.Xauthority 2>&1; before=$(grep -l aterm /proc/[0-9]*/comm 2>/dev/null | wc -l); sudo env DISPLAY=:0 XAUTHORITY=/home/tc/.Xauthority HOME=/root USER=root PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/lib aterm -fn 9x15 -fg white -bg black -geometry 66x26+8+8 -e sleep 8 </dev/null >/tmp/xbox-release-aterm.log 2>&1 & sleep 3; after=$(grep -l aterm /proc/[0-9]*/comm 2>/dev/null | wc -l); echo XBOX_ATERM_COUNT_${before}_${after}; if test $after -gt $before; then echo XBOX_RELEASE_APP_OK; fi; echo XBOX_ATERM_LOG; cat /tmp/xbox-release-aterm.log 2>&1'
+            if ($AppsDefaultMirrorSmoke) {
+                $remoteCommand = 'echo XBOX_PASSWORD_SSH_OK; export PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin; export LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/lib; tcedir=$(readlink /etc/sysconfig/tcedir); echo XBOX_APPS_TCEDIR=$tcedir; test -d "$tcedir/optional" && echo XBOX_APPS_OPTIONAL_DIR_OK; test -f "$tcedir/firstrun" && echo XBOX_APPS_FIRSTRUN_MARKER_OK; test "$(cat /opt/tcemirror)" = "http://repo.tinycorelinux.net/" && echo XBOX_APPS_DEFAULT_MIRROR_OK; cat /tmp/xbox-apps-default-mirror.txt 2>&1; rm -f /tmp/firstrun; killall aterm 2>/dev/null || true; sleep 1; before=$(grep -l apps /proc/[0-9]*/comm 2>/dev/null | wc -l); sudo env DISPLAY=:0 XAUTHORITY=/home/tc/.Xauthority HOME=/root USER=root PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/lib apps </dev/null >/tmp/xbox-apps-smoke.log 2>&1 & sleep 5; appcomm=$(grep -l apps /proc/[0-9]*/comm 2>/dev/null | head -1); echo XBOX_APPS_COMM_FILE=$appcomm; apppid=${appcomm#/proc/}; apppid=${apppid%/comm}; after=$(grep -l apps /proc/[0-9]*/comm 2>/dev/null | wc -l); echo XBOX_APPS_COUNT_${before}_${after}; if test $after -gt $before; then echo XBOX_APPS_LAUNCH_OK; fi; appcwd=$(sudo readlink /proc/$apppid/cwd 2>/dev/null); echo XBOX_APPS_CWD=$appcwd; case "$appcwd" in "$tcedir/optional") echo XBOX_APPS_CWD_OK ;; esac; if [ ! -f /tmp/firstrun ]; then echo XBOX_APPS_NO_FALLBACK_MARKER_OK; fi; if ! pidof mirrorpicker >/dev/null 2>&1; then echo XBOX_APPS_NO_MIRRORPICKER_OK; fi; test "$(cat /opt/tcemirror)" = "http://repo.tinycorelinux.net/" && echo XBOX_APPS_MIRROR_UNCHANGED_OK; echo XBOX_APPS_FIRSTRUN_FILES; find /tmp -name firstrun -type f 2>/dev/null; echo XBOX_APPS_LOG; cat /tmp/xbox-apps-smoke.log 2>&1'
+            } else {
+                $remoteCommand = 'echo XBOX_PASSWORD_SSH_OK; export PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin; export LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/lib; echo XBOX_ATERM=$(command -v aterm); ls -l /tmp/.X11-unix /home/tc/.Xauthority 2>&1; before=$(grep -l aterm /proc/[0-9]*/comm 2>/dev/null | wc -l); sudo env DISPLAY=:0 XAUTHORITY=/home/tc/.Xauthority HOME=/root USER=root PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/lib aterm -fn 9x15 -fg white -bg black -geometry 66x26+8+8 -e sleep 8 </dev/null >/tmp/xbox-release-aterm.log 2>&1 & sleep 3; after=$(grep -l aterm /proc/[0-9]*/comm 2>/dev/null | wc -l); echo XBOX_ATERM_COUNT_${before}_${after}; if test $after -gt $before; then echo XBOX_RELEASE_APP_OK; fi; echo XBOX_ATERM_LOG; cat /tmp/xbox-release-aterm.log 2>&1'
+            }
             $sshArgs = @(
                 '-n',
                 '-p', "$HostPort",
@@ -144,8 +149,26 @@ try {
                 throw "SSH application smoke exited with code $sshExitCode. See $appSmokeOut"
             }
             $sshText = $sshOutput -join "`n"
-            if ($sshText -notmatch 'XBOX_PASSWORD_SSH_OK' -or $sshText -notmatch 'XBOX_RELEASE_APP_OK') {
-                throw "Password login or aterm marker was missing. See $appSmokeOut"
+            if ($sshText -notmatch 'XBOX_PASSWORD_SSH_OK') {
+                throw "Password login marker was missing. See $appSmokeOut"
+            }
+            if ($AppsDefaultMirrorSmoke) {
+                foreach ($marker in @(
+                    'XBOX_APPS_FIRSTRUN_MARKER_OK',
+                    'XBOX_APPS_OPTIONAL_DIR_OK',
+                    'XBOX_APPS_DEFAULT_MIRROR_OK',
+                    'XBOX_APPS_LAUNCH_OK',
+                    'XBOX_APPS_CWD_OK',
+                    'XBOX_APPS_NO_FALLBACK_MARKER_OK',
+                    'XBOX_APPS_NO_MIRRORPICKER_OK',
+                    'XBOX_APPS_MIRROR_UNCHANGED_OK'
+                )) {
+                    if ($sshText -notmatch [regex]::Escape($marker)) {
+                        throw "Apps smoke marker $marker was missing. See $appSmokeOut"
+                    }
+                }
+            } elseif ($sshText -notmatch 'XBOX_RELEASE_APP_OK') {
+                throw "Aterm launch marker was missing. See $appSmokeOut"
             }
             & $capture --pid $process.Id --out-dir $session --prefix 'application-smoke' --rect frame | Out-Null
             if ($LASTEXITCODE -ne 0) { throw 'Capturing the application smoke window failed.' }
@@ -169,10 +192,11 @@ finally {
     result = 'passed'
     endpoint = "127.0.0.1:$HostPort"
     keyscan = $keyscanOut
-    passwordLogin = [bool]$ApplicationSmoke
+    passwordLogin = [bool]($ApplicationSmoke -or $AppsDefaultMirrorSmoke)
     applicationSmoke = [bool]$ApplicationSmoke
-    applicationSmokeOutput = if ($ApplicationSmoke) { $appSmokeOut } else { $null }
+    appsDefaultMirrorSmoke = [bool]$AppsDefaultMirrorSmoke
+    applicationSmokeOutput = if ($ApplicationSmoke -or $AppsDefaultMirrorSmoke) { $appSmokeOut } else { $null }
     screenshot = (Get-ChildItem -LiteralPath $session -Filter 'ssh-reachable*.png' | Select-Object -First 1).FullName
-    applicationScreenshot = if ($ApplicationSmoke) { (Get-ChildItem -LiteralPath $session -Filter 'application-smoke*.png' | Select-Object -First 1).FullName } else { $null }
+    applicationScreenshot = if ($ApplicationSmoke -or $AppsDefaultMirrorSmoke) { (Get-ChildItem -LiteralPath $session -Filter 'application-smoke*.png' | Select-Object -First 1).FullName } else { $null }
     session = $session
 }

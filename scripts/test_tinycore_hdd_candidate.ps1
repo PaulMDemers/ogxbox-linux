@@ -97,6 +97,10 @@ if ($null -ne $manifest.candidate.fatxLoopReadAheadKb) {
         }
     }
 }
+if ($manifest.candidate.appsSkipMirror -eq $true -and
+    $append -notmatch '(?:^| )xbox_apps_skip_mirror=1(?: |$)') {
+    throw "Apps-default-mirror candidate is missing xbox_apps_skip_mirror=1: $appendLine"
+}
 
 $session = Join-Path (Join-Path $repoRoot $OutputRoot) ([DateTime]::Now.ToString('yyyyMMdd-HHmmss'))
 New-Item -ItemType Directory -Force -Path $session, (Split-Path -Parent $rawHdd) | Out-Null

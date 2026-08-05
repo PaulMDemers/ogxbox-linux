@@ -551,6 +551,25 @@ echo wbar > /etc/sysconfig/icons
 echo Xfbdev > /etc/sysconfig/Xserver
 ln -snf /tmp/tce /etc/sysconfig/tcedir
 
+APPS_SKIP_MIRROR=0
+for arg in $(cat /proc/cmdline 2>/dev/null); do
+    case "$arg" in
+        xbox_apps_skip_mirror=1) APPS_SKIP_MIRROR=1 ;;
+    esac
+done
+if [ "$APPS_SKIP_MIRROR" = "1" ]; then
+    # Tiny Core Apps uses this standard marker to record that its first-run
+    # mirror prompt has completed. Apps checks it relative to the optional
+    # directory, so that standard directory must exist before Apps starts.
+    mkdir -p /tmp/tce/optional
+    : > /tmp/tce/firstrun
+    {
+        echo "marker=/tmp/tce/firstrun"
+        echo "mirror=$(cat /opt/tcemirror 2>/dev/null)"
+        echo "XBOX_APPS_DEFAULT_MIRROR_OK"
+    } > /tmp/xbox-apps-default-mirror.txt
+fi
+
 cat > /usr/local/bin/xbox-storage-tune <<'EOX'
 #!/bin/sh
 DISK_RA=1024
