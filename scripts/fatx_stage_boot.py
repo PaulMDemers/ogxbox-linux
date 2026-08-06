@@ -52,6 +52,9 @@ KNOWN_BOOT_ROOT_FILES = (
     "rwkrnl",
     "rwinit",
     "rwdebian.ext2",
+    "pskrnl",
+    "psinit",
+    "psdebian.ext2",
 )
 
 

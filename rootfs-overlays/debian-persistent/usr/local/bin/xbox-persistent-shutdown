@@ -1,0 +1,89 @@
+#!/bin/sh
+
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+STATUS_FILE=/root/xbox-shutdown-status.txt
+
+root_is_read_only() {
+    while IFS=' ' read -r _device mountpoint _type options _rest; do
+        [ "$mountpoint" = "/" ] || continue
+        case ",$options," in
+            *,ro,*) return 0 ;;
+        esac
+        return 1
+    done < /proc/mounts
+    return 1
+}
+
+writable_descriptors() {
+    echo "writable file descriptors before remount:"
+    found=0
+    for info in /proc/[0-9]*/fdinfo/[0-9]*; do
+        [ -r "$info" ] || continue
+        flags="$(awk '$1 == "flags:" { print $2; exit }' "$info" 2>/dev/null)"
+        last_digit="${flags#${flags%?}}"
+        case "$last_digit" in
+            1|2|3|5|6|7) ;;
+            *) continue ;;
+        esac
+        fd="${info%/fdinfo/*}/fd/${info##*/}"
+        target="$(readlink "$fd" 2>/dev/null || true)"
+        echo "  $fd flags=$flags target=$target"
+        found=1
+    done
+    [ "$found" = "1" ] || echo "  none"
+}
+
+printf 'XBOX_SHUTDOWN_STATUS=PENDING_\n' > "$STATUS_FILE"
+sync
+ROOT_DEV="$(awk '$2 == "/" { print $1; exit }' /proc/mounts 2>/dev/null)"
+echo "root device: ${ROOT_DEV:-unknown}"
+awk '$2 == "/" { print "root mount: " $0; exit }' /proc/mounts 2>/dev/null || true
+writable_descriptors
+
+# SAFE is written before the remount because the root cannot be updated afterward.
+# The host gate also requires a clean fsck and an emulator poweroff to accept it.
+printf 'XBOX_SHUTDOWN_STATUS=SAFE____\n' > "$STATUS_FILE"
+sync
+
+attempt=1
+while [ "$attempt" -le 5 ]; do
+    echo "read-only remount attempt $attempt"
+    if [ -n "$ROOT_DEV" ] && [ -x /bin/busybox ]; then
+        if [ "$attempt" = "1" ]; then
+            remount_output="$(/bin/busybox mount -n -o remount,ro "$ROOT_DEV" / 2>&1)"
+        else
+            remount_output="$(/bin/busybox mount -n -o remount,ro / 2>&1)"
+        fi
+        remount_status=$?
+    elif [ -n "$ROOT_DEV" ]; then
+        remount_output="$(mount -n -o remount,ro "$ROOT_DEV" / 2>&1)"
+        remount_status=$?
+    else
+        remount_output="$(mount -n -o remount,ro / 2>&1)"
+        remount_status=$?
+    fi
+    echo "remount status: $remount_status"
+    [ -n "$remount_output" ] && echo "remount output: $remount_output"
+    if root_is_read_only; then
+        sync
+        echo "XBOX_PERSISTENT_SHUTDOWN_SAFE"
+        echo "Powering off through the Xbox kernel hook."
+        sleep 3
+        if [ -x /bin/busybox ]; then
+            /bin/busybox poweroff -f
+        else
+            poweroff -f
+        fi
+        echo "XBOX_PERSISTENT_POWEROFF_RETURNED"
+        while :; do sleep 3600; done
+    fi
+    sync
+    sleep 2
+    attempt=$((attempt + 1))
+done
+
+printf 'XBOX_SHUTDOWN_STATUS=FAILED__\n' > "$STATUS_FILE"
+sync
+echo "XBOX_PERSISTENT_SHUTDOWN_FAILED"
+echo "The root is still writable. Do not power off or reset."
+while :; do sleep 3600; done

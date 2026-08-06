@@ -1,0 +1,45 @@
+#!/bin/sh
+
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+export HOME=/root
+export TERM=linux
+
+mount -t proc proc /proc 2>/dev/null || true
+mount -t sysfs sysfs /sys 2>/dev/null || true
+mount -t devtmpfs devtmpfs /dev 2>/dev/null || true
+mkdir -p /dev/pts /run /tmp /var/log /var/tmp /var/lib/dhcp
+mount -t devpts devpts /dev/pts 2>/dev/null || true
+mount -t tmpfs -o mode=0755,nosuid,nodev tmpfs /run 2>/dev/null || true
+mount -t tmpfs -o mode=1777,nosuid,nodev tmpfs /tmp 2>/dev/null || true
+mount -t tmpfs -o mode=0755,nosuid,nodev tmpfs /var/log 2>/dev/null || true
+mount -t tmpfs -o mode=1777,nosuid,nodev tmpfs /var/tmp 2>/dev/null || true
+mount -t tmpfs -o mode=0755,nosuid,nodev tmpfs /var/lib/dhcp 2>/dev/null || true
+
+mkdir -p /run/resolvconf
+if [ -e /etc/resolv.conf ]; then
+    cp /etc/resolv.conf /run/resolv.conf/resolv.conf 2>/dev/null || true
+    mount --bind /run/resolv.conf/resolv.conf /etc/resolv.conf 2>/dev/null || true
+fi
+
+NO_EARLY_HELPERS=0
+for arg in $(cat /proc/cmdline 2>/dev/null); do
+    case "$arg" in
+        xbox_no_early_helpers=1) NO_EARLY_HELPERS=1 ;;
+    esac
+done
+
+if [ "$NO_EARLY_HELPERS" != "1" ]; then
+    [ -x /usr/local/bin/xbox-storage-tune ] && /usr/local/bin/xbox-storage-tune 2>/dev/null || true
+    if [ -x /usr/local/bin/xbox-network-up ]; then
+        /usr/local/bin/xbox-network-up >/tmp/xbox-network-up.txt 2>&1 &
+    fi
+fi
+
+echo
+echo "XBOX_DEBIAN_PERSISTENT_SHELL_READY"
+echo "Changes under /root persist across clean shutdowns."
+echo "Run xbox-persistent-shutdown before poweroff or reset."
+echo
+cd /root || cd /
+
+exec /bin/sh -i </dev/console >/dev/console 2>&1
